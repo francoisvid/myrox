@@ -1,32 +1,58 @@
-//
-//  myROXApp.swift
-//  myROX
-//
-//  Created by François vidal on 24/05/2025.
-//
-
 import SwiftUI
 import SwiftData
+import FirebaseCore
 
 @main
-struct myROXApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-
+struct MyROXApp: App {
+    let modelContainer = ModelContainer.shared
+    @StateObject private var authViewModel = AuthViewModel()
+    @State private var isInitialized = false
+    @State private var isFirstLaunch = true
+    
+    init() {
+        // Configurer Firebase
+        FirebaseApp.configure()
+    }
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            Group {
+                if !isInitialized {
+                    ProgressView("Initialisation...")
+                        .task {
+                            await initializeApp()
+                        }
+                } else if authViewModel.isLoggedIn {
+                    ContentView()
+                        .environmentObject(authViewModel)
+                } else if isFirstLaunch {
+                    SplashScreenView()
+                        .environmentObject(authViewModel)
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                                isFirstLaunch = false
+                            }
+                        }
+                } else {
+                    LoginView()
+                        .environmentObject(authViewModel)
+                }
+            }
+            .modelContainer(modelContainer.container)
         }
-        .modelContainer(sharedModelContainer)
+    }
+    
+    private func initializeApp() async {
+        do {
+            try await modelContainer.initializeExerciseCatalog()
+            await MainActor.run {
+                isInitialized = true
+            }
+        } catch {
+            print("Erreur lors de l'initialisation: \(error)")
+            await MainActor.run {
+                isInitialized = true
+            }
+        }
     }
 }

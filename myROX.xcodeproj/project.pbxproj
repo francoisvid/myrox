@@ -6,6 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A77030942DE2BAC200184368 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = A77030932DE2BAC200184368 /* FirebaseAuth */; };
+		A77030962DE2BAC200184368 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = A77030952DE2BAC200184368 /* FirebaseCore */; };
+		A77030982DE2BAC200184368 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = A77030972DE2BAC200184368 /* FirebaseFirestore */; };
+		A77F82CA2DE248D00028CE89 /* myROX_watch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = A77F82AA2DE248CF0028CE89 /* myROX_watch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		A77F821A2DE246AB0028CE89 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,17 +28,72 @@
 			remoteGlobalIDString = A77F82092DE246A90028CE89;
 			remoteInfo = myROX;
 		};
+		A77F82B72DE248D00028CE89 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A77F82022DE246A90028CE89 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A77F82A92DE248CF0028CE89;
+			remoteInfo = "myROX_watch Watch App";
+		};
+		A77F82C12DE248D00028CE89 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A77F82022DE246A90028CE89 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A77F82A92DE248CF0028CE89;
+			remoteInfo = "myROX_watch Watch App";
+		};
+		A77F82C82DE248D00028CE89 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A77F82022DE246A90028CE89 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A77F82A92DE248CF0028CE89;
+			remoteInfo = "myROX_watch Watch App";
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A77F82CE2DE248D00028CE89 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				A77F82CA2DE248D00028CE89 /* myROX_watch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		A77F820A2DE246A90028CE89 /* myROX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = myROX.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A77F82192DE246AB0028CE89 /* myROXTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = myROXTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A77F82232DE246AB0028CE89 /* myROXUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = myROXUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A77F82AA2DE248CF0028CE89 /* myROX_watch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "myROX_watch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A77F82B62DE248D00028CE89 /* myROX_watch Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "myROX_watch Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A77F82C02DE248D00028CE89 /* myROX_watch Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "myROX_watch Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A7936D482DE49882008631EE /* myROX-watch-Watch-App-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "myROX-watch-Watch-App-Info.plist"; sourceTree = "<group>"; };
+		A7936D492DE498A9008631EE /* myROX_watch Watch App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "myROX_watch Watch App.entitlements"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A7936D4B2DE499E3008631EE /* Exceptions for "myROX" folder in "myROX_watch Watch App" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Shared/Extensions/Date+Extensions.swift",
+				"Shared/Extensions/TimeInterval+Extensions.swift",
+				"Shared/Extensions/View+Extensions.swift",
+			);
+			target = A77F82A92DE248CF0028CE89 /* myROX_watch Watch App */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A77F820C2DE246A90028CE89 /* myROX */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A7936D4B2DE499E3008631EE /* Exceptions for "myROX" folder in "myROX_watch Watch App" target */,
+			);
 			path = myROX;
 			sourceTree = "<group>";
 		};
@@ -45,6 +107,21 @@
 			path = myROXUITests;
 			sourceTree = "<group>";
 		};
+		A77F82AB2DE248CF0028CE89 /* myROX_watch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = myROX_watch;
+			sourceTree = "<group>";
+		};
+		A77F82B92DE248D00028CE89 /* myROX_watch AppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "myROX_watch AppTests";
+			sourceTree = "<group>";
+		};
+		A77F82C32DE248D00028CE89 /* myROX_watch AppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "myROX_watch AppUITests";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,6 +129,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A77030962DE2BAC200184368 /* FirebaseCore in Frameworks */,
+				A77030942DE2BAC200184368 /* FirebaseAuth in Frameworks */,
+				A77030982DE2BAC200184368 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -69,15 +149,41 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A77F82A72DE248CF0028CE89 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A77F82B32DE248D00028CE89 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A77F82BD2DE248D00028CE89 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		A77F82012DE246A90028CE89 = {
 			isa = PBXGroup;
 			children = (
+				A7936D492DE498A9008631EE /* myROX_watch Watch App.entitlements */,
+				A7936D482DE49882008631EE /* myROX-watch-Watch-App-Info.plist */,
 				A77F820C2DE246A90028CE89 /* myROX */,
 				A77F821C2DE246AB0028CE89 /* myROXTests */,
 				A77F82262DE246AB0028CE89 /* myROXUITests */,
+				A77F82AB2DE248CF0028CE89 /* myROX_watch */,
+				A77F82B92DE248D00028CE89 /* myROX_watch AppTests */,
+				A77F82C32DE248D00028CE89 /* myROX_watch AppUITests */,
 				A77F820B2DE246A90028CE89 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,6 +194,9 @@
 				A77F820A2DE246A90028CE89 /* myROX.app */,
 				A77F82192DE246AB0028CE89 /* myROXTests.xctest */,
 				A77F82232DE246AB0028CE89 /* myROXUITests.xctest */,
+				A77F82AA2DE248CF0028CE89 /* myROX_watch Watch App.app */,
+				A77F82B62DE248D00028CE89 /* myROX_watch Watch AppTests.xctest */,
+				A77F82C02DE248D00028CE89 /* myROX_watch Watch AppUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -102,16 +211,21 @@
 				A77F82062DE246A90028CE89 /* Sources */,
 				A77F82072DE246A90028CE89 /* Frameworks */,
 				A77F82082DE246A90028CE89 /* Resources */,
+				A77F82CE2DE248D00028CE89 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A77F82C92DE248D00028CE89 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				A77F820C2DE246A90028CE89 /* myROX */,
 			);
 			name = myROX;
 			packageProductDependencies = (
+				A77030932DE2BAC200184368 /* FirebaseAuth */,
+				A77030952DE2BAC200184368 /* FirebaseCore */,
+				A77030972DE2BAC200184368 /* FirebaseFirestore */,
 			);
 			productName = myROX;
 			productReference = A77F820A2DE246A90028CE89 /* myROX.app */;
@@ -163,6 +277,74 @@
 			productReference = A77F82232DE246AB0028CE89 /* myROXUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		A77F82A92DE248CF0028CE89 /* myROX_watch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A77F82CB2DE248D00028CE89 /* Build configuration list for PBXNativeTarget "myROX_watch Watch App" */;
+			buildPhases = (
+				A77F82A62DE248CF0028CE89 /* Sources */,
+				A77F82A72DE248CF0028CE89 /* Frameworks */,
+				A77F82A82DE248CF0028CE89 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A77F82AB2DE248CF0028CE89 /* myROX_watch */,
+			);
+			name = "myROX_watch Watch App";
+			packageProductDependencies = (
+			);
+			productName = "myROX_watch Watch App";
+			productReference = A77F82AA2DE248CF0028CE89 /* myROX_watch Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A77F82B52DE248D00028CE89 /* myROX_watch Watch AppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A77F82CF2DE248D00028CE89 /* Build configuration list for PBXNativeTarget "myROX_watch Watch AppTests" */;
+			buildPhases = (
+				A77F82B22DE248D00028CE89 /* Sources */,
+				A77F82B32DE248D00028CE89 /* Frameworks */,
+				A77F82B42DE248D00028CE89 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A77F82B82DE248D00028CE89 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A77F82B92DE248D00028CE89 /* myROX_watch AppTests */,
+			);
+			name = "myROX_watch Watch AppTests";
+			packageProductDependencies = (
+			);
+			productName = "myROX_watch Watch AppTests";
+			productReference = A77F82B62DE248D00028CE89 /* myROX_watch Watch AppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		A77F82BF2DE248D00028CE89 /* myROX_watch Watch AppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A77F82D22DE248D00028CE89 /* Build configuration list for PBXNativeTarget "myROX_watch Watch AppUITests" */;
+			buildPhases = (
+				A77F82BC2DE248D00028CE89 /* Sources */,
+				A77F82BD2DE248D00028CE89 /* Frameworks */,
+				A77F82BE2DE248D00028CE89 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A77F82C22DE248D00028CE89 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A77F82C32DE248D00028CE89 /* myROX_watch AppUITests */,
+			);
+			name = "myROX_watch Watch AppUITests";
+			packageProductDependencies = (
+			);
+			productName = "myROX_watch Watch AppUITests";
+			productReference = A77F82C02DE248D00028CE89 /* myROX_watch Watch AppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -184,6 +366,17 @@
 						CreatedOnToolsVersion = 16.3;
 						TestTargetID = A77F82092DE246A90028CE89;
 					};
+					A77F82A92DE248CF0028CE89 = {
+						CreatedOnToolsVersion = 16.3;
+					};
+					A77F82B52DE248D00028CE89 = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = A77F82A92DE248CF0028CE89;
+					};
+					A77F82BF2DE248D00028CE89 = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = A77F82A92DE248CF0028CE89;
+					};
 				};
 			};
 			buildConfigurationList = A77F82052DE246A90028CE89 /* Build configuration list for PBXProject "myROX" */;
@@ -195,6 +388,9 @@
 			);
 			mainGroup = A77F82012DE246A90028CE89;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A77030922DE2BAC200184368 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A77F820B2DE246A90028CE89 /* Products */;
 			projectDirPath = "";
@@ -203,6 +399,9 @@
 				A77F82092DE246A90028CE89 /* myROX */,
 				A77F82182DE246AB0028CE89 /* myROXTests */,
 				A77F82222DE246AB0028CE89 /* myROXUITests */,
+				A77F82A92DE248CF0028CE89 /* myROX_watch Watch App */,
+				A77F82B52DE248D00028CE89 /* myROX_watch Watch AppTests */,
+				A77F82BF2DE248D00028CE89 /* myROX_watch Watch AppUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -223,6 +422,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A77F82212DE246AB0028CE89 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A77F82A82DE248CF0028CE89 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A77F82B42DE248D00028CE89 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A77F82BE2DE248D00028CE89 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -253,6 +473,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A77F82A62DE248CF0028CE89 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A77F82B22DE248D00028CE89 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A77F82BC2DE248D00028CE89 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -265,6 +506,21 @@
 			isa = PBXTargetDependency;
 			target = A77F82092DE246A90028CE89 /* myROX */;
 			targetProxy = A77F82242DE246AB0028CE89 /* PBXContainerItemProxy */;
+		};
+		A77F82B82DE248D00028CE89 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A77F82A92DE248CF0028CE89 /* myROX_watch Watch App */;
+			targetProxy = A77F82B72DE248D00028CE89 /* PBXContainerItemProxy */;
+		};
+		A77F82C22DE248D00028CE89 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A77F82A92DE248CF0028CE89 /* myROX_watch Watch App */;
+			targetProxy = A77F82C12DE248D00028CE89 /* PBXContainerItemProxy */;
+		};
+		A77F82C92DE248D00028CE89 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A77F82A92DE248CF0028CE89 /* myROX_watch Watch App */;
+			targetProxy = A77F82C82DE248D00028CE89 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -395,26 +651,33 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = myROX/myROX.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9DJHH4ZSN5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MyROX;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.vdl-creation.myROX";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -423,26 +686,33 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = myROX/myROX.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9DJHH4ZSN5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MyROX;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.vdl-creation.myROX";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -518,6 +788,146 @@
 			};
 			name = Release;
 		};
+		A77F82CC2DE248D00028CE89 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "myROX_watch Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9DJHH4ZSN5;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "myROX-watch-Watch-App-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = MyROX;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "com.vdl-creation.myROX";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.vdl-creation.myROX.watchkitapp";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
+			};
+			name = Debug;
+		};
+		A77F82CD2DE248D00028CE89 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "myROX_watch Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9DJHH4ZSN5;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "myROX-watch-Watch-App-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = MyROX;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "com.vdl-creation.myROX";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.vdl-creation.myROX.watchkitapp";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
+			};
+			name = Release;
+		};
+		A77F82D02DE248D00028CE89 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9DJHH4ZSN5;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.vdl-creation.myROX-watch-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/myROX_watch Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/myROX_watch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 11.4;
+			};
+			name = Debug;
+		};
+		A77F82D12DE248D00028CE89 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9DJHH4ZSN5;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.vdl-creation.myROX-watch-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/myROX_watch Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/myROX_watch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 11.4;
+			};
+			name = Release;
+		};
+		A77F82D32DE248D00028CE89 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9DJHH4ZSN5;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.vdl-creation.myROX-watch-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "myROX_watch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 11.4;
+			};
+			name = Debug;
+		};
+		A77F82D42DE248D00028CE89 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9DJHH4ZSN5;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.vdl-creation.myROX-watch-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "myROX_watch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 11.4;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -557,7 +967,63 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		A77F82CB2DE248D00028CE89 /* Build configuration list for PBXNativeTarget "myROX_watch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A77F82CC2DE248D00028CE89 /* Debug */,
+				A77F82CD2DE248D00028CE89 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A77F82CF2DE248D00028CE89 /* Build configuration list for PBXNativeTarget "myROX_watch Watch AppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A77F82D02DE248D00028CE89 /* Debug */,
+				A77F82D12DE248D00028CE89 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A77F82D22DE248D00028CE89 /* Build configuration list for PBXNativeTarget "myROX_watch Watch AppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A77F82D32DE248D00028CE89 /* Debug */,
+				A77F82D42DE248D00028CE89 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A77030922DE2BAC200184368 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.13.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A77030932DE2BAC200184368 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A77030922DE2BAC200184368 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		A77030952DE2BAC200184368 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A77030922DE2BAC200184368 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		A77030972DE2BAC200184368 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A77030922DE2BAC200184368 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A77F82022DE246A90028CE89 /* Project object */;
 }

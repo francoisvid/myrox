@@ -1,0 +1,282 @@
+import SwiftUI
+import SwiftData
+
+struct CreateTemplateView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    @Query(sort: \Exercise.name) private var exercises: [Exercise]
+    
+    let viewModel: WorkoutViewModel?
+    
+    @State private var templateName = ""
+    @State private var selectedExercises: [Exercise] = []
+    @State private var showingExercisePicker = false
+    
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Nom du template
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Nom de l'entraînement")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    TextField("Ex: HYROX Complet", text: $templateName)
+                        .font(.title3)
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                }
+                .padding()
+                
+                // Liste des exercices sélectionnés
+                if selectedExercises.isEmpty {
+                    emptyExerciseState
+                } else {
+                    selectedExercisesList
+                }
+                
+                Spacer()
+                
+                // Buttons
+                VStack(spacing: 12) {
+                    Button {
+                        showingExercisePicker = true
+                    } label: {
+                        Label("Ajouter des exercices", systemImage: "plus.circle")
+                            .secondaryButtonStyle()
+                    }
+                    
+                    Button {
+                        createTemplate()
+                    } label: {
+                        Text("Créer l'entraînement")
+                            .primaryButtonStyle()
+                    }
+                    .disabled(templateName.isEmpty || selectedExercises.isEmpty)
+                }
+                .padding()
+            }
+            .background(Color.black.ignoresSafeArea())
+            .navigationTitle("Nouveau template")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Annuler") {
+                        dismiss()
+                    }
+                    .foregroundColor(.yellow)
+                }
+            }
+            .sheet(isPresented: $showingExercisePicker) {
+                ExercisePickerView(
+                    exercises: exercises,
+                    selectedExercises: $selectedExercises
+                )
+            }
+        }
+    }
+    
+    private var emptyExerciseState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "list.bullet.clipboard")
+                .font(.system(size: 60))
+                .foregroundColor(.gray)
+            
+            Text("Aucun exercice sélectionné")
+                .font(.headline)
+                .foregroundColor(.gray)
+            
+            Text("Ajoutez des exercices pour créer votre template")
+                .font(.caption)
+                .foregroundColor(.gray.opacity(0.8))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+    }
+    
+    private var selectedExercisesList: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                ForEach(selectedExercises) { exercise in
+                    ExerciseListItem(
+                        exercise: exercise,
+                        position: selectedExercises.firstIndex(of: exercise)! + 1,
+                        onRemove: {
+                            withAnimation {
+                                if let index = selectedExercises.firstIndex(of: exercise) {
+                                    selectedExercises.remove(at: index)
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+            .padding()
+        }
+    }
+    
+    private func createTemplate() {
+        guard let vm = viewModel else { return }
+        
+        let exerciseNames = selectedExercises.map { $0.name }
+        vm.createTemplate(name: templateName, exerciseNames: exerciseNames)
+        
+        dismiss()
+    }
+}
+
+// MARK: - Exercise Picker
+
+struct ExercisePickerView: View {
+    let exercises: [Exercise]
+    @Binding var selectedExercises: [Exercise]
+    @Environment(\.dismiss) private var dismiss
+    @State private var tempSelection: Set<Exercise> = []
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(exercises) { exercise in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(exercise.name)
+                                .font(.headline)
+                            
+                            HStack {
+                                Label(exercise.category, systemImage: iconForCategory(exercise.category))
+                                    .font(.caption)
+                                    .foregroundColor(.yellow)
+                                
+                                if exercise.hasDistance {
+                                    Text("• \(Int(exercise.standardDistance ?? 0))m")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
+                                
+                                if exercise.hasRepetitions {
+                                    Text("• \(Int(exercise.standardRepetitions ?? 0)) reps")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                        }
+                        
+                        Spacer()
+                        
+                        if tempSelection.contains(exercise) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.yellow)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if tempSelection.contains(exercise) {
+                            tempSelection.remove(exercise)
+                        } else {
+                            tempSelection.insert(exercise)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Choisir des exercices")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Annuler") {
+                        dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Valider (\(tempSelection.count))") {
+                        // CORRECTION ICI : On remplace au lieu d'ajouter
+                        selectedExercises = Array(tempSelection)
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                    .disabled(tempSelection.isEmpty)
+                }
+            }
+        }
+        .onAppear {
+            // On initialise avec les exercices déjà sélectionnés
+            tempSelection = Set(selectedExercises)
+        }
+    }
+    
+    private func iconForCategory(_ category: String) -> String {
+        switch category {
+        case "Cardio": return "heart.fill"
+        case "Force": return "dumbbell.fill"
+        case "Plyo": return "figure.jumprope"
+        default: return "figure.strengthtraining.traditional"
+        }
+    }
+}
+
+// MARK: - Exercise List Item
+
+struct ExerciseListItem: View {
+    let exercise: Exercise
+    let position: Int
+    let onRemove: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Text("\(position)")
+                .font(.headline)
+                .foregroundColor(.blue)
+                .frame(width: 30)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(exercise.name)
+                    .font(.headline)
+                    .foregroundColor(.white)
+                
+                HStack(spacing: 8) {
+                    Label(exercise.category, systemImage: iconForCategory(exercise.category))
+                        .font(.caption)
+                        .foregroundColor(.yellow)
+                    
+                    if exercise.hasDistance {
+                        Text("\(Int(exercise.standardDistance ?? 0))m")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                    
+                    if exercise.hasRepetitions {
+                        Text("\(Int(exercise.standardRepetitions ?? 0)) reps")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            Button {
+                onRemove()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.red.opacity(0.8))
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    private func iconForCategory(_ category: String) -> String {
+        switch category {
+        case "Cardio": return "heart.fill"
+        case "Force": return "dumbbell.fill"
+        case "Plyo": return "figure.jumprope"
+        default: return "figure.strengthtraining.traditional"
+        }
+    }
+}
+#Preview {
+    CreateTemplateView(viewModel: WorkoutViewModel(modelContext: ModelContainer.shared.container.mainContext))
+        .modelContainer(ModelContainer.shared.container)
+}
