@@ -379,7 +379,7 @@
 					};
 				};
 			};
-			buildConfigurationList = A77F82052DE246A90028CE89 /* Build configuration list for PBXProject "myROX" */;
+			buildConfigurationList = A77F82052DE246A90028CE89 /* Build configuration list for PBXProject "MyROX" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -931,7 +931,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A77F82052DE246A90028CE89 /* Build configuration list for PBXProject "myROX" */ = {
+		A77F82052DE246A90028CE89 /* Build configuration list for PBXProject "MyROX" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A77F822B2DE246AB0028CE89 /* Debug */,
