@@ -71,6 +71,7 @@ struct ContentView: View {
             .onAppear {
                 dataService.requestTemplates()
                 dataService.requestWorkoutCount()
+                dataService.requestGoals()
             }
         }
     }

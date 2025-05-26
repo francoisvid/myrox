@@ -24,9 +24,24 @@ struct ActiveWorkoutView: View {
                             Text(exercise.name)
                                 .font(.headline)
                             
+                            // Afficher l'objectif
+                            if let targetTime = dataService.goals[exercise.name], targetTime > 0 {
+                                Text("Objectif: \(targetTime.formatted)")
+                                    .font(.caption)
+                                    .foregroundColor(.yellow)
+                            }
+                            
                             Text(viewModel.exerciseTimer.formatted)
                                 .font(.system(size: 40, weight: .bold, design: .monospaced))
                                 .foregroundColor(.yellow)
+                            
+                            // Indicateur visuel si on dépasse l'objectif
+                            if let targetTime = dataService.goals[exercise.name],
+                               targetTime > 0 && viewModel.exerciseTimer > targetTime {
+                                Text("Objectif dépassé!")
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                            }
                             
                             // Controls
                             HStack(spacing: 20) {

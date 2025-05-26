@@ -57,6 +57,11 @@ struct GoalsSection: View {
         
         try? modelContext.save()
         editingGoal = nil
+        
+        // Synchroniser avec la Watch
+        DispatchQueue.main.async {
+            WatchConnectivityService.shared.sendGoals()
+        }
     }
 }
 

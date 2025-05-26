@@ -5,6 +5,8 @@ struct ExerciseDetailView: View {
     @Bindable var exercise: WorkoutExercise
     @Bindable var viewModel: WorkoutViewModel
     @Environment(\.dismiss) private var dismiss
+    @Query private var goals: [ExerciseGoal]
+    
     @State private var duration: TimeInterval = 0
     @State private var distance: Double = 0
     @State private var repetitions: Int = 0
@@ -14,6 +16,10 @@ struct ExerciseDetailView: View {
 
     // Ajoute le modelContext pour accéder aux données SwiftData
     @Environment(\.modelContext) private var modelContext
+    
+    private var targetTime: TimeInterval? {
+        goals.first(where: { $0.exerciseName == exercise.exerciseName })?.targetTime
+    }
 
     var body: some View {
         NavigationStack {
@@ -22,10 +28,49 @@ struct ExerciseDetailView: View {
                     .font(.largeTitle.bold())
                     .foregroundColor(.white)
                     .padding(.top, 30)
-
-                Text(duration.formattedWithMilliseconds)
-                    .font(.system(size: 70, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white)
+                
+                // Afficher l'objectif
+                if let target = targetTime, target > 0 {
+                    HStack {
+                        Image(systemName: "target")
+                            .foregroundColor(.yellow)
+                        Text("Objectif: \(target.formatted)")
+                            .foregroundColor(.yellow)
+                    }
+                    .font(.headline)
+                }
+                
+                // Timer avec indicateur visuel
+                ZStack {
+                    Text(duration.formatted)
+                        .font(.system(size: 80, weight: .bold, design: .monospaced))
+                        .foregroundColor(timerColor)
+                    
+                    // Cercle de progression si objectif défini
+                    if let target = targetTime, target > 0 {
+                        Circle()
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 4)
+                            .frame(width: 200, height: 200)
+                        
+                        Circle()
+                            .trim(from: 0, to: min(1, duration / target))
+                            .stroke(
+                                duration > target ? Color.orange : Color.yellow,
+                                style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                            )
+                            .frame(width: 200, height: 200)
+                            .rotationEffect(.degrees(-90))
+                            .animation(.linear, value: duration)
+                            .padding(20)
+                    }
+                }
+                
+                // Message si objectif dépassé
+                if let target = targetTime, target > 0 && duration > target {
+                    Text("Objectif dépassé de \((duration - target).formatted)")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
 
                 timerControls
                 inputFields
@@ -56,6 +101,11 @@ struct ExerciseDetailView: View {
         .onDisappear {
             timer?.invalidate()
         }
+    }
+    
+    private var timerColor: Color {
+        guard let target = targetTime, target > 0 else { return .white }
+        return duration > target ? .orange : .white
     }
 
     private var timerControls: some View {

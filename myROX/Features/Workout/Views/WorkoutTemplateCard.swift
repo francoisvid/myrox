@@ -9,6 +9,7 @@ struct WorkoutTemplateCard: View {
     
     @Environment(\.modelContext) private var modelContext
     @State private var exercises: [Exercise] = []
+    @Query private var goals: [ExerciseGoal]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -56,6 +57,13 @@ struct WorkoutTemplateCard: View {
                             .lineLimit(1)
                         
                         Spacer()
+                        
+                        if let goal = goals.first(where: { $0.exerciseName == exerciseName }),
+                           goal.targetTime > 0 {
+                            Text("< \(goal.targetTime.formatted)")
+                                .font(.caption2)
+                                .foregroundColor(.yellow.opacity(0.8))
+                        }
                         
                         if let exercise = exercises.first(where: { $0.name == exerciseName }) {
                             Image(systemName: iconForCategory(exercise.category))

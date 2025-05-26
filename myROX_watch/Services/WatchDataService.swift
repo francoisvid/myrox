@@ -9,6 +9,7 @@ class WatchDataService: NSObject, ObservableObject {
     @Published var templates: [WatchTemplate] = []
     @Published var activeWorkout: WatchWorkout?
     @Published var isPhoneReachable = false
+    @Published var goals: [String: TimeInterval] = [:]
     
     private var session: WCSession
     private let healthStore = HKHealthStore()
@@ -18,6 +19,10 @@ class WatchDataService: NSObject, ObservableObject {
     override init() {
         self.session = WCSession.default
         super.init()
+        
+        if let savedGoals = UserDefaults.standard.object(forKey: "exerciseGoals") as? [String: TimeInterval] {
+            self.goals = savedGoals
+        }
         
         if WCSession.isSupported() {
             session.delegate = self
@@ -44,6 +49,15 @@ class WatchDataService: NSObject, ObservableObject {
         let message = ["action": "requestWorkoutCount"]
         session.sendMessage(message, replyHandler: nil) { error in
             print("Erreur demande count: \(error)")
+        }
+    }
+    
+    func requestGoals() {
+        guard session.isReachable else { return }
+        
+        let message = ["action": "requestGoals"]
+        session.sendMessage(message, replyHandler: nil) { error in
+            print("Erreur demande goals: \(error)")
         }
     }
     
@@ -288,6 +302,20 @@ extension WatchDataService: WCSessionDelegate {
         DispatchQueue.main.async {
             if let count = message["workoutCount"] as? Int {
                 self.workoutCount = count
+            }
+            
+            if let goalsData = message["goals"] as? [[String: Any]] {
+                var newGoals: [String: TimeInterval] = [:]
+                for goalData in goalsData {
+                    if let exerciseName = goalData["exerciseName"] as? String,
+                       let targetTime = goalData["targetTime"] as? TimeInterval {
+                        newGoals[exerciseName] = targetTime
+                    }
+                }
+                self.goals = newGoals
+                
+                // Sauvegarder localement
+                UserDefaults.standard.set(newGoals, forKey: "exerciseGoals")
             }
             
             if let templatesData = message["templates"] as? [[String: Any]] {

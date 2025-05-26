@@ -19,32 +19,9 @@ struct ActiveWorkoutView: View {
                 progressBar
                 
                 // Exercise List
-                if let workout = viewModel.activeWorkout, !workout.performances.isEmpty {
-                    VStack(spacing: 12) {
-                        ForEach(workout.performances.prefix(3)) { exercise in
-                            WorkoutExerciseRow(
-                                exercise: exercise,
-                                isNext: viewModel.isNextExercise(exercise),
-                                onTap: {
-                                    selectedExercise = exercise
-                                }
-                            )
-                            .padding()
-                            .background(Color(.systemGray6).opacity(0.2))
-                            .cornerRadius(12)
-                        }
-                    }
-                    .padding(.horizontal)
-                } else {
-                    Text("Aucun exercice pour cet entraînement.")
-                        .foregroundColor(.gray)
-                        .italic()
-                }
+                exerciseList
             }
-            .background(
-                LinearGradient(colors: [.black, .gray], startPoint: .top, endPoint: .bottom)
-                    .ignoresSafeArea()
-            )
+            .background(Color.black.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -75,15 +52,14 @@ struct ActiveWorkoutView: View {
     private var timerHeader: some View {
         VStack(spacing: 8) {
             Text(viewModel.elapsedTime.formatted)
-                .font(.system(size: 50, weight: .bold, design: .monospaced))
+                .font(.system(size: 60, weight: .bold, design: .monospaced))
                 .foregroundColor(.white)
-                .animation(.easeInOut(duration: 0.5), value: viewModel.elapsedTime)
-
+            
             Text("Temps total")
                 .font(.caption)
                 .foregroundColor(.gray)
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, 30)
     }
     
     private var progressBar: some View {
@@ -121,6 +97,25 @@ struct ActiveWorkoutView: View {
         .padding(.bottom, 20)
     }
     
+    private var exerciseList: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                if let workout = viewModel.activeWorkout {
+                    ForEach(workout.performances) { exercise in
+                        WorkoutExerciseRow(
+                            exercise: exercise,
+                            isNext: viewModel.isNextExercise(exercise),
+                            onTap: {
+                                selectedExercise = exercise
+                            }
+                        )
+                    }
+                }
+            }
+            .padding()
+        }
+    }
+    
     private func showEndWorkoutAlert() {
         // Pour iOS 15+, on peut utiliser .alert avec des boutons personnalisés
         // Pour l'instant, on termine directement
@@ -128,3 +123,4 @@ struct ActiveWorkoutView: View {
         dismiss()
     }
 }
+

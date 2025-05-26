@@ -88,6 +88,30 @@ class WatchConnectivityService: NSObject, ObservableObject {
         }
     }
     
+    func sendGoals() {
+        guard session.isReachable else { return }
+        
+        let descriptor = FetchDescriptor<ExerciseGoal>()
+        
+        do {
+            let goals = try modelContext.fetch(descriptor)
+            let goalsData = goals.map { goal in
+                [
+                    "exerciseName": goal.exerciseName,
+                    "targetTime": goal.targetTime
+                ]
+            }
+            
+            let message = ["goals": goalsData]
+            
+            session.sendMessage(message, replyHandler: nil) { error in
+                print("Erreur envoi goals: \(error)")
+            }
+        } catch {
+            print("Erreur fetch goals: \(error)")
+        }
+    }
+    
     // MARK: - Receive from Watch
     
     func handleWorkoutCompleted(_ workoutData: [String: Any]) {
@@ -154,6 +178,7 @@ extension WatchConnectivityService: WCSessionDelegate {
             // Envoyer les données initiales
             sendWorkoutCount()
             sendTemplates()
+            sendGoals()
         }
     }
     
@@ -175,6 +200,9 @@ extension WatchConnectivityService: WCSessionDelegate {
                 switch action {
                 case "requestTemplates":
                     self.sendTemplates()
+                    
+                case "requestGoals":
+                    self.sendGoals()
                     
                 case "requestWorkoutCount":
                     self.sendWorkoutCount()
