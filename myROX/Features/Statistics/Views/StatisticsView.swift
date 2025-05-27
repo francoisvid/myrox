@@ -123,6 +123,18 @@ struct StatisticsView: View {
                     .cornerRadius(12)
             } else {
                 Chart(viewModel.chartData, id: \.0) { item in
+                    AreaMark(
+                        x: .value("Date", item.0),
+                        y: .value("Temps", item.1)
+                    )
+                    .foregroundStyle(
+                        .linearGradient(
+                            colors: [.yellow.opacity(0.3), .yellow.opacity(0.1)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    
                     LineMark(
                         x: .value("Date", item.0),
                         y: .value("Temps", item.1)
@@ -135,13 +147,21 @@ struct StatisticsView: View {
                         y: .value("Temps", item.1)
                     )
                     .foregroundStyle(Color.yellow)
+                    .annotation(position: .top) {
+                        Text(item.1.formatted)
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                    }
                 }
                 .frame(height: 200)
                 .padding()
                 .background(Color(.systemGray6))
                 .cornerRadius(12)
+                .chartYScale(domain: 0...(viewModel.chartData.map { $0.1 }.max() ?? 0) * 1.2)
                 .chartYAxis {
                     AxisMarks { value in
+                        AxisGridLine()
+                            .foregroundStyle(Color.gray.opacity(0.2))
                         AxisValueLabel {
                             if let time = value.as(TimeInterval.self) {
                                 Text(time.formatted)
@@ -152,7 +172,9 @@ struct StatisticsView: View {
                     }
                 }
                 .chartXAxis {
-                    AxisMarks { value in
+                    AxisMarks(values: viewModel.chartData.map { $0.0 }) { value in
+                        AxisGridLine()
+                            .foregroundStyle(Color.gray.opacity(0.2))
                         AxisValueLabel {
                             if let date = value.as(Date.self) {
                                 Text(date, format: .dateTime.day().month(.abbreviated))
@@ -161,6 +183,11 @@ struct StatisticsView: View {
                             }
                         }
                     }
+                }
+                .chartPlotStyle { plotArea in
+                    plotArea
+                        .background(Color.black.opacity(0.1))
+                        .cornerRadius(8)
                 }
             }
         }
