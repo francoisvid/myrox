@@ -19,11 +19,6 @@ struct DashboardView: View {
                     // Dernier entraînement
                     lastWorkoutSection
                     
-                    // Comparaison avec records personnels
-                     if viewModel.lastWorkout != nil {
-                         performanceComparisonSection
-                     }
-                    
                     // Événements à venir
                     upcomingEventsSection
                 }
@@ -40,31 +35,6 @@ struct DashboardView: View {
     
     // MARK: - Sections
     
-    private var performanceComparisonSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Performance vs Records")
-                .font(.title3.bold())
-                .foregroundColor(.white)
-            
-            if let lastWorkout = viewModel.lastWorkout {
-                VStack(spacing: 12) {
-                    ForEach(lastWorkout.performances) { exercise in
-                        if let personalBest = statsViewModel.personalBests[exercise.exerciseName] {
-                            PerformanceComparisonRow(
-                                exerciseName: exercise.exerciseName,
-                                currentPerformance: exercise,
-                                personalBest: personalBest
-                            )
-                        }
-                    }
-                }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(12)
-            }
-        }
-    }
-    
     private var lastWorkoutSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Dernier entraînement")
@@ -72,7 +42,7 @@ struct DashboardView: View {
                 .foregroundColor(.white)
             
             if let workout = viewModel.lastWorkout {
-                LastWorkoutCard(workout: workout)
+                LastWorkoutCard(workout: workout, statsViewModel: statsViewModel)
             } else {
                 NoWorkoutCard()
             }
@@ -96,6 +66,7 @@ struct DashboardView: View {
 
 struct LastWorkoutCard: View {
     let workout: Workout
+    let statsViewModel: StatisticsViewModel
     @State private var showDetails = false
     
     var body: some View {
@@ -155,33 +126,65 @@ struct LastWorkoutCard: View {
                         .font(.caption)
                         .foregroundColor(.gray)
                     
-                    ForEach(workout.performances.sorted(by: { $0.exerciseName < $1.exerciseName })) { exercise in
-                        HStack {
-                            Text(exercise.exerciseName)
-                                .font(.subheadline)
-                                .foregroundColor(.white)
-                            
-                            Spacer()
-                            
-                            HStack(spacing: 12) {
-                                if exercise.distance > 0 {
-                                    Text("\(Int(exercise.distance))m")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
+                    // Grouper les exercices par nom
+                    let groupedExercises = Dictionary(grouping: workout.performances) { $0.exerciseName }
+                    
+                    ForEach(groupedExercises.keys.sorted(), id: \.self) { exerciseName in
+                        if let exercises = groupedExercises[exerciseName] {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    if let personalBest = statsViewModel.personalBests[exerciseName],
+                                       exercises.contains(where: { $0.duration < personalBest.duration }) {
+                                        Image(systemName: "trophy.fill")
+                                            .foregroundColor(.yellow)
+                                    }
+                                    
+                                    Text(exerciseName)
+                                        .font(.subheadline)
+                                        .foregroundColor(.white)
+                                    
+                                    Spacer()
+                                    
+                                    // Afficher le meilleur temps de l'exercice
+                                    if let personalBest = statsViewModel.personalBests[exerciseName] {
+                                        Text(personalBest.duration.formatted)
+                                            .font(.subheadline)
+                                            .foregroundColor(.yellow)
+                                    }
                                 }
                                 
-                                if exercise.repetitions > 0 {
-                                    Text("\(exercise.repetitions)")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
+                                // Afficher les performances par round
+                                ForEach(exercises.sorted(by: { $0.round < $1.round }), id: \.id) { exercise in
+                                    HStack {
+                                        Text("Round \(exercise.round)")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                        
+                                        Spacer()
+                                        
+                                        HStack(spacing: 12) {
+                                            if exercise.distance > 0 {
+                                                Text("\(Int(exercise.distance))m")
+                                                    .font(.caption)
+                                                    .foregroundColor(.gray)
+                                            }
+                                            
+                                            if exercise.repetitions > 0 {
+                                                Text("\(exercise.repetitions)")
+                                                    .font(.caption)
+                                                    .foregroundColor(.gray)
+                                            }
+                                            
+                                            Text(exercise.duration.formatted)
+                                                .font(.subheadline.bold())
+                                                .foregroundColor(.white)
+                                        }
+                                    }
+                                    .padding(.leading, 20)
                                 }
-                                
-                                Text(exercise.duration.formatted)
-                                    .font(.subheadline.bold())
-                                    .foregroundColor(.white)
                             }
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
                     }
                 }
             }

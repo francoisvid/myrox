@@ -11,6 +11,8 @@ final class WorkoutExercise {
     var completedAt: Date?
     var averageHeartRate: Int = 0
     var maxHeartRate: Int = 0
+    var round: Int = 1 // Numéro du round
+    var order: Int = 0 // Ordre dans le round
     
     @Relationship(inverse: \Workout.performances)
     var workout: Workout?
@@ -18,8 +20,10 @@ final class WorkoutExercise {
     @Relationship(deleteRule: .cascade)
     var heartRatePoints: [HeartRatePoint] = []
     
-    init(exerciseName: String) {
+    init(exerciseName: String, round: Int = 1, order: Int = 0) {
         self.id = UUID()
         self.exerciseName = exerciseName
+        self.round = round
+        self.order = order
     }
 }

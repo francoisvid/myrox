@@ -15,6 +15,7 @@ class WorkoutViewModel {
     var isWorkoutActive = false
     var elapsedTime: TimeInterval = 0
     var workoutProgress: Double = 0
+    var currentRound: Int = 1
     
     // MARK: - Timer
     private var timer: Timer?
@@ -44,29 +45,48 @@ class WorkoutViewModel {
     
     // MARK: - Workout Actions
     func startWorkout(from template: WorkoutTemplate) {
+        // Validation du template
+        guard !template.exerciseNames.isEmpty else {
+            print("Erreur: Le template ne contient aucun exercice")
+            return
+        }
+        
         let workout = Workout()
         workout.templateID = template.id
+        workout.templateName = template.name
+        workout.totalRounds = template.rounds
         
         // Créer les exercices pour chaque round
         for round in 1...template.rounds {
-            for exerciseName in template.exerciseNames {
-                let workoutExercise = WorkoutExercise(exerciseName: "\(exerciseName) (R\(round))")
-                workout.performances.append(workoutExercise)
+            let roundExercises = template.exerciseNames.enumerated().map { index, exerciseName in
+                WorkoutExercise(
+                    exerciseName: exerciseName,
+                    round: round,
+                    order: index
+                )
             }
+            workout.performances.append(contentsOf: roundExercises)
         }
         
+        // Debug: Vérification de l'ordre des exercices
+        print("Ordre des exercices créés :")
+        for exercise in workout.performances {
+            print("Round \(exercise.round) - Ordre \(exercise.order): \(exercise.exerciseName)")
+        }
+        
+        // Initialiser le workout
         activeWorkout = workout
         isWorkoutActive = true
+        currentRound = 1
         workoutStartTime = Date()
         
+        // Sauvegarder et synchroniser
         modelContext.insert(workout)
         startTimer()
         if let workout = activeWorkout {
-             WatchConnectivityService.shared.sendActiveWorkout(workout)
-         }
-        print("startWorkout: performances créées =", workout.performances.count)
+            WatchConnectivityService.shared.sendActiveWorkout(workout)
+        }
     }
-
     
     func endWorkout() {
         guard let workout = activeWorkout else { return }
@@ -74,8 +94,10 @@ class WorkoutViewModel {
         // Finaliser le workout
         workout.completedAt = Date()
         workout.totalDuration = elapsedTime
-        // Assurez-vous que workout.performances.map { $0.distance } retourne des Doubles pour la somme
         workout.totalDistance = workout.performances.reduce(0.0) { $0 + $1.distance }
+        
+        // Calculer les statistiques par round
+        calculateRoundStatistics(for: workout)
         
         // Sauvegarder
         do {
@@ -89,9 +111,31 @@ class WorkoutViewModel {
         stopTimer()
         activeWorkout = nil
         isWorkoutActive = false
+        currentRound = 1
         elapsedTime = 0
         workoutProgress = 0
         workoutStartTime = nil
+    }
+    
+    // MARK: - Exercise Management
+    func isNextExercise(_ exercise: WorkoutExercise) -> Bool {
+        guard let nextExercise = getNextExercise() else { return false }
+        return nextExercise.id == exercise.id
+    }
+    
+    private func getNextExercise() -> WorkoutExercise? {
+        guard let workout = activeWorkout else { return nil }
+        
+        // Trier les exercices par round puis par ordre
+        let sortedExercises = workout.performances.sorted { (exercise1: WorkoutExercise, exercise2: WorkoutExercise) in
+            if exercise1.round == exercise2.round {
+                return exercise1.order < exercise2.order
+            }
+            return exercise1.round < exercise2.round
+        }
+        
+        // Trouver le premier exercice non complété
+        return sortedExercises.first(where: { $0.completedAt == nil })
     }
     
     func completeExercise(_ exercise: WorkoutExercise, duration: TimeInterval, distance: Double, repetitions: Int) {
@@ -99,6 +143,12 @@ class WorkoutViewModel {
         exercise.distance = distance
         exercise.repetitions = repetitions
         exercise.completedAt = Date()
+        
+        // Mettre à jour le round actuel si nécessaire
+        if let nextExercise = getNextExercise(),
+           nextExercise.round > currentRound {
+            currentRound = nextExercise.round
+        }
         
         // Mettre à jour la progression
         updateProgress()
@@ -113,6 +163,22 @@ class WorkoutViewModel {
     
     // MARK: - Template Management
     func createTemplate(name: String, exerciseNames: [String], rounds: Int = 1) {
+        // Validation des données
+        guard !name.isEmpty else {
+            print("Erreur: Le nom du template ne peut pas être vide")
+            return
+        }
+        
+        guard !exerciseNames.isEmpty else {
+            print("Erreur: Le template doit contenir au moins un exercice")
+            return
+        }
+        
+        guard rounds > 0 else {
+            print("Erreur: Le nombre de rounds doit être supérieur à 0")
+            return
+        }
+        
         let template = WorkoutTemplate(name: name, rounds: rounds)
         template.exerciseNames = exerciseNames
         
@@ -154,12 +220,20 @@ class WorkoutViewModel {
         isEditingExercise = true
     }
     
-    func isNextExercise(_ exercise: WorkoutExercise) -> Bool {
-        guard let workout = activeWorkout else { return false }
-        return workout.performances.first { $0.completedAt == nil } == exercise
+    // MARK: - Private Methods
+    private func calculateRoundStatistics(for workout: Workout) {
+        let rounds = Set(workout.performances.map { $0.round }).sorted()
+        
+        for round in rounds {
+            let roundExercises = workout.performances.filter { $0.round == round }
+            let roundDuration = roundExercises.reduce(0.0) { $0 + $1.duration }
+            let roundDistance = roundExercises.reduce(0.0) { $0 + $1.distance }
+            
+            // Ici vous pouvez stocker ces statistiques dans le workout si nécessaire
+            print("Round \(round): Durée = \(roundDuration.formatted), Distance = \(roundDistance)m")
+        }
     }
     
-    // MARK: - Private Methods
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             self?.updateElapsedTime()

@@ -101,14 +101,29 @@ struct ActiveWorkoutView: View {
         ScrollView {
             VStack(spacing: 12) {
                 if let workout = viewModel.activeWorkout {
-                    ForEach(workout.performances) { exercise in
-                        WorkoutExerciseRow(
-                            exercise: exercise,
-                            isNext: viewModel.isNextExercise(exercise),
-                            onTap: {
-                                selectedExercise = exercise
+                    // Grouper les exercices par round
+                    let exercisesByRound = Dictionary(grouping: workout.performances) { $0.round }
+                    let sortedRounds = exercisesByRound.keys.sorted()
+                    
+                    ForEach(sortedRounds, id: \.self) { round in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Round \(round)")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding(.horizontal)
+                            
+                            if let roundExercises = exercisesByRound[round] {
+                                ForEach(roundExercises.sorted(by: { $0.order < $1.order })) { exercise in
+                                    WorkoutExerciseRow(
+                                        exercise: exercise,
+                                        isNext: viewModel.isNextExercise(exercise),
+                                        onTap: {
+                                            selectedExercise = exercise
+                                        }
+                                    )
+                                }
                             }
-                        )
+                        }
                     }
                 }
             }
