@@ -4,8 +4,5 @@
 <dict>
 	<key>UIBackgroundModes</key>
 	<array/>
-	
-	<key>WKCompanionAppBundleIdentifier</key>
-	<string>com.vdl-creation.myROX</string>
 </dict>
 </plist>

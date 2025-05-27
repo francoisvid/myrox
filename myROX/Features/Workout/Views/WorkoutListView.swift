@@ -23,14 +23,9 @@ struct WorkoutListView: View {
                 }
             }
             .background(Color.black.ignoresSafeArea())
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Text("Entraînements")
-                        .font(.largeTitle.bold())
-                        .foregroundColor(.white)
-                }
-                
+            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("Entraînements")
+            .toolbar {                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     toolbarButtons
                 }
