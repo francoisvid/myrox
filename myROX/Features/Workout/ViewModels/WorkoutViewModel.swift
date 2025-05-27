@@ -192,6 +192,37 @@ class WorkoutViewModel {
         }
     }
     
+    func updateTemplate(_ template: WorkoutTemplate, name: String, exerciseNames: [String], rounds: Int) {
+        // Validation des données
+        guard !name.isEmpty else {
+            print("Erreur: Le nom du template ne peut pas être vide")
+            return
+        }
+        
+        guard !exerciseNames.isEmpty else {
+            print("Erreur: Le template doit contenir au moins un exercice")
+            return
+        }
+        
+        guard rounds > 0 else {
+            print("Erreur: Le nombre de rounds doit être supérieur à 0")
+            return
+        }
+        
+        // Mettre à jour le template
+        template.name = name
+        template.exerciseNames = exerciseNames
+        template.rounds = rounds
+        
+        do {
+            try modelContext.save()
+            fetchTemplates()
+            WatchConnectivityService.shared.sendTemplates()
+        } catch {
+            print("Erreur lors de la mise à jour du template : \(error)")
+        }
+    }
+    
     func deleteTemplate(_ template: WorkoutTemplate) {
         // Sauvegarder l'ID avant la suppression
         let templateId = template.id

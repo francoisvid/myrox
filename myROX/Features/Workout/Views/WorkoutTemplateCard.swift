@@ -7,6 +7,7 @@ struct WorkoutTemplateCard: View {
     let isActive: Bool
     let onStart: () -> Void
     let onDelete: () -> Void
+    let onEdit: () -> Void
     
     @Environment(\.modelContext) private var modelContext
     @State private var exercises: [Exercise] = []
@@ -25,11 +26,20 @@ struct WorkoutTemplateCard: View {
                     
                     Spacer()
                     
-                    Button {
-                        showDeleteAlert = true
-                    } label: {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red)
+                    HStack(spacing: 12) {
+                        Button {
+                            onEdit()
+                        } label: {
+                            Image(systemName: "pencil")
+                                .foregroundColor(.yellow)
+                        }
+                        
+                        Button {
+                            showDeleteAlert = true
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+                        }
                     }
                 }
                 

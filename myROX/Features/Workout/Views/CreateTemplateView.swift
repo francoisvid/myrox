@@ -7,11 +7,19 @@ struct CreateTemplateView: View {
     @Query(sort: \Exercise.name) private var exercises: [Exercise]
     
     let viewModel: WorkoutViewModel?
+    let editingTemplate: WorkoutTemplate?
     
-    @State private var templateName = ""
+    @State private var templateName: String
     @State private var selectedExercises: [Exercise] = []
     @State private var showingExercisePicker = false
-    @State private var rounds: Int = 1
+    @State private var rounds: Int
+    
+    init(viewModel: WorkoutViewModel?, editingTemplate: WorkoutTemplate? = nil) {
+        self.viewModel = viewModel
+        self.editingTemplate = editingTemplate
+        _templateName = State(initialValue: editingTemplate?.name ?? "")
+        _rounds = State(initialValue: editingTemplate?.rounds ?? 1)
+    }
     
     var body: some View {
         NavigationStack {
@@ -82,9 +90,23 @@ struct CreateTemplateView: View {
                     }
                     
                     Button {
-                        createTemplate()
+                        if let template = editingTemplate {
+                            viewModel?.updateTemplate(
+                                template,
+                                name: templateName,
+                                exerciseNames: selectedExercises.map { $0.name },
+                                rounds: rounds
+                            )
+                        } else {
+                            viewModel?.createTemplate(
+                                name: templateName,
+                                exerciseNames: selectedExercises.map { $0.name },
+                                rounds: rounds
+                            )
+                        }
+                        dismiss()
                     } label: {
-                        Text("Créer l'entraînement")
+                        Text(editingTemplate == nil ? "Créer l'entraînement" : "Mettre à jour")
                             .primaryButtonStyle()
                     }
                     .disabled(templateName.isEmpty || selectedExercises.isEmpty)
@@ -92,7 +114,7 @@ struct CreateTemplateView: View {
                 .padding()
             }
             .background(Color.black.ignoresSafeArea())
-            .navigationTitle("Nouveau template")
+            .navigationTitle(editingTemplate == nil ? "Nouveau template" : "Modifier le template")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -107,6 +129,17 @@ struct CreateTemplateView: View {
                     exercises: exercises,
                     selectedExercises: $selectedExercises
                 )
+            }
+            .onAppear {
+                if let template = editingTemplate {
+                    // Charger les exercices existants
+                    let descriptor = FetchDescriptor<Exercise>()
+                    if let allExercises = try? modelContext.fetch(descriptor) {
+                        selectedExercises = template.exerciseNames.compactMap { name in
+                            allExercises.first { $0.name == name }
+                        }
+                    }
+                }
             }
         }
     }
@@ -148,15 +181,6 @@ struct CreateTemplateView: View {
             }
             .padding()
         }
-    }
-    
-    private func createTemplate() {
-        guard let vm = viewModel else { return }
-        
-        let exerciseNames = selectedExercises.map { $0.name }
-        vm.createTemplate(name: templateName, exerciseNames: exerciseNames, rounds: rounds)
-        
-        dismiss()
     }
 }
 

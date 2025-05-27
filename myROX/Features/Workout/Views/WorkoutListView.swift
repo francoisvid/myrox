@@ -7,6 +7,7 @@ struct WorkoutListView: View {
     @State private var showingNewWorkoutSheet = false
     @State private var showingActiveWorkout = false
     @State private var selectedTemplate: WorkoutTemplate?
+    @State private var showingEditSheet = false
     
     var body: some View {
         NavigationStack {
@@ -33,6 +34,14 @@ struct WorkoutListView: View {
             .sheet(isPresented: $showingNewWorkoutSheet) {
                 if let vm = viewModel {
                     CreateTemplateView(viewModel: vm)
+                }
+            }
+            .sheet(isPresented: Binding(
+                get: { selectedTemplate != nil && showingEditSheet },
+                set: { if !$0 { showingEditSheet = false } }
+            )) {
+                if let template = selectedTemplate, let vm = viewModel {
+                    CreateTemplateView(viewModel: vm, editingTemplate: template)
                 }
             }
             .sheet(isPresented: Binding(
@@ -103,6 +112,10 @@ struct WorkoutListView: View {
                         },
                         onDelete: {
                             viewModel?.deleteTemplate(template)
+                        },
+                        onEdit: {
+                            selectedTemplate = template
+                            showingEditSheet = true
                         }
                     )
                 }
