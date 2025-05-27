@@ -7,14 +7,6 @@ struct LoginView: View {
     
     var body: some View {
         ZStack {
-            // Background
-            LinearGradient(
-                gradient: Gradient(colors: [Color.black, Color.black.opacity(0.8)]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-            
             VStack(spacing: 40) {
                 Spacer()
                 
@@ -24,6 +16,7 @@ struct LoginView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 100, height: 100)
+                        .clipShape(Circle())
                         .foregroundColor(.yellow)
                     
                     Text("MyROX")
@@ -73,6 +66,8 @@ struct LoginView: View {
                     .padding(.horizontal, 40)
                     .padding(.bottom, 20)
             }
+            .background(Color.adaptiveGradient)
+            .ignoresSafeArea()
             
             // Loading overlay
             if viewModel.isLoading {

@@ -7,10 +7,10 @@ struct MyROXApp: App {
     let modelContainer = ModelContainer.shared
     @StateObject private var authViewModel = AuthViewModel()
     @State private var isInitialized = false
-    @State private var isFirstLaunch = true
+    @State private var showSplash = true
+    @State private var splashStartTime: Date?
     
     init() {
-        // Configurer Firebase
         FirebaseApp.configure()
     }
     
@@ -22,21 +22,30 @@ struct MyROXApp: App {
                         .task {
                             await initializeApp()
                         }
+                } else if showSplash {
+                    SplashScreenView()
+                        .environmentObject(authViewModel)
+                        .onAppear {
+                            if splashStartTime == nil {
+                                splashStartTime = Date()
+                                
+                                // Délai minimum de 3 secondes
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                    withAnimation(.easeInOut(duration: 0.8)) {
+                                        showSplash = false
+                                    }
+                                }
+                            }
+                        }
                 } else if authViewModel.isLoggedIn {
                     ContentView()
                         .environmentObject(authViewModel)
                         .background(Color.adaptiveGradient)
-                } else if isFirstLaunch {
-                    SplashScreenView()
-                        .environmentObject(authViewModel)
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                                isFirstLaunch = false
-                            }
-                        }
+                        .transition(.opacity)
                 } else {
                     LoginView()
                         .environmentObject(authViewModel)
+                        .transition(.opacity)
                 }
             }
             .modelContainer(modelContainer.container)
