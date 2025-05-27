@@ -6,19 +6,32 @@ struct WorkoutTemplateCard: View {
     let template: WorkoutTemplate
     let isActive: Bool
     let onStart: () -> Void
+    let onDelete: () -> Void
     
     @Environment(\.modelContext) private var modelContext
     @State private var exercises: [Exercise] = []
+    @State private var showDeleteAlert = false
     @Query private var goals: [ExerciseGoal]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             VStack(alignment: .leading, spacing: 8) {
-                Text(template.name)
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .lineLimit(2)
+                HStack {
+                    Text(template.name)
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .lineLimit(2)
+                    
+                    Spacer()
+                    
+                    Button {
+                        showDeleteAlert = true
+                    } label: {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                    }
+                }
                 
                 HStack(spacing: 8) {
                     Label("\(template.exerciseNames.count)", systemImage: "figure.strengthtraining.traditional")
@@ -113,6 +126,14 @@ struct WorkoutTemplateCard: View {
         )
         .onAppear {
             loadExercises()
+        }
+        .alert("Supprimer l'entraînement", isPresented: $showDeleteAlert) {
+            Button("Annuler", role: .cancel) { }
+            Button("Supprimer", role: .destructive) {
+                onDelete()
+            }
+        } message: {
+            Text("Êtes-vous sûr de vouloir supprimer cet entraînement ?")
         }
     }
     

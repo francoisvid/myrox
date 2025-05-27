@@ -193,9 +193,18 @@ class WorkoutViewModel {
     }
     
     func deleteTemplate(_ template: WorkoutTemplate) {
+        // Sauvegarder l'ID avant la suppression
+        let templateId = template.id
+        
+        // Supprimer le template
         modelContext.delete(template)
         do {
             try modelContext.save()
+            
+            // Synchroniser avec la montre
+            WatchConnectivityService.shared.sendTemplateDeleted(templateId)
+            WatchConnectivityService.shared.sendTemplates()
+            
             fetchTemplates() // Recharger les templates après la suppression
         } catch {
             print("Erreur lors de la suppression du template : \(error)")
@@ -203,11 +212,22 @@ class WorkoutViewModel {
     }
     
     func deleteAllTemplates() {
+        // Sauvegarder les IDs avant la suppression
+        let templateIds = templates.map { $0.id }
+        
+        // Supprimer tous les templates
         for template in templates {
             modelContext.delete(template)
         }
         do {
             try modelContext.save()
+            
+            // Synchroniser avec la montre
+            for templateId in templateIds {
+                WatchConnectivityService.shared.sendTemplateDeleted(templateId)
+            }
+            WatchConnectivityService.shared.sendTemplates()
+            
             fetchTemplates() // Recharger les templates après la suppression de tous
         } catch {
             print("Erreur lors de la suppression de tous les templates : \(error)")

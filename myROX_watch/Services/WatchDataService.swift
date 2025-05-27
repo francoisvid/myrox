@@ -345,6 +345,34 @@ extension WatchDataService: WCSessionDelegate {
                 }
             }
             
+            if let action = message["action"] as? String {
+                switch action {
+                case "workoutDeleted":
+                    if let workoutIdString = message["workoutId"] as? String,
+                       let workoutId = UUID(uuidString: workoutIdString) {
+                        // Supprimer le workout des workouts en attente
+                        if var pendingWorkouts = UserDefaults.standard.object(forKey: "pendingWorkouts") as? [[String: Any]] {
+                            pendingWorkouts.removeAll { workoutData in
+                                if let idString = workoutData["id"] as? String,
+                                   let id = UUID(uuidString: idString) {
+                                    return id == workoutId
+                                }
+                                return false
+                            }
+                            UserDefaults.standard.set(pendingWorkouts, forKey: "pendingWorkouts")
+                        }
+                    }
+                case "templateDeleted":
+                    if let templateIdString = message["templateId"] as? String,
+                       let templateId = UUID(uuidString: templateIdString) {
+                        // Supprimer le template de la liste
+                        self.templates.removeAll { $0.id == templateId }
+                    }
+                default:
+                    break
+                }
+            }
+            
             if let workoutData = message["activeWorkout"] as? [String: Any] {
                 // Synchroniser un workout actif depuis iPhone
                 // (optionnel pour une v2)

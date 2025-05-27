@@ -25,7 +25,7 @@ struct WorkoutListView: View {
             .background(Color.black.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.large)
             .navigationTitle("Entraînements")
-            .toolbar {                
+            .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     toolbarButtons
                 }
@@ -92,15 +92,19 @@ struct WorkoutListView: View {
                 ForEach(templates) { template in
                     WorkoutTemplateCard(
                         template: template,
-                        isActive: viewModel?.activeWorkout?.templateID == template.id
-                    ) {
-                        selectedTemplate = template
-                        viewModel?.startWorkout(from: template)
-                        showingActiveWorkout = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        isActive: viewModel?.activeWorkout?.templateID == template.id,
+                        onStart: {
+                            selectedTemplate = template
+                            viewModel?.startWorkout(from: template)
                             showingActiveWorkout = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                                showingActiveWorkout = true
+                            }
+                        },
+                        onDelete: {
+                            viewModel?.deleteTemplate(template)
                         }
-                    }
+                    )
                 }
             }
         }

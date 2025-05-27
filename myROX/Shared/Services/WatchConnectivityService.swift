@@ -41,6 +41,32 @@ class WatchConnectivityService: NSObject, ObservableObject {
         }
     }
     
+    func sendWorkoutDeleted(_ workoutId: UUID) {
+        guard session.isReachable else { return }
+        
+        let message = [
+            "action": "workoutDeleted",
+            "workoutId": workoutId.uuidString
+        ]
+        
+        session.sendMessage(message, replyHandler: nil) { error in
+            print("Erreur envoi suppression workout: \(error)")
+        }
+    }
+    
+    func sendTemplateDeleted(_ templateId: UUID) {
+        guard session.isReachable else { return }
+        
+        let message = [
+            "action": "templateDeleted",
+            "templateId": templateId.uuidString
+        ]
+        
+        session.sendMessage(message, replyHandler: nil) { error in
+            print("Erreur envoi suppression template: \(error)")
+        }
+    }
+    
     func sendTemplates() {
         guard session.isReachable else { return }
         

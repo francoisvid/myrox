@@ -237,7 +237,7 @@ struct ExerciseHistoryCard: View {
             }
             
             // History list
-            VStack(spacing: 8) {
+            List {
                 ForEach(history.prefix(3), id: \.0.id) { exercise, date in
                     HStack {
                         Text(date, format: .dateTime.day().month().year())
@@ -264,15 +264,20 @@ struct ExerciseHistoryCard: View {
                                 .foregroundColor(exercise.id == personalBest?.id ? .yellow : .white)
                         }
                     }
-                    .padding(.vertical, 4)
-                    .contentShape(Rectangle())
-                    .onTapGesture { }
-                    .onLongPressGesture {
-                        exerciseToDelete = exercise
-                        showDeleteAlert = true
+                    .listRowBackground(Color.clear)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            exerciseToDelete = exercise
+                            showDeleteAlert = true
+                        } label: {
+                            Label("Supprimer", systemImage: "trash")
+                        }
+                        .tint(.red)
                     }
                 }
             }
+            .listStyle(.plain)
+            .frame(height: CGFloat(history.prefix(3).count * 44))
         }
         .padding()
         .background(Color(.systemGray6))

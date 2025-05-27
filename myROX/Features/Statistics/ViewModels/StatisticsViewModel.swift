@@ -106,16 +106,38 @@ class StatisticsViewModel: ObservableObject {
     
     // MARK: - Actions
     func deleteWorkout(_ workout: Workout) {
+        // Sauvegarder l'ID avant la suppression
+        let workoutId = workout.id
+        
+        // Supprimer le workout
         modelContext.delete(workout)
         try? modelContext.save()
+        
+        // Synchroniser avec la montre
+        WatchConnectivityService.shared.sendWorkoutDeleted(workoutId)
+        WatchConnectivityService.shared.sendWorkoutCount()
+        
+        // Recharger les données
         loadWorkouts()
     }
     
     func deleteAllWorkouts() {
+        // Sauvegarder les IDs avant la suppression
+        let workoutIds = workouts.map { $0.id }
+        
+        // Supprimer tous les workouts
         for workout in workouts {
             modelContext.delete(workout)
         }
         try? modelContext.save()
+        
+        // Synchroniser avec la montre
+        for workoutId in workoutIds {
+            WatchConnectivityService.shared.sendWorkoutDeleted(workoutId)
+        }
+        WatchConnectivityService.shared.sendWorkoutCount()
+        
+        // Recharger les données
         loadWorkouts()
     }
     
