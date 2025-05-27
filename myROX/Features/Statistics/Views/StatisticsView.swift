@@ -36,7 +36,7 @@ struct StatisticsView: View {
                 }
                 .padding()
             }
-            .background(Color.black.ignoresSafeArea())
+            .background(Color.adaptiveGradient)
             .navigationTitle("Statistiques")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -77,7 +77,7 @@ struct StatisticsView: View {
             
             Text("Aucune donnée")
                 .font(.title2.bold())
-                .foregroundColor(.white)
+                .foregroundColor(Color(.label))
             
             Text("Terminez des entraînements pour voir vos statistiques")
                 .font(.subheadline)
@@ -111,7 +111,7 @@ struct StatisticsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Progression des temps")
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(Color(.label))
             
             if viewModel.chartData.isEmpty {
                 Text("Pas encore de données")
@@ -197,7 +197,7 @@ struct StatisticsView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Historique par exercice")
                 .font(.title3.bold())
-                .foregroundColor(.white)
+                .foregroundColor(Color(.label))
             
             ForEach(viewModel.uniqueExerciseNames, id: \.self) { exerciseName in
                 ExerciseHistoryCard(
@@ -220,7 +220,7 @@ struct StatisticsView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Comparaison")
                 .font(.title3.bold())
-                .foregroundColor(.white)
+                .foregroundColor(Color(.label))
             
             let (previous, latest) = viewModel.comparison()
             
@@ -248,7 +248,7 @@ struct ExerciseHistoryCard: View {
             HStack {
                 Text(exerciseName)
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(Color(.label))
                 
                 Spacer()
                 
@@ -293,7 +293,7 @@ struct ExerciseHistoryCard: View {
                             
                             Text(exercise.duration.formatted)
                                 .font(.subheadline.bold())
-                                .foregroundColor(exercise.id == personalBest?.id ? .yellow : .white)
+                                .foregroundColor(exercise.id == personalBest?.id ? .yellow : Color(.label))
                         }
                     }
                     .listRowBackground(Color.clear)
@@ -353,7 +353,7 @@ struct ComparisonCard: View {
                     if let date = latest.completedAt {
                         Text(date, format: .dateTime.day().month())
                             .font(.caption)
-                            .foregroundColor(.white)
+                            .foregroundColor(Color(.label))
                     }
                 }
                 
@@ -361,7 +361,7 @@ struct ComparisonCard: View {
                 
                 Text(latest.totalDuration.formatted)
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(Color(.label))
             }
             
             Divider()
@@ -375,7 +375,7 @@ struct ComparisonCard: View {
                     if let date = previous.completedAt {
                         Text(date, format: .dateTime.day().month())
                             .font(.caption)
-                            .foregroundColor(.white)
+                            .foregroundColor(Color(.label))
                     }
                 }
                 
@@ -383,14 +383,14 @@ struct ComparisonCard: View {
                 
                 Text(previous.totalDuration.formatted)
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(Color(.label))
             }
             
             // Difference
             HStack {
                 Text("Différence")
                     .font(.subheadline)
-                    .foregroundColor(.white)
+                    .foregroundColor(Color(.label))
                 
                 Spacer()
                 

@@ -21,13 +21,13 @@ struct ActiveWorkoutView: View {
                 // Exercise List
                 exerciseList
             }
-            .background(Color.black.ignoresSafeArea())
+            .background(Color(.systemBackground))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Text(template.name)
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(Color(.label))
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -53,7 +53,7 @@ struct ActiveWorkoutView: View {
         VStack(spacing: 8) {
             Text(viewModel.elapsedTime.formatted)
                 .font(.system(size: 60, weight: .bold, design: .monospaced))
-                .foregroundColor(.white)
+                .foregroundColor(Color(.label))
             
             Text("Temps total")
                 .font(.caption)
@@ -109,7 +109,7 @@ struct ActiveWorkoutView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Round \(round)")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(Color(.label))
                                 .padding(.horizontal)
                             
                             if let roundExercises = exercisesByRound[round] {

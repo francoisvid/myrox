@@ -47,7 +47,11 @@ struct SecondaryButtonStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
             .font(.headline)
+            #if os(iOS)
+            .foregroundColor(Color(UIColor.label))
+            #else
             .foregroundColor(.white)
+            #endif
             .frame(maxWidth: .infinity)
             .padding()
             //.background(Color(.systemGray5))

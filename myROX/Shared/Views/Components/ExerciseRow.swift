@@ -37,7 +37,7 @@ struct WorkoutExerciseRow: View {
                     HStack(spacing: 8) {
                         Text(exercise.exerciseName)
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Color(.label))
                         
                         if let target = targetTime, target > 0 {
                             Text("Obj: \(target.formatted)")

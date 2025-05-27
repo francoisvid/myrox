@@ -37,3 +37,10 @@ struct ContentView: View {
         }
     }
 }
+#Preview {
+    let mockAuthViewModel = AuthViewModel()
+    mockAuthViewModel.isLoggedIn = true // Simuler un utilisateur connecté
+    
+    return ContentView()
+        .environmentObject(mockAuthViewModel)
+}

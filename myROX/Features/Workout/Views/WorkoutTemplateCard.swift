@@ -21,7 +21,7 @@ struct WorkoutTemplateCard: View {
                 HStack {
                     Text(template.name)
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(Color(.label))
                         .lineLimit(1)
                     
                     Spacer()
@@ -46,16 +46,17 @@ struct WorkoutTemplateCard: View {
                 HStack(spacing: 8) {
                     Label("\(template.exerciseNames.count)", systemImage: "figure.strengthtraining.traditional")
                         .font(.caption.bold())
-                        .foregroundColor(.white)
+                        .foregroundColor(Color(.label))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.8))
+                        .background(Color.blue)
+                        .opacity(0.8)
                         .clipShape(Capsule())
                     
                     if isActive {
                         Text("EN COURS")
                             .font(.caption2.bold())
-                            .foregroundColor(.black)
+                            .foregroundColor(Color(.label))
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(Color.yellow)
@@ -76,7 +77,7 @@ struct WorkoutTemplateCard: View {
                         
                         Text(exerciseName)
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.9))
+                            .foregroundColor(Color(.label))
                             .lineLimit(1)
                         
                         Spacer()
@@ -85,13 +86,15 @@ struct WorkoutTemplateCard: View {
                            goal.targetTime > 0 {
                             Text("< \(goal.targetTime.formatted)")
                                 .font(.caption2)
-                                .foregroundColor(.yellow.opacity(0.8))
+                                .foregroundColor(.yellow)
+                                .opacity(0.8)
                         }
                         
                         if let exercise = exercises.first(where: { $0.name == exerciseName }) {
                             Image(systemName: iconForCategory(exercise.category))
                                 .font(.caption2)
-                                .foregroundColor(.white.opacity(0.6))
+                                .foregroundColor(Color(.label))
+                                .opacity(0.6)
                         }
                     }
                 }
@@ -99,13 +102,15 @@ struct WorkoutTemplateCard: View {
                 if template.exerciseNames.count > 4 {
                     Text("... et \(template.exerciseNames.count - 4) autres")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(Color(.label))
+                        .opacity(0.6)
                 }
             }
             .frame(height: 100, alignment: .top)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color.white.opacity(0.05))
+            .background(Color.adaptiveGradient)
+
             
             // Start button - reste identique
             Button(action: onStart) {
@@ -130,9 +135,10 @@ struct WorkoutTemplateCard: View {
                 .stroke(isActive ? Color.yellow : Color.clear, lineWidth: 2)
         )
         .shadow(
-            color: isActive ? .yellow.opacity(0.3) : .black.opacity(0.2),
-            radius: isActive ? 8 : 4,
-            y: 2
+            color: isActive ? .yellow.opacity(0.4) : .black.opacity(0.15),
+            radius: isActive ? 12 : 6,
+            x: 0,
+            y: isActive ? 6 : 3
         )
         .onAppear {
             loadExercises()

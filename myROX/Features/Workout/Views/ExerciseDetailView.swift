@@ -26,7 +26,7 @@ struct ExerciseDetailView: View {
             VStack(spacing: 30) {
                 Text(exercise.exerciseName)
                     .font(.largeTitle.bold())
-                    .foregroundColor(.white)
+                    .foregroundColor(Color(.label))
                     .padding(.top, 30)
                 
                 // Afficher l'objectif
@@ -84,7 +84,7 @@ struct ExerciseDetailView: View {
                 }
                 .padding()
             }
-            .background(Color.black.ignoresSafeArea())
+            .background(Color.adaptiveGradient)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -104,8 +104,8 @@ struct ExerciseDetailView: View {
     }
     
     private var timerColor: Color {
-        guard let target = targetTime, target > 0 else { return .white }
-        return duration > target ? .orange : .white
+        guard let target = targetTime, target > 0 else { return Color(.label) }
+        return duration > target ? .orange : Color(.label)
     }
 
     private var timerControls: some View {
@@ -115,7 +115,7 @@ struct ExerciseDetailView: View {
             } label: {
                 Image(systemName: isTimerRunning ? "pause.fill" : "play.fill")
                     .font(.title)
-                    .foregroundColor(.white)
+                    .foregroundColor(Color(.label))
                     .frame(width: 60, height: 60)
                     .background(isTimerRunning ? Color.red : Color.green)
                     .clipShape(Circle())
@@ -126,7 +126,7 @@ struct ExerciseDetailView: View {
             } label: {
                 Image(systemName: "arrow.counterclockwise")
                     .font(.title)
-                    .foregroundColor(.white)
+                    .foregroundColor(Color(.label))
                     .frame(width: 60, height: 60)
                     .background(Color.yellow)
                     .clipShape(Circle())
@@ -146,7 +146,7 @@ struct ExerciseDetailView: View {
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
                             .font(.title2)
-                            .foregroundColor(.white)
+                            .foregroundColor(Color(.label))
                         Text("m").foregroundColor(.gray)
                     }
                     .padding()
@@ -162,7 +162,7 @@ struct ExerciseDetailView: View {
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
                             .font(.title2)
-                            .foregroundColor(.white)
+                            .foregroundColor(Color(.label))
                         Text("reps").foregroundColor(.gray)
                     }
                     .padding()

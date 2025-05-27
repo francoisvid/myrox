@@ -25,6 +25,7 @@ struct MyROXApp: App {
                 } else if authViewModel.isLoggedIn {
                     ContentView()
                         .environmentObject(authViewModel)
+                        .background(Color.adaptiveGradient)
                 } else if isFirstLaunch {
                     SplashScreenView()
                         .environmentObject(authViewModel)
@@ -55,4 +56,21 @@ struct MyROXApp: App {
             }
         }
     }
+}
+
+extension Color {
+    static let adaptiveBackground: Color = {
+        Color(.systemBackground)
+    }()
+    
+    static let adaptiveGradient: LinearGradient = {
+        LinearGradient(
+            gradient: Gradient(colors: [
+                Color(.systemBackground),
+                Color(.secondarySystemBackground)
+            ]),
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }()
 }

@@ -39,7 +39,7 @@ struct ProfileView: View {
                 }
                 .padding()
             }
-            .background(Color.black.ignoresSafeArea())
+            .background(Color.adaptiveGradient)
             .navigationTitle("Profil")
             .navigationBarTitleDisplayMode(.large)
             .preferredColorScheme(viewModel.isDarkModeEnabled ? .dark : .light)
@@ -94,7 +94,7 @@ struct ProfileHeaderView: View {
                         HStack {
                             Text(viewModel.username)
                                 .font(.title3.bold())
-                                .foregroundColor(.white)
+                                .foregroundColor(Color(.label))
                             
                             Button {
                                 draftName = viewModel.username
@@ -143,7 +143,7 @@ struct ActivitySummaryView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Résumé d'activité")
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(Color(.label))
             
             HStack(spacing: 12) {
                 StatCard(
@@ -181,7 +181,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Paramètres")
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(Color(.label))
             
             // Monitoring cardiaque
             Toggle("Monitoring cardiaque", isOn: $viewModel.isHeartRateMonitoringEnabled)
@@ -257,7 +257,7 @@ struct LogoutButton: View {
         } label: {
             Text("Déconnexion")
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(Color(.label))
                 .frame(maxWidth: .infinity)
                 .padding()
                 .background(Color.red)

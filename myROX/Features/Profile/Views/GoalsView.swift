@@ -18,7 +18,7 @@ struct GoalsSection: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Objectifs HYROX")
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(Color(.label))
             
             ForEach(sortedExercises) { exercise in
                 let goal = goals.first { $0.exerciseName == exercise.name }
@@ -103,7 +103,7 @@ struct GoalRow: View {
             HStack {
                 Text(exercise.name)
                     .font(.subheadline)
-                    .foregroundColor(.white)
+                    .foregroundColor(Color(.label))
                 
                 Spacer()
                 

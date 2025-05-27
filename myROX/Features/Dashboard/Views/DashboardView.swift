@@ -24,7 +24,6 @@ struct DashboardView: View {
                 }
                 .padding()
             }
-            .background(Color.black.ignoresSafeArea())
             .navigationTitle("Dashboard")
             .navigationBarTitleDisplayMode(.large)
             .refreshable {
@@ -39,7 +38,7 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Dernier entraînement")
                 .font(.title3.bold())
-                .foregroundColor(.white)
+                .foregroundColor(Color(.label))
             
             if let workout = viewModel.lastWorkout {
                 LastWorkoutCard(workout: workout, statsViewModel: statsViewModel)
@@ -53,7 +52,7 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Prochains événements HYROX")
                 .font(.title3.bold())
-                .foregroundColor(.white)
+                .foregroundColor(Color(.label))
             
             ForEach(viewModel.upcomingEvents) { event in
                 EventCard(event: event)
@@ -141,7 +140,7 @@ struct LastWorkoutCard: View {
                                     
                                     Text(exerciseName)
                                         .font(.subheadline)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(Color(.label))
                                     
                                     Spacer()
                                     
@@ -177,7 +176,7 @@ struct LastWorkoutCard: View {
                                             
                                             Text(exercise.duration.formatted)
                                                 .font(.subheadline.bold())
-                                                .foregroundColor(.white)
+                                                .foregroundColor(Color(.label))
                                         }
                                     }
                                     .padding(.leading, 20)
@@ -203,7 +202,7 @@ struct LastWorkoutCard: View {
                     
                     Text(String(format: "%.2f km", workout.totalDistance / 1000))
                         .font(.subheadline.bold())
-                        .foregroundColor(.white)
+                        .foregroundColor(Color(.label))
                 }
             }
         }
@@ -224,7 +223,7 @@ struct NoWorkoutCard: View {
             
             Text("Aucun entraînement")
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(Color(.label))
             
             Text("Commencez votre premier workout pour voir vos statistiques")
                 .font(.caption)
@@ -259,7 +258,7 @@ struct PerformanceComparisonRow: View {
             HStack {
                 Text(exerciseName)
                     .font(.subheadline.bold())
-                    .foregroundColor(.white)
+                    .foregroundColor(Color(.label))
                 
                 Spacer()
                 
@@ -277,7 +276,7 @@ struct PerformanceComparisonRow: View {
                         .foregroundColor(.gray)
                     Text(currentPerformance.duration.formatted)
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(Color(.label))
                 }
                 
                 Spacer()

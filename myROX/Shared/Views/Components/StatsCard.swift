@@ -13,7 +13,7 @@ struct StatCard: View {
             
             Text(value)
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(Color(.label))
             
             Text(title)
                 .font(.caption)

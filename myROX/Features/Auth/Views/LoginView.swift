@@ -28,7 +28,7 @@ struct LoginView: View {
                     
                     Text("MyROX")
                         .font(.system(size: 48, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Color(.label))
                     
                     Text("Entraînez-vous. Suivez. Progressez.")
                         .font(.system(size: 18))
@@ -42,7 +42,7 @@ struct LoginView: View {
                 VStack(spacing: 24) {
                     Text("Prêt à vous entraîner ?")
                         .font(.system(size: 24, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Color(.label))
                     
                     // Bouton Sign in with Apple
                     SignInWithAppleButton(
@@ -76,7 +76,7 @@ struct LoginView: View {
             
             // Loading overlay
             if viewModel.isLoading {
-                Color.black.opacity(0.6)
+                Color(.label).opacity(0.6)
                     .ignoresSafeArea()
                 
                 ProgressView()

@@ -56,7 +56,7 @@ struct CreateTemplateView: View {
                         
                         Text("\(rounds)")
                             .font(.title2.bold())
-                            .foregroundColor(.white)
+                            .foregroundColor(Color(.label))
                             .frame(minWidth: 60)
                         
                         Button {
@@ -113,7 +113,7 @@ struct CreateTemplateView: View {
                 }
                 .padding()
             }
-            .background(Color.black.ignoresSafeArea())
+            .background(Color(.systemBackground))
             .navigationTitle(editingTemplate == nil ? "Nouveau template" : "Modifier le template")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -293,7 +293,7 @@ struct ExerciseListItem: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(exercise.name)
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(Color(.label))
                 
                 HStack(spacing: 8) {
                     Label(exercise.category, systemImage: iconForCategory(exercise.category))
@@ -324,7 +324,13 @@ struct ExerciseListItem: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color(.systemBackground))
+        .shadow(
+            color: .black.opacity(0.15),
+            radius: 6,
+            x: 0,
+            y: 3
+        )
         .cornerRadius(12)
     }
     

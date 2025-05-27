@@ -23,7 +23,6 @@ struct WorkoutListView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .background(Color.black.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.large)
             .navigationTitle("Entraînements")
             .toolbar {
@@ -75,7 +74,7 @@ struct WorkoutListView: View {
             
             Text("Aucun entraînement")
                 .font(.title2.bold())
-                .foregroundColor(.white)
+                .foregroundColor(Color(.label))
             
             Text("Créez votre premier modèle d'entraînement")
                 .font(.subheadline)

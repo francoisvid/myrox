@@ -28,7 +28,7 @@ struct EventCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(event.name)
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(Color(.label))
                     .lineLimit(2)
                 
                 Text(event.dateRange)
