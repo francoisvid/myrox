@@ -22,7 +22,7 @@ struct WorkoutTemplateCard: View {
                     Text(template.name)
                         .font(.headline)
                         .foregroundColor(.white)
-                        .lineLimit(2)
+                        .lineLimit(1)
                     
                     Spacer()
                     
