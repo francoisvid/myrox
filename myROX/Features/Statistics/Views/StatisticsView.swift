@@ -240,9 +240,14 @@ struct ExerciseHistoryCard: View {
             List {
                 ForEach(history.prefix(3), id: \.0.id) { exercise, date in
                     HStack {
-                        Text(date, format: .dateTime.day().month().year())
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(date, format: .dateTime.day().month().year())
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                            Text(date, format: .dateTime.hour().minute())
+                                .font(.caption2)
+                                .foregroundColor(.gray.opacity(0.8))
+                        }
                         
                         Spacer()
                         
@@ -265,6 +270,7 @@ struct ExerciseHistoryCard: View {
                         }
                     }
                     .listRowBackground(Color.clear)
+                    .listRowSeparator(history.count > 1 ? .visible : .hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
                             exerciseToDelete = exercise
