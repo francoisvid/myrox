@@ -11,15 +11,15 @@ struct SplashScreenView: View {
         if isActive {
             LoginView()
         } else {
-            VStack(spacing: 20) {
+            VStack(spacing: 50) {
                 Image("logo_myrox")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 150, height: 150)
+                    .frame(width: 100, height: 100)
                     .opacity(opacity)
                     .foregroundColor(.yellow)
-                    .clipShape(Circle())
-                    
+                    .clipShape(Rectangle())
+                    .cornerRadius(20)
                 
                 VStack(spacing: 10) {
                     Text(MotivationalQuotes.quotes[currentQuoteIndex].text)
@@ -54,13 +54,13 @@ struct SplashScreenView: View {
                     }
                 }
             }
-            .onAppear {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                    withAnimation {
-                        self.isActive = true
-                    }
-                }
-            }
+//            .onAppear {
+//                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+//                    withAnimation {
+//                        self.isActive = true
+//                    }
+//                }
+//            }
         }
     }
 }
