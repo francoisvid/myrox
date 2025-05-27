@@ -4,10 +4,12 @@ import SwiftData
 struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel: DashboardViewModel
+    @StateObject private var statsViewModel: StatisticsViewModel
     
     init() {
         let context = ModelContainer.shared.mainContext
         _viewModel = StateObject(wrappedValue: DashboardViewModel(modelContext: context))
+        _statsViewModel = StateObject(wrappedValue: StatisticsViewModel(modelContext: context))
     }
     
     var body: some View {
@@ -16,6 +18,11 @@ struct DashboardView: View {
                 VStack(spacing: 24) {
                     // Dernier entraînement
                     lastWorkoutSection
+                    
+                    // Comparaison avec records personnels
+                     if viewModel.lastWorkout != nil {
+                         performanceComparisonSection
+                     }
                     
                     // Événements à venir
                     upcomingEventsSection
@@ -32,6 +39,31 @@ struct DashboardView: View {
     }
     
     // MARK: - Sections
+    
+    private var performanceComparisonSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Performance vs Records")
+                .font(.title3.bold())
+                .foregroundColor(.white)
+            
+            if let lastWorkout = viewModel.lastWorkout {
+                VStack(spacing: 12) {
+                    ForEach(lastWorkout.performances) { exercise in
+                        if let personalBest = statsViewModel.personalBests[exercise.exerciseName] {
+                            PerformanceComparisonRow(
+                                exerciseName: exercise.exerciseName,
+                                currentPerformance: exercise,
+                                personalBest: personalBest
+                            )
+                        }
+                    }
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+            }
+        }
+    }
     
     private var lastWorkoutSection: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -149,6 +181,7 @@ struct LastWorkoutCard: View {
                                     .foregroundColor(.white)
                             }
                         }
+                        .padding(.vertical, 4)
                     }
                 }
             }
@@ -200,6 +233,78 @@ struct NoWorkoutCard: View {
         .padding(.horizontal)
         .background(Color(.systemGray6))
         .cornerRadius(12)
+    }
+}
+
+// MARK - Compare performances
+
+struct PerformanceComparisonRow: View {
+    let exerciseName: String
+    let currentPerformance: WorkoutExercise
+    let personalBest: WorkoutExercise
+    
+    private var improvement: TimeInterval {
+        currentPerformance.duration - personalBest.duration
+    }
+    
+    private var isNewRecord: Bool {
+        currentPerformance.duration < personalBest.duration && currentPerformance.duration > 0
+    }
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Text(exerciseName)
+                    .font(.subheadline.bold())
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                if isNewRecord {
+                    Label("Nouveau record!", systemImage: "trophy.fill")
+                        .font(.caption)
+                        .foregroundColor(.yellow)
+                }
+            }
+            
+            HStack {
+                VStack(alignment: .leading) {
+                    Text("Actuel")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    Text(currentPerformance.duration.formatted)
+                        .font(.headline)
+                        .foregroundColor(.white)
+                }
+                
+                Spacer()
+                
+                VStack {
+                    Text("Record")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    Text(personalBest.duration.formatted)
+                        .font(.headline)
+                        .foregroundColor(.yellow)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing) {
+                    Text("Diff")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    HStack(spacing: 2) {
+                        Image(systemName: improvement < 0 ? "arrow.down" : "arrow.up")
+                            .font(.caption)
+                        Text(abs(improvement).formatted)
+                            .font(.headline)
+                    }
+                    .foregroundColor(improvement < 0 ? .green : .red)
+                }
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 

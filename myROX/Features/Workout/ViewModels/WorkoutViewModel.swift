@@ -47,10 +47,12 @@ class WorkoutViewModel {
         let workout = Workout()
         workout.templateID = template.id
         
-        // Créer les exercices depuis les noms
-        for exerciseName in template.exerciseNames {
-            let workoutExercise = WorkoutExercise(exerciseName: exerciseName)
-            workout.performances.append(workoutExercise)
+        // Créer les exercices pour chaque round
+        for round in 1...template.rounds {
+            for exerciseName in template.exerciseNames {
+                let workoutExercise = WorkoutExercise(exerciseName: "\(exerciseName) (R\(round))")
+                workout.performances.append(workoutExercise)
+            }
         }
         
         activeWorkout = workout
@@ -110,8 +112,8 @@ class WorkoutViewModel {
     }
     
     // MARK: - Template Management
-    func createTemplate(name: String, exerciseNames: [String]) {
-        let template = WorkoutTemplate(name: name)
+    func createTemplate(name: String, exerciseNames: [String], rounds: Int = 1) {
+        let template = WorkoutTemplate(name: name, rounds: rounds)
         template.exerciseNames = exerciseNames
         
         modelContext.insert(template)

@@ -6,6 +6,8 @@ struct GoalsSection: View {
     @Query(sort: \ExerciseGoal.exerciseName) private var goals: [ExerciseGoal]
     @State private var editingGoal: String?
     @State private var newGoalMinutes: Double = 0
+    @State private var newGoalDistance: Double = 0
+    @State private var newGoalReps: Int = 0
     
     private var sortedExercises: [Exercise] {
         let descriptor = FetchDescriptor<Exercise>(sortBy: [SortDescriptor(\.name)])
@@ -19,17 +21,22 @@ struct GoalsSection: View {
                 .foregroundColor(.white)
             
             ForEach(sortedExercises) { exercise in
+                let goal = goals.first { $0.exerciseName == exercise.name }
+                let isEditing = editingGoal == exercise.name
+                
                 GoalRow(
                     exercise: exercise,
-                    currentGoal: goals.first { $0.exerciseName == exercise.name },
-                    isEditing: editingGoal == exercise.name,
+                    currentGoal: goal,
+                    isEditing: isEditing,
                     newGoalMinutes: $newGoalMinutes,
+                    newGoalDistance: $newGoalDistance,
+                    newGoalReps: $newGoalReps,
                     onEdit: {
-                        if editingGoal == exercise.name {
+                        if isEditing {
                             saveGoal(for: exercise.name)
                         } else {
                             editingGoal = exercise.name
-                            if let goal = goals.first(where: { $0.exerciseName == exercise.name }) {
+                            if let goal = goal {
                                 newGoalMinutes = goal.targetTime / 60
                             } else {
                                 newGoalMinutes = 0
@@ -43,20 +50,29 @@ struct GoalsSection: View {
         .background(Color(.systemGray6))
         .cornerRadius(12)
     }
+
     
     private func saveGoal(for exerciseName: String) {
-        let targetTime = newGoalMinutes * 60
-        
         if let existingGoal = goals.first(where: { $0.exerciseName == exerciseName }) {
-            existingGoal.targetTime = targetTime
+            existingGoal.targetTime = newGoalMinutes * 60
+            existingGoal.targetDistance = newGoalDistance > 0 ? newGoalDistance : nil
+            existingGoal.targetRepetitions = newGoalReps > 0 ? newGoalReps : nil
             existingGoal.updatedAt = Date()
         } else {
-            let newGoal = ExerciseGoal(exerciseName: exerciseName, targetTime: targetTime)
+            let newGoal = ExerciseGoal(
+                exerciseName: exerciseName,
+                targetTime: newGoalMinutes * 60,
+                targetDistance: newGoalDistance > 0 ? newGoalDistance : nil,
+                targetRepetitions: newGoalReps > 0 ? newGoalReps : nil
+            )
             modelContext.insert(newGoal)
         }
         
         try? modelContext.save()
         editingGoal = nil
+        
+        // Synchroniser avec la Watch
+        // WatchConnectivityService.shared.sendGoals()
         
         // Synchroniser avec la Watch
         DispatchQueue.main.async {
@@ -70,43 +86,105 @@ struct GoalRow: View {
     let currentGoal: ExerciseGoal?
     let isEditing: Bool
     @Binding var newGoalMinutes: Double
+    @Binding var newGoalDistance: Double
+    @Binding var newGoalReps: Int
     let onEdit: () -> Void
     
+    @State private var goalType: GoalType = .time
+    
+    enum GoalType: String, CaseIterable {
+        case time = "Temps"
+        case distance = "Distance"
+        case reps = "Répétitions"
+    }
+    
     var body: some View {
-        HStack {
-            Text(exercise.name)
-                .font(.subheadline)
-                .foregroundColor(.white)
-            
-            Spacer()
-            
-            if isEditing {
-                HStack(spacing: 4) {
-                    TextField("Minutes", value: $newGoalMinutes, format: .number)
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .frame(width: 60)
-                    
-                    Text("min")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
-            } else {
-                if let goal = currentGoal, goal.targetTime > 0 {
-                    Text("< \(goal.targetTime.formatted)")
-                        .font(.subheadline)
-                        .foregroundColor(.yellow)
+        VStack {
+            HStack {
+                Text(exercise.name)
+                    .font(.subheadline)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                if isEditing {
+                    Picker("Type", selection: $goalType) {
+                        if true { // Toujours afficher temps
+                            Text("Temps").tag(GoalType.time)
+                        }
+                        if exercise.hasDistance {
+                            Text("Distance").tag(GoalType.distance)
+                        }
+                        if exercise.hasRepetitions {
+                            Text("Reps").tag(GoalType.reps)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .frame(width: 200)
                 } else {
-                    Text("--:--")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
+                    if let goal = currentGoal {
+                        VStack(alignment: .trailing, spacing: 4) {
+                            if goal.targetTime > 0 {
+                                Text("⏱ < \(goal.targetTime.formatted)")
+                                    .font(.caption)
+                                    .foregroundColor(.yellow)
+                            }
+                            if let distance = goal.targetDistance, distance > 0 {
+                                Text("📏 > \(Int(distance))m")
+                                    .font(.caption)
+                                    .foregroundColor(.yellow)
+                            }
+                            if let reps = goal.targetRepetitions, reps > 0 {
+                                Text("🔄 > \(reps)")
+                                    .font(.caption)
+                                    .foregroundColor(.yellow)
+                            }
+                        }
+                    } else {
+                        Text("--")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+                }
+                
+                Button(action: onEdit) {
+                    Image(systemName: isEditing ? "checkmark.circle" : "pencil.circle")
+                        .font(.title3)
+                        .foregroundColor(.yellow)
                 }
             }
-            
-            Button(action: onEdit) {
-                Image(systemName: isEditing ? "checkmark.circle" : "pencil.circle")
-                    .font(.title3)
-                    .foregroundColor(.yellow)
+            // Champs d'édition
+            if isEditing {
+                HStack {
+                    switch goalType {
+                    case .time:
+                        TextField("Minutes", value: $newGoalMinutes, format: .number)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .frame(width: 80)
+                        Text("min")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        
+                    case .distance:
+                        TextField("Mètres", value: $newGoalDistance, format: .number)
+                            .keyboardType(.numberPad)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .frame(width: 80)
+                        Text("m")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        
+                    case .reps:
+                        TextField("Répétitions", value: $newGoalReps, format: .number)
+                            .keyboardType(.numberPad)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .frame(width: 80)
+                        Text("reps")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                }
             }
         }
         .padding()

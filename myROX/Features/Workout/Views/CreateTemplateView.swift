@@ -11,6 +11,7 @@ struct CreateTemplateView: View {
     @State private var templateName = ""
     @State private var selectedExercises: [Exercise] = []
     @State private var showingExercisePicker = false
+    @State private var rounds: Int = 1
     
     var body: some View {
         NavigationStack {
@@ -28,6 +29,39 @@ struct CreateTemplateView: View {
                         .cornerRadius(12)
                 }
                 .padding()
+                
+                // Nombre de rounds
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Nombre de rounds")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    HStack {
+                        Button {
+                            if rounds > 1 { rounds -= 1 }
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(rounds > 1 ? .yellow : .gray)
+                        }
+                        .disabled(rounds <= 1)
+                        
+                        Text("\(rounds)")
+                            .font(.title2.bold())
+                            .foregroundColor(.white)
+                            .frame(minWidth: 60)
+                        
+                        Button {
+                            rounds += 1
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.yellow)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(.horizontal)
                 
                 // Liste des exercices sélectionnés
                 if selectedExercises.isEmpty {
@@ -120,7 +154,7 @@ struct CreateTemplateView: View {
         guard let vm = viewModel else { return }
         
         let exerciseNames = selectedExercises.map { $0.name }
-        vm.createTemplate(name: templateName, exerciseNames: exerciseNames)
+        vm.createTemplate(name: templateName, exerciseNames: exerciseNames, rounds: rounds)
         
         dismiss()
     }
