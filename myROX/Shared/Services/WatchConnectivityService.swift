@@ -52,7 +52,8 @@ class WatchConnectivityService: NSObject, ObservableObject {
                 [
                     "id": template.id.uuidString,
                     "name": template.name,
-                    "exercises": template.exerciseNames
+                    "exercises": template.exerciseNames,
+                    "rounds": template.rounds
                 ]
             }
             

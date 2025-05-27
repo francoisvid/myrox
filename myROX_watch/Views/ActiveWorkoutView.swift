@@ -21,26 +21,32 @@ struct ActiveWorkoutView: View {
                         
                         // Current exercise
                         if let exercise = viewModel.currentExercise {
-                            Text(exercise.name)
-                                .font(.headline)
-                            
-                            // Afficher l'objectif
-                            if let targetTime = dataService.goals[exercise.name], targetTime > 0 {
-                                Text("Objectif: \(targetTime.formatted)")
+                            VStack(spacing: 8) {
+                                Text("Round \(exercise.round)")
                                     .font(.caption)
+                                    .foregroundColor(.gray)
+                                
+                                Text(exercise.name)
+                                    .font(.headline)
+                                
+                                // Afficher l'objectif
+                                if let targetTime = dataService.goals[exercise.name], targetTime > 0 {
+                                    Text("Objectif: \(targetTime.formatted)")
+                                        .font(.caption)
+                                        .foregroundColor(.yellow)
+                                }
+                                
+                                Text(viewModel.exerciseTimer.formatted)
+                                    .font(.system(size: 40, weight: .bold, design: .monospaced))
                                     .foregroundColor(.yellow)
-                            }
-                            
-                            Text(viewModel.exerciseTimer.formatted)
-                                .font(.system(size: 40, weight: .bold, design: .monospaced))
-                                .foregroundColor(.yellow)
-                            
-                            // Indicateur visuel si on dépasse l'objectif
-                            if let targetTime = dataService.goals[exercise.name],
-                               targetTime > 0 && viewModel.exerciseTimer > targetTime {
-                                Text("Objectif dépassé!")
-                                    .font(.caption)
-                                    .foregroundColor(.red)
+                                
+                                // Indicateur visuel si on dépasse l'objectif
+                                if let targetTime = dataService.goals[exercise.name],
+                                   targetTime > 0 && viewModel.exerciseTimer > targetTime {
+                                    Text("Objectif dépassé!")
+                                        .font(.caption)
+                                        .foregroundColor(.red)
+                                }
                             }
                             
                             // Controls

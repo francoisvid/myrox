@@ -5,6 +5,14 @@ struct WatchTemplate: Identifiable, Codable {
     let id: UUID
     let name: String
     let exercises: [String]
+    let rounds: Int // Nombre de rounds dans le template
+    
+    init(id: UUID, name: String, exercises: [String], rounds: Int) {
+        self.id = id
+        self.name = name
+        self.exercises = exercises
+        self.rounds = rounds
+    }
 }
 
 struct WatchWorkout: Identifiable {
@@ -29,4 +37,6 @@ struct WatchExercise: Identifiable {
     var repetitions: Int = 0
     var heartRatePoints: [(value: Int, timestamp: Date)] = []
     var isCompleted: Bool = false
+    var round: Int = 1 // Numéro du round
+    var order: Int = 0 // Ordre dans le round
 }

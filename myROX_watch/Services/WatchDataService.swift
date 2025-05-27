@@ -142,15 +142,29 @@ class WatchDataService: NSObject, ObservableObject {
             workoutSession?.delegate = self
             builder?.delegate = self
             
-            // Créer d'abord le workout
+            // Créer d'abord le workout avec les exercices groupés par round
             DispatchQueue.main.async {
+                // Créer les exercices pour chaque round
+                var exercises: [WatchExercise] = []
+                let rounds = template.rounds // Utiliser le nombre de rounds du template
+                for round in 1...rounds {
+                    let roundExercises = template.exercises.enumerated().map { index, exerciseName in
+                        WatchExercise(
+                            name: exerciseName,
+                            round: round,
+                            order: index
+                        )
+                    }
+                    exercises.append(contentsOf: roundExercises)
+                }
+                
                 self.activeWorkout = WatchWorkout(
                     templateId: template.id,
                     templateName: template.name,
                     startedAt: Date(),
-                    exercises: template.exercises.map { WatchExercise(name: $0) }
+                    exercises: exercises
                 )
-                print("Workout créé avec \(template.exercises.count) exercices")
+                print("Workout créé avec \(exercises.count) exercices répartis sur \(rounds) rounds")
             }
             
             // Démarrer la session HealthKit
@@ -323,10 +337,11 @@ extension WatchDataService: WCSessionDelegate {
                     guard let idString = data["id"] as? String,
                           let id = UUID(uuidString: idString),
                           let name = data["name"] as? String,
-                          let exercises = data["exercises"] as? [String] else {
+                          let exercises = data["exercises"] as? [String],
+                          let rounds = data["rounds"] as? Int else {
                         return nil
                     }
-                    return WatchTemplate(id: id, name: name, exercises: exercises)
+                    return WatchTemplate(id: id, name: name, exercises: exercises, rounds: rounds)
                 }
             }
             
