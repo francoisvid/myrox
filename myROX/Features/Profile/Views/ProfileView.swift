@@ -250,6 +250,7 @@ struct SettingsView: View {
 
 struct LogoutButton: View {
     @EnvironmentObject var authViewModel: AuthViewModel
+    @State private var showDeleteConfirmation = false
     
     var body: some View {
         Button {
@@ -262,6 +263,21 @@ struct LogoutButton: View {
                 .padding()
                 .background(Color.red)
                 .cornerRadius(12)
+        }
+        
+        // Dans votre ProfileView ou SettingsView
+        Button("Supprimer mon compte") {
+            // Afficher une alerte de confirmation d'abord
+            showDeleteConfirmation = true
+        }
+        .foregroundColor(.red)
+        .alert("Supprimer le compte", isPresented: $showDeleteConfirmation) {
+            Button("Annuler", role: .cancel) { }
+            Button("Supprimer", role: .destructive) {
+                authViewModel.deleteAccount()
+            }
+        } message: {
+            Text("Cette action est irréversible. Votre compte et toutes vos données seront définitivement supprimés.")
         }
     }
 }

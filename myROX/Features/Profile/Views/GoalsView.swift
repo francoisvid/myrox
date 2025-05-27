@@ -8,6 +8,7 @@ struct GoalsSection: View {
     @State private var newGoalMinutes: Double = 0
     @State private var newGoalDistance: Double = 0
     @State private var newGoalReps: Int = 0
+    @State private var showDetails = false
     
     private var sortedExercises: [Exercise] {
         let descriptor = FetchDescriptor<Exercise>(sortBy: [SortDescriptor(\.name)])
@@ -20,7 +21,7 @@ struct GoalsSection: View {
                 .font(.headline)
                 .foregroundColor(Color(.label))
             
-            ForEach(sortedExercises) { exercise in
+            ForEach(Array(sortedExercises.prefix(showDetails ? sortedExercises.count : 5))) { exercise in
                 let goal = goals.first { $0.exerciseName == exercise.name }
                 let isEditing = editingGoal == exercise.name
                 
@@ -44,6 +45,25 @@ struct GoalsSection: View {
                         }
                     }
                 )
+            }
+            
+            // Toggle pour les détails
+            if sortedExercises.count > 5 {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showDetails.toggle()
+                    }
+                } label: {
+                    HStack {
+                        Text(showDetails ? "Masquer les détails" : "Voir les détails")
+                            .font(.caption)
+                            .foregroundColor(.yellow)
+
+                        Image(systemName: showDetails ? "chevron.up" : "chevron.down")
+                            .font(.caption)
+                            .foregroundColor(.yellow)
+                    }
+                }
             }
         }
         .padding()

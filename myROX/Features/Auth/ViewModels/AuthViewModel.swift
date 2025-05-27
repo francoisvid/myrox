@@ -101,6 +101,83 @@ class AuthViewModel: NSObject, ObservableObject {
         
         return hashString
     }
+    
+    // MARK: - Account Deletion
+    func deleteAccount() {
+        guard let user = Auth.auth().currentUser else {
+            alertMessage = "Aucun utilisateur connecté."
+            showAlert = true
+            return
+        }
+        
+        isLoading = true
+        
+        // Pour Apple Sign In, il faut parfois re-authentifier avant de supprimer
+        if user.providerData.contains(where: { $0.providerID == "apple.com" }) {
+            deleteAppleAccount()
+        } else {
+            performAccountDeletion()
+        }
+    }
+
+    private func deleteAppleAccount() {
+        // Re-authentification Apple requise pour la suppression
+        let appleIDProvider = ASAuthorizationAppleIDProvider()
+        let request = appleIDProvider.createRequest()
+        request.requestedScopes = []
+        
+        // Générer un nouveau nonce pour la re-auth
+        let nonce = randomNonceString()
+        currentNonce = nonce
+        request.nonce = sha256(nonce)
+        
+        let authorizationController = ASAuthorizationController(authorizationRequests: [request])
+        authorizationController.delegate = self
+        authorizationController.presentationContextProvider = self
+        authorizationController.performRequests()
+    }
+
+    private func performAccountDeletion() {
+        guard let user = Auth.auth().currentUser else {
+            isLoading = false
+            return
+        }
+        
+        user.delete { [weak self] error in
+            guard let self = self else { return }
+            
+            DispatchQueue.main.async {
+                self.isLoading = false
+                
+                if let error = error {
+                    // Si l'erreur indique qu'une re-auth est nécessaire
+                    if (error as NSError).code == AuthErrorCode.requiresRecentLogin.rawValue {
+                        self.alertMessage = "Pour supprimer votre compte, veuillez vous reconnecter puis réessayer."
+                    } else {
+                        self.alertMessage = "Erreur lors de la suppression du compte: \(error.localizedDescription)"
+                    }
+                    self.showAlert = true
+                } else {
+                    // Suppression réussie
+                    print("✅ Compte supprimé avec succès")
+                    self.cleanupAfterDeletion()
+                }
+            }
+        }
+    }
+
+    private func cleanupAfterDeletion() {
+        // Nettoyer toutes les données locales
+        UserDefaults.standard.removeObject(forKey: "username")
+        UserDefaults.standard.removeObject(forKey: "email")
+        
+        // Remettre à zéro l'état d'authentification
+        isLoggedIn = false
+        
+        // Optionnel : Afficher un message de confirmation
+        alertMessage = "Votre compte a été supprimé avec succès."
+        showAlert = true
+    }
 }
 
 // MARK: - ASAuthorizationControllerDelegate
@@ -122,29 +199,42 @@ extension AuthViewModel: ASAuthorizationControllerDelegate {
                 return
             }
             
-            // Créer le credential Firebase avec le nonce sécurisé
             let firebaseCredential = OAuthProvider.credential(
                 withProviderID: "apple.com",
                 idToken: idTokenString,
                 rawNonce: currentNonce ?? ""
             )
             
-            // Authentifier l'utilisateur avec Firebase
-            Auth.auth().signIn(with: firebaseCredential) { [weak self] (authResult, error) in
-                guard let self = self else { return }
-                
-                if let error = error {
-                    self.alertMessage = "Erreur d'authentification Firebase avec Apple: \(error.localizedDescription)"
-                    self.showAlert = true
-                    return
-                }
-                
-                if let authResult = authResult {
-                    print("Connexion Firebase avec Apple réussie ! User: \(authResult.user.uid)")
-                    self.isLoggedIn = true
+            // Vérifier si c'est une re-auth pour suppression ou une connexion normale
+            if Auth.auth().currentUser != nil {
+                // Re-authentification pour suppression
+                Auth.auth().currentUser?.reauthenticate(with: firebaseCredential) { [weak self] _, error in
+                    guard let self = self else { return }
                     
-                    // Gérer les infos utilisateur
-                    self.handleAppleUserInfo(credential: appleIDCredential, firebaseUser: authResult.user)
+                    if let error = error {
+                        self.alertMessage = "Erreur de re-authentification: \(error.localizedDescription)"
+                        self.showAlert = true
+                    } else {
+                        // Re-auth réussie, procéder à la suppression
+                        self.performAccountDeletion()
+                    }
+                }
+            } else {
+                // Connexion normale
+                Auth.auth().signIn(with: firebaseCredential) { [weak self] (authResult, error) in
+                    guard let self = self else { return }
+                    
+                    if let error = error {
+                        self.alertMessage = "Erreur d'authentification Firebase avec Apple: \(error.localizedDescription)"
+                        self.showAlert = true
+                        return
+                    }
+                    
+                    if let authResult = authResult {
+                        print("Connexion Firebase avec Apple réussie ! User: \(authResult.user.uid)")
+                        self.isLoggedIn = true
+                        self.handleAppleUserInfo(credential: appleIDCredential, firebaseUser: authResult.user)
+                    }
                 }
             }
         }
