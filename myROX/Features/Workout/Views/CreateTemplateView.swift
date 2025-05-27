@@ -163,24 +163,27 @@ struct CreateTemplateView: View {
     }
     
     private var selectedExercisesList: some View {
-        ScrollView {
-            VStack(spacing: 12) {
-                ForEach(selectedExercises) { exercise in
-                    ExerciseListItem(
-                        exercise: exercise,
-                        position: selectedExercises.firstIndex(of: exercise)! + 1,
-                        onRemove: {
-                            withAnimation {
-                                if let index = selectedExercises.firstIndex(of: exercise) {
-                                    selectedExercises.remove(at: index)
-                                }
+        List {
+            ForEach(selectedExercises) { exercise in
+                ExerciseListItem(
+                    exercise: exercise,
+                    position: selectedExercises.firstIndex(of: exercise)! + 1,
+                    onRemove: {
+                        withAnimation {
+                            if let index = selectedExercises.firstIndex(of: exercise) {
+                                selectedExercises.remove(at: index)
                             }
                         }
-                    )
-                }
+                    }
+                )
+                .listRowBackground(Color.clear)
             }
-            .padding()
+            .onMove { from, to in
+                selectedExercises.move(fromOffsets: from, toOffset: to)
+            }
         }
+        .listStyle(.plain)
+        .environment(\.editMode, .constant(.active))
     }
 }
 
