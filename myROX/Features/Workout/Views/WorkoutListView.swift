@@ -94,6 +94,7 @@ struct WorkoutListView: View {
     private var templateGrid: some View {
         LazyVGrid(columns: [
             GridItem(.flexible(), spacing: 15),
+            GridItem(.flexible(), spacing: 15),
         ], spacing: 20) {
             if let templates = viewModel?.templates {
                 ForEach(templates) { template in
@@ -126,6 +127,14 @@ struct WorkoutListView: View {
     private var toolbarButtons: some View {
         HStack(spacing: 15) {
             Menu {
+                Button {
+                    viewModel?.cleanupLegacyTemplates()
+                } label: {
+                    Label("Nettoyer les anciens templates", systemImage: "broom")
+                }
+                
+                Divider()
+                
                 Button(role: .destructive) {
                     viewModel?.deleteAllTemplates()
                 } label: {

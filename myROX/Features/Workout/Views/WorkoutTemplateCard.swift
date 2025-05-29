@@ -137,12 +137,12 @@ struct WorkoutTemplateCard: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(isActive ? Color.yellow : Color.clear, lineWidth: 2)
         )
-        .shadow(
-            color: isActive ? .yellow.opacity(0.4) : .black.opacity(0.15),
-            radius: isActive ? 12 : 6,
-            x: 0,
-            y: isActive ? 6 : 3
-        )
+//        .shadow(
+//            color: isActive ? .yellow.opacity(0.4) : .black.opacity(0.15),
+//            radius: isActive ? 12 : 6,
+//            x: 0,
+//            y: isActive ? 6 : 3
+//        )
         .onAppear {
             loadExercises()
         }
@@ -180,11 +180,6 @@ struct TemplateExercisePreviewRow: View {
     
     var body: some View {
         HStack(spacing: 8) {
-            Text("\(index + 1).")
-                .font(.caption.bold())
-                .foregroundColor(.blue)
-                .frame(width: 20, alignment: .leading)
-            
             VStack(alignment: .leading, spacing: 2) {
                 Text(templateExercise.exerciseName)
                     .font(.caption.bold())

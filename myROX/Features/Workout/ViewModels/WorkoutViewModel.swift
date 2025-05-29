@@ -45,11 +45,8 @@ class WorkoutViewModel {
     
     // MARK: - Workout Actions
     func startWorkout(from template: WorkoutTemplate) {
-        // Validation du template - utiliser les nouveaux exercices ou fallback vers les anciens
-        let templateExercises = template.exercises.isEmpty ? 
-            template.exerciseNames.enumerated().map { index, name in
-                TemplateExercise(exerciseName: name, order: index)
-            } : template.exercises.sorted(by: { $0.order < $1.order })
+        // Validation du template
+        let templateExercises = template.exercises.sorted(by: { $0.order < $1.order })
         
         guard !templateExercises.isEmpty else {
             print("Erreur: Le template ne contient aucun exercice")
@@ -182,38 +179,7 @@ class WorkoutViewModel {
     }
     
     // MARK: - Template Management
-    func createTemplate(name: String, exerciseNames: [String], rounds: Int = 1) {
-        // Validation des données
-        guard !name.isEmpty else {
-            print("Erreur: Le nom du template ne peut pas être vide")
-            return
-        }
-        
-        guard !exerciseNames.isEmpty else {
-            print("Erreur: Le template doit contenir au moins un exercice")
-            return
-        }
-        
-        guard rounds > 0 else {
-            print("Erreur: Le nombre de rounds doit être supérieur à 0")
-            return
-        }
-        
-        let template = WorkoutTemplate(name: name, rounds: rounds)
-        template.exerciseNames = exerciseNames
-        
-        modelContext.insert(template)
-        do {
-            try modelContext.save()
-            fetchTemplates()
-            WatchConnectivityService.shared.sendTemplates()
-        } catch {
-            print("Erreur lors de la création du template : \(error)")
-        }
-    }
-    
-    // MARK: - New Template Management with TemplateExercise
-    func createTemplateWithExercises(name: String, exercises: [TemplateExercise], rounds: Int = 1) {
+    func createTemplate(name: String, exercises: [TemplateExercise], rounds: Int = 1) {
         // Validation des données
         guard !name.isEmpty else {
             print("Erreur: Le nom du template ne peut pas être vide")
@@ -248,7 +214,7 @@ class WorkoutViewModel {
         }
     }
     
-    func updateTemplateWithExercises(_ template: WorkoutTemplate, name: String, exercises: [TemplateExercise], rounds: Int) {
+    func updateTemplate(_ template: WorkoutTemplate, name: String, exercises: [TemplateExercise], rounds: Int) {
         // Validation des données
         guard !name.isEmpty else {
             print("Erreur: Le nom du template ne peut pas être vide")
@@ -343,37 +309,6 @@ class WorkoutViewModel {
         }
     }
     
-    func updateTemplate(_ template: WorkoutTemplate, name: String, exerciseNames: [String], rounds: Int) {
-        // Validation des données
-        guard !name.isEmpty else {
-            print("Erreur: Le nom du template ne peut pas être vide")
-            return
-        }
-        
-        guard !exerciseNames.isEmpty else {
-            print("Erreur: Le template doit contenir au moins un exercice")
-            return
-        }
-        
-        guard rounds > 0 else {
-            print("Erreur: Le nombre de rounds doit être supérieur à 0")
-            return
-        }
-        
-        // Mettre à jour le template
-        template.name = name
-        template.exerciseNames = exerciseNames
-        template.rounds = rounds
-        
-        do {
-            try modelContext.save()
-            fetchTemplates()
-            WatchConnectivityService.shared.sendTemplates()
-        } catch {
-            print("Erreur lors de la mise à jour du template : \(error)")
-        }
-    }
-    
     func deleteTemplate(_ template: WorkoutTemplate) {
         // Sauvegarder l'ID avant la suppression
         let templateId = template.id
@@ -413,6 +348,44 @@ class WorkoutViewModel {
             fetchTemplates() // Recharger les templates après la suppression de tous
         } catch {
             print("Erreur lors de la suppression de tous les templates : \(error)")
+        }
+    }
+    
+    // MARK: - Migration/Cleanup
+    func cleanupLegacyTemplates() {
+        print("🧹 Début du nettoyage des anciens templates...")
+        
+        do {
+            let descriptor = FetchDescriptor<WorkoutTemplate>()
+            let allTemplates = try modelContext.fetch(descriptor)
+            
+            var deletedCount = 0
+            var keptCount = 0
+            
+            for template in allTemplates {
+                if template.exercises.isEmpty {
+                    print("❌ Suppression template vide: \(template.name)")
+                    modelContext.delete(template)
+                    deletedCount += 1
+                } else {
+                    print("✅ Conservation template valide: \(template.name) (\(template.exercises.count) exercices)")
+                    keptCount += 1
+                }
+            }
+            
+            // Sauvegarder les changements
+            try modelContext.save()
+            
+            print("🎯 Nettoyage terminé:")
+            print("   - Templates supprimés: \(deletedCount)")
+            print("   - Templates conservés: \(keptCount)")
+            
+            // Recharger les templates et synchroniser
+            fetchTemplates()
+            WatchConnectivityService.shared.sendTemplates()
+            
+        } catch {
+            print("❌ Erreur lors du nettoyage des anciens templates: \(error)")
         }
     }
     

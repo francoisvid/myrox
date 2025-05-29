@@ -55,6 +55,13 @@ struct MyROXApp: App {
     private func initializeApp() async {
         do {
             try await modelContainer.initializeExerciseCatalog()
+            
+            // Nettoyer automatiquement les anciens templates au démarrage
+            await MainActor.run {
+                let workoutViewModel = WorkoutViewModel(modelContext: modelContainer.mainContext)
+                workoutViewModel.cleanupLegacyTemplates()
+            }
+            
             await MainActor.run {
                 isInitialized = true
             }

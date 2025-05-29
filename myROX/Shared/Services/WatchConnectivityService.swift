@@ -75,42 +75,32 @@ class WatchConnectivityService: NSObject, ObservableObject {
         do {
             let templates = try modelContext.fetch(descriptor)
             let templatesData = templates.map { template in
-                // Utiliser les nouveaux TemplateExercise ou fallback vers les anciens exerciseNames
-                let exercisesData: [[String: Any]]
-                
-                if !template.exercises.isEmpty {
-                    // Nouveau format avec paramètres
-                    exercisesData = template.exercises.sorted(by: { $0.order < $1.order }).map { templateExercise in
-                        var exerciseData: [String: Any] = [
-                            "name": templateExercise.exerciseName,
-                            "order": templateExercise.order
-                        ]
-                        
-                        if let distance = templateExercise.targetDistance, distance > 0 {
-                            exerciseData["targetDistance"] = distance
-                        }
-                        
-                        if let reps = templateExercise.targetRepetitions, reps > 0 {
-                            exerciseData["targetRepetitions"] = reps
-                        }
-                        
-                        return exerciseData
+                // Utiliser uniquement les TemplateExercise
+                let exercisesData = template.exercises.sorted(by: { $0.order < $1.order }).map { templateExercise in
+                    var exerciseData: [String: Any] = [
+                        "name": templateExercise.exerciseName,
+                        "order": templateExercise.order
+                    ]
+                    
+                    if let distance = templateExercise.targetDistance, distance > 0 {
+                        exerciseData["targetDistance"] = distance
                     }
-                } else {
-                    // Format de compatibilité
-                    exercisesData = template.exerciseNames.enumerated().map { index, name in
-                        [
-                            "name": name,
-                            "order": index
-                        ]
+                    
+                    if let reps = templateExercise.targetRepetitions, reps > 0 {
+                        exerciseData["targetRepetitions"] = reps
                     }
+                    
+                    return exerciseData
                 }
+                
+                // Créer aussi la liste des noms pour compatibilité Watch
+                let exerciseNames = template.exercises.sorted(by: { $0.order < $1.order }).map { $0.exerciseName }
                 
                 return [
                     "id": template.id.uuidString,
                     "name": template.name,
                     "exercisesData": exercisesData,
-                    "exercises": template.exerciseNames, // Compatibilité avec l'ancien format
+                    "exercises": exerciseNames, // Compatibilité avec l'ancien format Watch
                     "rounds": template.rounds
                 ]
             }

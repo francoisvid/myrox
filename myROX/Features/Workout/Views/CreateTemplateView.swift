@@ -208,22 +208,9 @@ struct CreateTemplateView: View {
     private func loadExistingTemplate() {
         guard let template = editingTemplate else { return }
         
-        if !template.exercises.isEmpty {
-            // Nouveau format avec TemplateExercise - charger directement
-            templateExercises = template.exercises.sorted(by: { $0.order < $1.order })
-            print("Chargé \(templateExercises.count) exercices depuis TemplateExercise")
-        } else if !template.exerciseNames.isEmpty {
-            // Ancien format avec exerciseNames - créer de nouveaux TemplateExercise
-            templateExercises = template.exerciseNames.enumerated().map { index, name in
-                let templateExercise = TemplateExercise(exerciseName: name, order: index)
-                // Note: Le template sera assigné lors de la sauvegarde
-                return templateExercise
-            }
-            print("Converti \(templateExercises.count) exercices depuis exerciseNames: \(template.exerciseNames)")
-        } else {
-            print("Template sans exercices")
-            templateExercises = []
-        }
+        // Charger directement les exercices du template
+        templateExercises = template.exercises.sorted(by: { $0.order < $1.order })
+        print("Chargé \(templateExercises.count) exercices depuis le template")
     }
     
     private func removeTemplateExercise(_ templateExercise: TemplateExercise) {
@@ -252,14 +239,14 @@ struct CreateTemplateView: View {
     
     private func saveTemplate() {
         if let template = editingTemplate {
-            viewModel?.updateTemplateWithExercises(
+            viewModel?.updateTemplate(
                 template,
                 name: templateName,
                 exercises: templateExercises,
                 rounds: rounds
             )
         } else {
-            viewModel?.createTemplateWithExercises(
+            viewModel?.createTemplate(
                 name: templateName,
                 exercises: templateExercises,
                 rounds: rounds
