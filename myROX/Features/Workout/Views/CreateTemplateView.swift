@@ -21,6 +21,9 @@ struct CreateTemplateView: View {
         self.editingTemplate = editingTemplate
         _templateName = State(initialValue: editingTemplate?.name ?? "")
         _rounds = State(initialValue: editingTemplate?.rounds ?? 1)
+        
+        // Initialiser la liste d'exercices - le chargement se fera dans onAppear
+        _templateExercises = State(initialValue: [])
     }
     
     var body: some View {
@@ -160,6 +163,7 @@ struct CreateTemplateView: View {
                     .foregroundColor(.gray)
             }
             .padding(.horizontal)
+            .padding(.top, 20)
             
             List {
                 ForEach(templateExercises.sorted(by: { $0.order < $1.order }), id: \.id) { templateExercise in
@@ -202,8 +206,23 @@ struct CreateTemplateView: View {
     }
     
     private func loadExistingTemplate() {
-        if let template = editingTemplate {
+        guard let template = editingTemplate else { return }
+        
+        if !template.exercises.isEmpty {
+            // Nouveau format avec TemplateExercise - charger directement
             templateExercises = template.exercises.sorted(by: { $0.order < $1.order })
+            print("Chargé \(templateExercises.count) exercices depuis TemplateExercise")
+        } else if !template.exerciseNames.isEmpty {
+            // Ancien format avec exerciseNames - créer de nouveaux TemplateExercise
+            templateExercises = template.exerciseNames.enumerated().map { index, name in
+                let templateExercise = TemplateExercise(exerciseName: name, order: index)
+                // Note: Le template sera assigné lors de la sauvegarde
+                return templateExercise
+            }
+            print("Converti \(templateExercises.count) exercices depuis exerciseNames: \(template.exerciseNames)")
+        } else {
+            print("Template sans exercices")
+            templateExercises = []
         }
     }
     

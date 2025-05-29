@@ -144,15 +144,19 @@ class WatchDataService: NSObject, ObservableObject {
             
             // Créer d'abord le workout avec les exercices groupés par round
             DispatchQueue.main.async {
-                // Créer les exercices pour chaque round
+                // Créer les exercices pour chaque round en utilisant les paramètres des templates
                 var exercises: [WatchExercise] = []
-                let rounds = template.rounds // Utiliser le nombre de rounds du template
+                let rounds = template.rounds
+                let templateExercises = template.templateExercises
+                
                 for round in 1...rounds {
-                    let roundExercises = template.exercises.enumerated().map { index, exerciseName in
+                    let roundExercises = templateExercises.map { templateExercise in
                         WatchExercise(
-                            name: exerciseName,
+                            name: templateExercise.name,
                             round: round,
-                            order: index
+                            order: templateExercise.order,
+                            targetDistance: templateExercise.targetDistance,
+                            targetRepetitions: templateExercise.targetRepetitions
                         )
                     }
                     exercises.append(contentsOf: roundExercises)
@@ -165,6 +169,13 @@ class WatchDataService: NSObject, ObservableObject {
                     exercises: exercises
                 )
                 print("Workout créé avec \(exercises.count) exercices répartis sur \(rounds) rounds")
+                for exercise in exercises {
+                    let params = [
+                        exercise.targetDistance.map { "\($0)m" },
+                        exercise.targetRepetitions.map { "\($0) reps" }
+                    ].compactMap { $0 }.joined(separator: ", ")
+                    print("Round \(exercise.round) - \(exercise.name) \(params)")
+                }
             }
             
             // Démarrer la session HealthKit
@@ -341,7 +352,35 @@ extension WatchDataService: WCSessionDelegate {
                           let rounds = data["rounds"] as? Int else {
                         return nil
                     }
-                    return WatchTemplate(id: id, name: name, exercises: exercises, rounds: rounds)
+                    
+                    // Traiter les nouvelles données d'exercices avec paramètres
+                    var exercisesData: [WatchTemplateExercise] = []
+                    if let exercisesDataArray = data["exercisesData"] as? [[String: Any]] {
+                        exercisesData = exercisesDataArray.compactMap { exerciseData in
+                            guard let exerciseName = exerciseData["name"] as? String,
+                                  let order = exerciseData["order"] as? Int else {
+                                return nil
+                            }
+                            
+                            let targetDistance = exerciseData["targetDistance"] as? Double
+                            let targetRepetitions = exerciseData["targetRepetitions"] as? Int
+                            
+                            return WatchTemplateExercise(
+                                name: exerciseName,
+                                order: order,
+                                targetDistance: targetDistance,
+                                targetRepetitions: targetRepetitions
+                            )
+                        }
+                    }
+                    
+                    return WatchTemplate(
+                        id: id, 
+                        name: name, 
+                        exercises: exercises, 
+                        rounds: rounds, 
+                        exercisesData: exercisesData
+                    )
                 }
             }
             

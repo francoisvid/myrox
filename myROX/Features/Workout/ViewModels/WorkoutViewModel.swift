@@ -265,23 +265,77 @@ class WorkoutViewModel {
             return
         }
         
+        print("Début mise à jour template: \(template.name) -> \(name)")
+        print("Exercices existants: \(template.exercises.count)")
+        print("Nouveaux exercices: \(exercises.count)")
+        
         // Mettre à jour le template
         template.name = name
         template.rounds = rounds
         
-        // Supprimer les anciens exercices
-        for exercise in template.exercises {
+        // Récupérer les exercices existants
+        let existingExercises = template.exercises
+        
+        // Créer un mappage des exercices à conserver/mettre à jour/ajouter
+        var exercisesToKeep: [TemplateExercise] = []
+        var exercisesToAdd: [TemplateExercise] = []
+        
+        for (index, newExercise) in exercises.enumerated() {
+            // Chercher un exercice existant correspondant (même nom, même ordre)
+            if let existingExercise = existingExercises.first(where: { 
+                $0.exerciseName == newExercise.exerciseName && $0.order == index 
+            }) {
+                // Mettre à jour l'exercice existant
+                existingExercise.targetDistance = newExercise.targetDistance
+                existingExercise.targetRepetitions = newExercise.targetRepetitions
+                existingExercise.order = index
+                exercisesToKeep.append(existingExercise)
+                print("Mise à jour exercice existant: \(existingExercise.exerciseName)")
+            } else {
+                // Chercher un exercice existant avec le même nom mais ordre différent
+                if let existingExercise = existingExercises.first(where: { 
+                    $0.exerciseName == newExercise.exerciseName && !exercisesToKeep.contains($0)
+                }) {
+                    // Réutiliser et mettre à jour l'exercice existant
+                    existingExercise.targetDistance = newExercise.targetDistance
+                    existingExercise.targetRepetitions = newExercise.targetRepetitions
+                    existingExercise.order = index
+                    exercisesToKeep.append(existingExercise)
+                    print("Réutilisation exercice existant: \(existingExercise.exerciseName)")
+                } else {
+                    // Créer un nouvel exercice
+                    let templateExercise = TemplateExercise(
+                        exerciseName: newExercise.exerciseName,
+                        targetDistance: newExercise.targetDistance,
+                        targetRepetitions: newExercise.targetRepetitions,
+                        order: index
+                    )
+                    templateExercise.template = template
+                    exercisesToAdd.append(templateExercise)
+                    print("Création nouvel exercice: \(templateExercise.exerciseName)")
+                }
+            }
+        }
+        
+        // Supprimer les exercices qui ne sont plus nécessaires
+        let exercisesToDelete = existingExercises.filter { !exercisesToKeep.contains($0) }
+        for exercise in exercisesToDelete {
+            print("Suppression exercice: \(exercise.exerciseName)")
             modelContext.delete(exercise)
         }
         
         // Ajouter les nouveaux exercices
-        for exercise in exercises {
-            exercise.template = template
+        for exercise in exercisesToAdd {
             modelContext.insert(exercise)
         }
         
+        print("Exercices conservés: \(exercisesToKeep.count)")
+        print("Exercices ajoutés: \(exercisesToAdd.count)")
+        print("Exercices supprimés: \(exercisesToDelete.count)")
+        
         do {
             try modelContext.save()
+            print("Sauvegarde réussie")
             fetchTemplates()
             WatchConnectivityService.shared.sendTemplates()
         } catch {
