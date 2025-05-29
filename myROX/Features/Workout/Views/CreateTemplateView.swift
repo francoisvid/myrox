@@ -10,8 +10,10 @@ struct CreateTemplateView: View {
     let editingTemplate: WorkoutTemplate?
     
     @State private var templateName: String
-    @State private var selectedExercises: [Exercise] = []
+    @State private var templateExercises: [TemplateExercise] = []
     @State private var showingExercisePicker = false
+    @State private var showingExerciseConfig = false
+    @State private var selectedExerciseToConfig: Exercise?
     @State private var rounds: Int
     
     init(viewModel: WorkoutViewModel?, editingTemplate: WorkoutTemplate? = nil) {
@@ -25,93 +27,22 @@ struct CreateTemplateView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 // Nom du template
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Nom de l'entraînement")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                    
-                    TextField("Ex: HYROX Complet", text: $templateName)
-                        .font(.title3)
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(12)
-                }
-                .padding()
+                templateNameSection
                 
                 // Nombre de rounds
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Nombre de rounds")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                    
-                    HStack {
-                        Button {
-                            if rounds > 1 { rounds -= 1 }
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(rounds > 1 ? .yellow : .gray)
-                        }
-                        .disabled(rounds <= 1)
-                        
-                        Text("\(rounds)")
-                            .font(.title2.bold())
-                            .foregroundColor(Color(.label))
-                            .frame(minWidth: 60)
-                        
-                        Button {
-                            rounds += 1
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(.yellow)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                .padding(.horizontal)
+                roundsSection
                 
-                // Liste des exercices sélectionnés
-                if selectedExercises.isEmpty {
+                // Liste des exercices configurés
+                if templateExercises.isEmpty {
                     emptyExerciseState
                 } else {
-                    selectedExercisesList
+                    configuredExercisesList
                 }
                 
                 Spacer()
                 
-                // Buttons
-                VStack(spacing: 12) {
-                    Button {
-                        showingExercisePicker = true
-                    } label: {
-                        Label("Ajouter des exercices", systemImage: "plus.circle")
-                            .secondaryButtonStyle()
-                    }
-                    
-                    Button {
-                        if let template = editingTemplate {
-                            viewModel?.updateTemplate(
-                                template,
-                                name: templateName,
-                                exerciseNames: selectedExercises.map { $0.name },
-                                rounds: rounds
-                            )
-                        } else {
-                            viewModel?.createTemplate(
-                                name: templateName,
-                                exerciseNames: selectedExercises.map { $0.name },
-                                rounds: rounds
-                            )
-                        }
-                        dismiss()
-                    } label: {
-                        Text(editingTemplate == nil ? "Créer l'entraînement" : "Mettre à jour")
-                            .primaryButtonStyle()
-                    }
-                    .disabled(templateName.isEmpty || selectedExercises.isEmpty)
-                }
-                .padding()
+                // Boutons d'action
+                actionButtons
             }
             .background(Color(.systemBackground))
             .navigationTitle(editingTemplate == nil ? "Nouveau template" : "Modifier le template")
@@ -125,23 +56,75 @@ struct CreateTemplateView: View {
                 }
             }
             .sheet(isPresented: $showingExercisePicker) {
-                ExercisePickerView(
+                SimpleExercisePickerView(
                     exercises: exercises,
-                    selectedExercises: $selectedExercises
+                    onExerciseSelected: { exercise in
+                        selectedExerciseToConfig = exercise
+                        showingExerciseConfig = true
+                    }
                 )
             }
-            .onAppear {
-                if let template = editingTemplate {
-                    // Charger les exercices existants
-                    let descriptor = FetchDescriptor<Exercise>()
-                    if let allExercises = try? modelContext.fetch(descriptor) {
-                        selectedExercises = template.exerciseNames.compactMap { name in
-                            allExercises.first { $0.name == name }
-                        }
-                    }
+            .sheet(isPresented: $showingExerciseConfig) {
+                if let exercise = selectedExerciseToConfig {
+                    ExerciseConfigurationView(
+                        exercise: exercise,
+                        templateExercises: $templateExercises
+                    )
                 }
             }
+            .onAppear {
+                loadExistingTemplate()
+            }
         }
+    }
+    
+    private var templateNameSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Nom de l'entraînement")
+                .font(.caption)
+                .foregroundColor(.gray)
+            
+            TextField("Ex: HYROX Complet", text: $templateName)
+                .font(.title3)
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+        }
+        .padding()
+    }
+    
+    private var roundsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Nombre de rounds")
+                .font(.caption)
+                .foregroundColor(.gray)
+            
+            HStack {
+                Button {
+                    if rounds > 1 { rounds -= 1 }
+                } label: {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(rounds > 1 ? .yellow : .gray)
+                }
+                .disabled(rounds <= 1)
+                
+                Text("\(rounds)")
+                    .font(.title2.bold())
+                    .foregroundColor(Color(.label))
+                    .frame(minWidth: 60)
+                
+                Button {
+                    rounds += 1
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.yellow)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal)
     }
     
     private var emptyExerciseState: some View {
@@ -150,136 +133,127 @@ struct CreateTemplateView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.gray)
             
-            Text("Aucun exercice sélectionné")
+            Text("Aucun exercice configuré")
                 .font(.headline)
                 .foregroundColor(.gray)
             
-            Text("Ajoutez des exercices pour créer votre template")
+            Text("Ajoutez des exercices avec leurs paramètres pour créer votre template")
                 .font(.caption)
                 .foregroundColor(.gray.opacity(0.8))
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
     }
     
-    private var selectedExercisesList: some View {
-        List {
-            ForEach(selectedExercises) { exercise in
-                ExerciseListItem(
-                    exercise: exercise,
-                    position: selectedExercises.firstIndex(of: exercise)! + 1,
-                    onRemove: {
-                        withAnimation {
-                            if let index = selectedExercises.firstIndex(of: exercise) {
-                                selectedExercises.remove(at: index)
-                            }
-                        }
-                    }
-                )
-                .listRowBackground(Color.clear)
-            }
-            .onMove { from, to in
-                selectedExercises.move(fromOffsets: from, toOffset: to)
-            }
-        }
-        .listStyle(.plain)
-        .environment(\.editMode, .constant(.active))
-    }
-}
-
-// MARK: - Exercise Picker
-
-struct ExercisePickerView: View {
-    let exercises: [Exercise]
-    @Binding var selectedExercises: [Exercise]
-    @Environment(\.dismiss) private var dismiss
-    @State private var tempSelection: Set<Exercise> = []
-    
-    var body: some View {
-        NavigationStack {
-            List {
-                ForEach(exercises) { exercise in
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(exercise.name)
-                                .font(.headline)
-                            
-                            HStack {
-                                Label(exercise.category, systemImage: iconForCategory(exercise.category))
-                                    .font(.caption)
-                                    .foregroundColor(.yellow)
-                                
-                                if exercise.hasDistance {
-                                    Text("• \(Int(exercise.standardDistance ?? 0))m")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                }
-                                
-                                if exercise.hasRepetitions {
-                                    Text("• \(Int(exercise.standardRepetitions ?? 0)) reps")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        if tempSelection.contains(exercise) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.yellow)
-                        }
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        if tempSelection.contains(exercise) {
-                            tempSelection.remove(exercise)
-                        } else {
-                            tempSelection.insert(exercise)
-                        }
-                    }
-                }
-            }
-            .navigationTitle("Choisir des exercices")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") {
-                        dismiss()
-                    }
-                }
+    private var configuredExercisesList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Exercices configurés")
+                    .font(.headline)
+                    .foregroundColor(Color(.label))
                 
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Valider (\(tempSelection.count))") {
-                        // CORRECTION ICI : On remplace au lieu d'ajouter
-                        selectedExercises = Array(tempSelection)
-                        dismiss()
-                    }
-                    .fontWeight(.semibold)
-                    .disabled(tempSelection.isEmpty)
+                Spacer()
+                
+                Text("\(templateExercises.count) exercice\(templateExercises.count > 1 ? "s" : "")")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+            .padding(.horizontal)
+            
+            List {
+                ForEach(templateExercises.sorted(by: { $0.order < $1.order }), id: \.id) { templateExercise in
+                    TemplateExerciseRow(
+                        templateExercise: templateExercise,
+                        position: templateExercise.order + 1,
+                        onRemove: {
+                            removeTemplateExercise(templateExercise)
+                        }
+                    )
+                    .listRowBackground(Color.clear)
+                }
+                .onMove { from, to in
+                    moveExercises(from: from, to: to)
                 }
             }
-        }
-        .onAppear {
-            // On initialise avec les exercices déjà sélectionnés
-            tempSelection = Set(selectedExercises)
+            .listStyle(.plain)
+            .environment(\.editMode, .constant(.active))
         }
     }
     
-    private func iconForCategory(_ category: String) -> String {
-        switch category {
-        case "Cardio": return "heart.fill"
-        case "Force": return "dumbbell.fill"
-        case "Plyo": return "figure.jumprope"
-        default: return "figure.strengthtraining.traditional"
+    private var actionButtons: some View {
+        VStack(spacing: 12) {
+            Button {
+                showingExercisePicker = true
+            } label: {
+                Label("Ajouter un exercice", systemImage: "plus.circle")
+                    .secondaryButtonStyle()
+            }
+            
+            Button {
+                saveTemplate()
+            } label: {
+                Text(editingTemplate == nil ? "Créer l'entraînement" : "Mettre à jour")
+                    .primaryButtonStyle()
+            }
+            .disabled(templateName.isEmpty || templateExercises.isEmpty)
         }
+        .padding()
+    }
+    
+    private func loadExistingTemplate() {
+        if let template = editingTemplate {
+            templateExercises = template.exercises.sorted(by: { $0.order < $1.order })
+        }
+    }
+    
+    private func removeTemplateExercise(_ templateExercise: TemplateExercise) {
+        withAnimation {
+            if let index = templateExercises.firstIndex(where: { $0.id == templateExercise.id }) {
+                templateExercises.remove(at: index)
+                // Réorganiser les ordres
+                for i in 0..<templateExercises.count {
+                    templateExercises[i].order = i
+                }
+            }
+        }
+    }
+    
+    private func moveExercises(from source: IndexSet, to destination: Int) {
+        var sortedExercises = templateExercises.sorted(by: { $0.order < $1.order })
+        sortedExercises.move(fromOffsets: source, toOffset: destination)
+        
+        // Mettre à jour les ordres
+        for (index, exercise) in sortedExercises.enumerated() {
+            exercise.order = index
+        }
+        
+        templateExercises = sortedExercises
+    }
+    
+    private func saveTemplate() {
+        if let template = editingTemplate {
+            viewModel?.updateTemplateWithExercises(
+                template,
+                name: templateName,
+                exercises: templateExercises,
+                rounds: rounds
+            )
+        } else {
+            viewModel?.createTemplateWithExercises(
+                name: templateName,
+                exercises: templateExercises,
+                rounds: rounds
+            )
+        }
+        dismiss()
     }
 }
 
-// MARK: - Exercise List Item
+// MARK: - Template Exercise Row
 
-struct ExerciseListItem: View {
-    let exercise: Exercise
+struct TemplateExerciseRow: View {
+    let templateExercise: TemplateExercise
     let position: Int
     let onRemove: () -> Void
     
@@ -291,26 +265,14 @@ struct ExerciseListItem: View {
                 .frame(width: 30)
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(exercise.name)
+                Text(templateExercise.exerciseName)
                     .font(.headline)
                     .foregroundColor(Color(.label))
                 
-                HStack(spacing: 8) {
-                    Label(exercise.category, systemImage: iconForCategory(exercise.category))
+                if !templateExercise.shortDisplayName.isEmpty {
+                    Text(templateExercise.shortDisplayName)
                         .font(.caption)
                         .foregroundColor(.yellow)
-                    
-                    if exercise.hasDistance {
-                        Text("\(Int(exercise.standardDistance ?? 0))m")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                    
-                    if exercise.hasRepetitions {
-                        Text("\(Int(exercise.standardRepetitions ?? 0)) reps")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
                 }
             }
             
@@ -333,6 +295,69 @@ struct ExerciseListItem: View {
         )
         .cornerRadius(12)
     }
+}
+
+// MARK: - Simple Exercise Picker
+
+struct SimpleExercisePickerView: View {
+    let exercises: [Exercise]
+    let onExerciseSelected: (Exercise) -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(exercises) { exercise in
+                    Button {
+                        onExerciseSelected(exercise)
+                        dismiss()
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(exercise.name)
+                                    .font(.headline)
+                                    .foregroundColor(Color(.label))
+                                
+                                HStack {
+                                    Label(exercise.category, systemImage: iconForCategory(exercise.category))
+                                        .font(.caption)
+                                        .foregroundColor(.yellow)
+                                    
+                                    if exercise.hasDistance, let distance = exercise.standardDistance {
+                                        Text("• \(Int(distance))m")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                    
+                                    if exercise.hasRepetitions, let reps = exercise.standardRepetitions {
+                                        Text("• \(reps) reps")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+            .navigationTitle("Choisir un exercice")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Annuler") {
+                        dismiss()
+                    }
+                    .foregroundColor(.yellow)
+                }
+            }
+        }
+    }
     
     private func iconForCategory(_ category: String) -> String {
         switch category {
@@ -343,6 +368,7 @@ struct ExerciseListItem: View {
         }
     }
 }
+
 #Preview {
     CreateTemplateView(viewModel: WorkoutViewModel(modelContext: ModelContainer.shared.container.mainContext))
         .modelContainer(ModelContainer.shared.container)

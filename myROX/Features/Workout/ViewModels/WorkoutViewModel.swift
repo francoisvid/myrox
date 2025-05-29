@@ -192,6 +192,83 @@ class WorkoutViewModel {
         }
     }
     
+    // MARK: - New Template Management with TemplateExercise
+    func createTemplateWithExercises(name: String, exercises: [TemplateExercise], rounds: Int = 1) {
+        // Validation des données
+        guard !name.isEmpty else {
+            print("Erreur: Le nom du template ne peut pas être vide")
+            return
+        }
+        
+        guard !exercises.isEmpty else {
+            print("Erreur: Le template doit contenir au moins un exercice")
+            return
+        }
+        
+        guard rounds > 0 else {
+            print("Erreur: Le nombre de rounds doit être supérieur à 0")
+            return
+        }
+        
+        let template = WorkoutTemplate(name: name, rounds: rounds)
+        
+        // Ajouter les exercices au template
+        for exercise in exercises {
+            exercise.template = template
+            modelContext.insert(exercise)
+        }
+        
+        modelContext.insert(template)
+        do {
+            try modelContext.save()
+            fetchTemplates()
+            WatchConnectivityService.shared.sendTemplates()
+        } catch {
+            print("Erreur lors de la création du template : \(error)")
+        }
+    }
+    
+    func updateTemplateWithExercises(_ template: WorkoutTemplate, name: String, exercises: [TemplateExercise], rounds: Int) {
+        // Validation des données
+        guard !name.isEmpty else {
+            print("Erreur: Le nom du template ne peut pas être vide")
+            return
+        }
+        
+        guard !exercises.isEmpty else {
+            print("Erreur: Le template doit contenir au moins un exercice")
+            return
+        }
+        
+        guard rounds > 0 else {
+            print("Erreur: Le nombre de rounds doit être supérieur à 0")
+            return
+        }
+        
+        // Mettre à jour le template
+        template.name = name
+        template.rounds = rounds
+        
+        // Supprimer les anciens exercices
+        for exercise in template.exercises {
+            modelContext.delete(exercise)
+        }
+        
+        // Ajouter les nouveaux exercices
+        for exercise in exercises {
+            exercise.template = template
+            modelContext.insert(exercise)
+        }
+        
+        do {
+            try modelContext.save()
+            fetchTemplates()
+            WatchConnectivityService.shared.sendTemplates()
+        } catch {
+            print("Erreur lors de la mise à jour du template : \(error)")
+        }
+    }
+    
     func updateTemplate(_ template: WorkoutTemplate, name: String, exerciseNames: [String], rounds: Int) {
         // Validation des données
         guard !name.isEmpty else {

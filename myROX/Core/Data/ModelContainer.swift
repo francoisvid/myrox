@@ -12,6 +12,7 @@ actor ModelContainer {
             Exercise.self,
             ExerciseGoal.self,
             WorkoutTemplate.self,
+            TemplateExercise.self,
             Workout.self,
             WorkoutExercise.self,
             HeartRatePoint.self
