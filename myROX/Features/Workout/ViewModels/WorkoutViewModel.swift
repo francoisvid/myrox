@@ -45,8 +45,13 @@ class WorkoutViewModel {
     
     // MARK: - Workout Actions
     func startWorkout(from template: WorkoutTemplate) {
-        // Validation du template
-        guard !template.exerciseNames.isEmpty else {
+        // Validation du template - utiliser les nouveaux exercices ou fallback vers les anciens
+        let templateExercises = template.exercises.isEmpty ? 
+            template.exerciseNames.enumerated().map { index, name in
+                TemplateExercise(exerciseName: name, order: index)
+            } : template.exercises.sorted(by: { $0.order < $1.order })
+        
+        guard !templateExercises.isEmpty else {
             print("Erreur: Le template ne contient aucun exercice")
             return
         }
@@ -56,14 +61,25 @@ class WorkoutViewModel {
         workout.templateName = template.name
         workout.totalRounds = template.rounds
         
-        // Créer les exercices pour chaque round
+        // Créer les exercices pour chaque round avec les paramètres des TemplateExercise
         for round in 1...template.rounds {
-            let roundExercises = template.exerciseNames.enumerated().map { index, exerciseName in
-                WorkoutExercise(
-                    exerciseName: exerciseName,
+            let roundExercises = templateExercises.enumerated().map { index, templateExercise in
+                let workoutExercise = WorkoutExercise(
+                    exerciseName: templateExercise.exerciseName,
                     round: round,
                     order: index
                 )
+                
+                // Pré-remplir avec les valeurs cibles du template si disponibles
+                if let targetDistance = templateExercise.targetDistance {
+                    workoutExercise.distance = targetDistance
+                }
+                
+                if let targetReps = templateExercise.targetRepetitions {
+                    workoutExercise.repetitions = targetReps
+                }
+                
+                return workoutExercise
             }
             workout.performances.append(contentsOf: roundExercises)
         }
@@ -71,7 +87,11 @@ class WorkoutViewModel {
         // Debug: Vérification de l'ordre des exercices
         print("Ordre des exercices créés :")
         for exercise in workout.performances {
-            print("Round \(exercise.round) - Ordre \(exercise.order): \(exercise.exerciseName)")
+            let params = [
+                exercise.distance > 0 ? "\(Int(exercise.distance))m" : "",
+                exercise.repetitions > 0 ? "\(exercise.repetitions) reps" : ""
+            ].filter { !$0.isEmpty }.joined(separator: ", ")
+            print("Round \(exercise.round) - Ordre \(exercise.order): \(exercise.exerciseName) \(params)")
         }
         
         // Initialiser le workout

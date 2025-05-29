@@ -69,11 +69,19 @@ struct ExerciseConfigurationView: View {
                 .foregroundColor(Color(.label))
             
             if exercise.hasDistance {
-                distanceConfiguration
+                DistanceConfigurationSection(
+                    exercise: exercise,
+                    hasCustomDistance: $hasCustomDistance,
+                    distance: $distance
+                )
             }
             
             if exercise.hasRepetitions {
-                repetitionsConfiguration
+                RepetitionsConfigurationSection(
+                    exercise: exercise,
+                    hasCustomRepetitions: $hasCustomRepetitions,
+                    repetitions: $repetitions
+                )
             }
             
             if !exercise.hasDistance && !exercise.hasRepetitions {
@@ -87,100 +95,31 @@ struct ExerciseConfigurationView: View {
         }
     }
     
-    private var distanceConfiguration: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Toggle("Distance personnalisée", isOn: $hasCustomDistance)
-                    .font(.subheadline)
-            }
-            
-            if hasCustomDistance {
-                HStack {
-                    Text("Distance :")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                    
-                    Spacer()
-                    
-                    TextField("Distance", value: $distance, format: .number)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .font(.title3)
-                        .foregroundColor(Color(.label))
-                    
-                    Text("m")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                }
-            } else if let standardDistance = exercise.standardDistance {
-                HStack {
-                    Text("Distance standard :")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                    
-                    Spacer()
-                    
-                    Text("\(Int(standardDistance)) m")
-                        .font(.title3)
-                        .foregroundColor(Color(.label))
-                }
-            }
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-    
-    private var repetitionsConfiguration: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Toggle("Répétitions personnalisées", isOn: $hasCustomRepetitions)
-                    .font(.subheadline)
-            }
-            
-            if hasCustomRepetitions {
-                HStack {
-                    Text("Répétitions :")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                    
-                    Spacer()
-                    
-                    TextField("Reps", value: $repetitions, format: .number)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .font(.title3)
-                        .foregroundColor(Color(.label))
-                    
-                    Text("reps")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                }
-            } else if let standardReps = exercise.standardRepetitions {
-                HStack {
-                    Text("Répétitions standard :")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                    
-                    Spacer()
-                    
-                    Text("\(standardReps) reps")
-                        .font(.title3)
-                        .foregroundColor(Color(.label))
-                }
-            }
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-    
     private var addButton: some View {
-        Button {
-            addExerciseToTemplate()
-        } label: {
-            Text("Ajouter à l'entraînement")
-                .primaryButtonStyle()
+        VStack(spacing: 12) {
+            // Aperçu de ce qui sera ajouté
+            HStack {
+                Text("Aperçu :")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                
+                Spacer()
+                
+                Text(getPreviewText())
+                    .font(.caption.bold())
+                    .foregroundColor(.yellow)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            .background(Color(.systemGray6))
+            .cornerRadius(8)
+            
+            Button {
+                addExerciseToTemplate()
+            } label: {
+                Text("Ajouter à l'entraînement")
+                    .primaryButtonStyle()
+            }
         }
         .padding()
     }
@@ -210,12 +149,168 @@ struct ExerciseConfigurationView: View {
         dismiss()
     }
     
+    private func getPreviewText() -> String {
+        var components: [String] = [exercise.name]
+        
+        let finalDistance = hasCustomDistance ? distance : exercise.standardDistance
+        let finalRepetitions = hasCustomRepetitions ? repetitions : exercise.standardRepetitions
+        
+        if let dist = finalDistance, dist > 0 {
+            components.append("\(Int(dist))m")
+        }
+        
+        if let reps = finalRepetitions, reps > 0 {
+            components.append("\(reps) reps")
+        }
+        
+        if finalDistance == nil && finalRepetitions == nil {
+            components.append("temps seulement")
+        }
+        
+        return components.joined(separator: " • ")
+    }
+    
     private func iconForCategory(_ category: String) -> String {
         switch category {
         case "Cardio": return "heart.fill"
         case "Force": return "dumbbell.fill"
         case "Plyo": return "figure.jumprope"
         default: return "figure.strengthtraining.traditional"
+        }
+    }
+}
+
+// MARK: - Distance Configuration Section
+struct DistanceConfigurationSection: View {
+    let exercise: Exercise
+    @Binding var hasCustomDistance: Bool
+    @Binding var distance: Double
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Toggle("Distance personnalisée", isOn: $hasCustomDistance)
+                    .font(.subheadline)
+            }
+            
+            if hasCustomDistance {
+                CustomDistanceInput(distance: $distance)
+            } else if let standardDistance = exercise.standardDistance {
+                StandardDistanceDisplay(standardDistance: standardDistance)
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - Repetitions Configuration Section
+struct RepetitionsConfigurationSection: View {
+    let exercise: Exercise
+    @Binding var hasCustomRepetitions: Bool
+    @Binding var repetitions: Int
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Toggle("Répétitions personnalisées", isOn: $hasCustomRepetitions)
+                    .font(.subheadline)
+            }
+            
+            if hasCustomRepetitions {
+                CustomRepetitionsInput(repetitions: $repetitions)
+            } else if let standardReps = exercise.standardRepetitions {
+                StandardRepetitionsDisplay(standardRepetitions: standardReps)
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - Input Components
+struct CustomDistanceInput: View {
+    @Binding var distance: Double
+    
+    var body: some View {
+        HStack {
+            Text("Distance :")
+                .font(.subheadline)
+                .foregroundColor(.gray)
+            
+            Spacer()
+            
+            TextField("Distance", value: $distance, format: .number)
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.trailing)
+                .font(.title3)
+                .foregroundColor(Color(.label))
+            
+            Text("m")
+                .font(.subheadline)
+                .foregroundColor(.gray)
+        }
+    }
+}
+
+struct CustomRepetitionsInput: View {
+    @Binding var repetitions: Int
+    
+    var body: some View {
+        HStack {
+            Text("Répétitions :")
+                .font(.subheadline)
+                .foregroundColor(.gray)
+            
+            Spacer()
+            
+            TextField("Reps", value: $repetitions, format: .number)
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.trailing)
+                .font(.title3)
+                .foregroundColor(Color(.label))
+            
+            Text("reps")
+                .font(.subheadline)
+                .foregroundColor(.gray)
+        }
+    }
+}
+
+struct StandardDistanceDisplay: View {
+    let standardDistance: Double
+    
+    var body: some View {
+        HStack {
+            Text("Distance standard :")
+                .font(.subheadline)
+                .foregroundColor(.gray)
+            
+            Spacer()
+            
+            Text("\(Int(standardDistance)) m")
+                .font(.title3)
+                .foregroundColor(Color(.label))
+        }
+    }
+}
+
+struct StandardRepetitionsDisplay: View {
+    let standardRepetitions: Int
+    
+    var body: some View {
+        HStack {
+            Text("Répétitions standard :")
+                .font(.subheadline)
+                .foregroundColor(.gray)
+            
+            Spacer()
+            
+            Text("\(standardRepetitions) reps")
+                .font(.title3)
+                .foregroundColor(Color(.label))
         }
     }
 }

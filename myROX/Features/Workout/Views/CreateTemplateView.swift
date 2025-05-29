@@ -264,16 +264,13 @@ struct TemplateExerciseRow: View {
                 .foregroundColor(.blue)
                 .frame(width: 30)
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(templateExercise.exerciseName)
                     .font(.headline)
                     .foregroundColor(Color(.label))
                 
-                if !templateExercise.shortDisplayName.isEmpty {
-                    Text(templateExercise.shortDisplayName)
-                        .font(.caption)
-                        .foregroundColor(.yellow)
-                }
+                // Affichage détaillé des paramètres
+                TemplateExerciseParametersDisplay(templateExercise: templateExercise)
             }
             
             Spacer()
@@ -297,6 +294,83 @@ struct TemplateExerciseRow: View {
     }
 }
 
+// MARK: - Template Exercise Parameters Display
+struct TemplateExerciseParametersDisplay: View {
+    let templateExercise: TemplateExercise
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            if let distance = templateExercise.targetDistance, distance > 0 {
+                DistanceParameterBadge(distance: distance)
+            }
+            
+            if let reps = templateExercise.targetRepetitions, reps > 0 {
+                RepetitionsParameterBadge(repetitions: reps)
+            }
+            
+            if templateExercise.targetDistance == nil && templateExercise.targetRepetitions == nil {
+                TimeOnlyParameterBadge()
+            }
+        }
+    }
+}
+
+// MARK: - Parameter Badges for Template Exercises
+struct DistanceParameterBadge: View {
+    let distance: Double
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "ruler")
+                .font(.caption)
+                .foregroundColor(.blue)
+            Text("\(Int(distance))m")
+                .font(.caption.bold())
+                .foregroundColor(.blue)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(Color.blue.opacity(0.1))
+        .cornerRadius(6)
+    }
+}
+
+struct RepetitionsParameterBadge: View {
+    let repetitions: Int
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "repeat")
+                .font(.caption)
+                .foregroundColor(.green)
+            Text("\(repetitions) reps")
+                .font(.caption.bold())
+                .foregroundColor(.green)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(Color.green.opacity(0.1))
+        .cornerRadius(6)
+    }
+}
+
+struct TimeOnlyParameterBadge: View {
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "clock")
+                .font(.caption)
+                .foregroundColor(.orange)
+            Text("Temps seulement")
+                .font(.caption.bold())
+                .foregroundColor(.orange)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(6)
+    }
+}
+
 // MARK: - Simple Exercise Picker
 
 struct SimpleExercisePickerView: View {
@@ -308,42 +382,13 @@ struct SimpleExercisePickerView: View {
         NavigationStack {
             List {
                 ForEach(exercises) { exercise in
-                    Button {
-                        onExerciseSelected(exercise)
-                        dismiss()
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(exercise.name)
-                                    .font(.headline)
-                                    .foregroundColor(Color(.label))
-                                
-                                HStack {
-                                    Label(exercise.category, systemImage: iconForCategory(exercise.category))
-                                        .font(.caption)
-                                        .foregroundColor(.yellow)
-                                    
-                                    if exercise.hasDistance, let distance = exercise.standardDistance {
-                                        Text("• \(Int(distance))m")
-                                            .font(.caption)
-                                            .foregroundColor(.gray)
-                                    }
-                                    
-                                    if exercise.hasRepetitions, let reps = exercise.standardRepetitions {
-                                        Text("• \(reps) reps")
-                                            .font(.caption)
-                                            .foregroundColor(.gray)
-                                    }
-                                }
-                            }
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.right")
-                                .foregroundColor(.gray)
+                    ExerciseListItem(
+                        exercise: exercise,
+                        onSelect: {
+                            onExerciseSelected(exercise)
+                            dismiss()
                         }
-                    }
-                    .buttonStyle(PlainButtonStyle())
+                    )
                 }
             }
             .navigationTitle("Choisir un exercice")
@@ -355,6 +400,59 @@ struct SimpleExercisePickerView: View {
                     }
                     .foregroundColor(.yellow)
                 }
+            }
+        }
+    }
+}
+
+// MARK: - Exercise List Item
+struct ExerciseListItem: View {
+    let exercise: Exercise
+    let onSelect: () -> Void
+    
+    var body: some View {
+        Button {
+            onSelect()
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(exercise.name)
+                        .font(.headline)
+                        .foregroundColor(Color(.label))
+                    
+                    ExerciseInfoRow(exercise: exercise)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.gray)
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Exercise Info Row
+struct ExerciseInfoRow: View {
+    let exercise: Exercise
+    
+    var body: some View {
+        HStack {
+            Label(exercise.category, systemImage: iconForCategory(exercise.category))
+                .font(.caption)
+                .foregroundColor(.yellow)
+            
+            if exercise.hasDistance, let distance = exercise.standardDistance {
+                Text("• \(Int(distance))m")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+            
+            if exercise.hasRepetitions, let reps = exercise.standardRepetitions {
+                Text("• \(reps) reps")
+                    .font(.caption)
+                    .foregroundColor(.gray)
             }
         }
     }

@@ -94,7 +94,6 @@ struct WorkoutListView: View {
     private var templateGrid: some View {
         LazyVGrid(columns: [
             GridItem(.flexible(), spacing: 15),
-            GridItem(.flexible(), spacing: 15)
         ], spacing: 20) {
             if let templates = viewModel?.templates {
                 ForEach(templates) { template in

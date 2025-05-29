@@ -75,10 +75,42 @@ class WatchConnectivityService: NSObject, ObservableObject {
         do {
             let templates = try modelContext.fetch(descriptor)
             let templatesData = templates.map { template in
-                [
+                // Utiliser les nouveaux TemplateExercise ou fallback vers les anciens exerciseNames
+                let exercisesData: [[String: Any]]
+                
+                if !template.exercises.isEmpty {
+                    // Nouveau format avec paramètres
+                    exercisesData = template.exercises.sorted(by: { $0.order < $1.order }).map { templateExercise in
+                        var exerciseData: [String: Any] = [
+                            "name": templateExercise.exerciseName,
+                            "order": templateExercise.order
+                        ]
+                        
+                        if let distance = templateExercise.targetDistance, distance > 0 {
+                            exerciseData["targetDistance"] = distance
+                        }
+                        
+                        if let reps = templateExercise.targetRepetitions, reps > 0 {
+                            exerciseData["targetRepetitions"] = reps
+                        }
+                        
+                        return exerciseData
+                    }
+                } else {
+                    // Format de compatibilité
+                    exercisesData = template.exerciseNames.enumerated().map { index, name in
+                        [
+                            "name": name,
+                            "order": index
+                        ]
+                    }
+                }
+                
+                return [
                     "id": template.id.uuidString,
                     "name": template.name,
-                    "exercises": template.exerciseNames,
+                    "exercisesData": exercisesData,
+                    "exercises": template.exerciseNames, // Compatibilité avec l'ancien format
                     "rounds": template.rounds
                 ]
             }
