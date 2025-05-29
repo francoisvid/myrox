@@ -133,18 +133,39 @@ struct ExerciseDefaultsView: View {
     
     private func saveDefaults(for exercise: Exercise) {
         if let existingDefaults = defaults.first(where: { $0.exerciseName == exercise.name }) {
-            existingDefaults.defaultDistance = exercise.hasDistance ? newDistance : nil
-            existingDefaults.defaultRepetitions = exercise.hasRepetitions ? newRepetitions : nil
-            existingDefaults.isCustomized = true
-            existingDefaults.updatedAt = Date()
+            // Mettre à jour les valeurs existantes
+            var hasChanges = false
+            
+            // Sauvegarder la distance si l'exercice l'autorise ou si on a une valeur > 0
+            if exercise.hasDistance || newDistance > 0 {
+                existingDefaults.defaultDistance = newDistance > 0 ? newDistance : nil
+                hasChanges = true
+            }
+            
+            // Sauvegarder les répétitions si l'exercice l'autorise ou si on a une valeur > 0  
+            if exercise.hasRepetitions || newRepetitions > 0 {
+                existingDefaults.defaultRepetitions = newRepetitions > 0 ? newRepetitions : nil
+                hasChanges = true
+            }
+            
+            if hasChanges {
+                existingDefaults.isCustomized = true
+                existingDefaults.updatedAt = Date()
+            }
         } else {
-            let newDefaults = ExerciseDefaults(
-                exerciseName: exercise.name,
-                defaultDistance: exercise.hasDistance ? newDistance : nil,
-                defaultRepetitions: exercise.hasRepetitions ? newRepetitions : nil
-            )
-            newDefaults.isCustomized = true
-            modelContext.insert(newDefaults)
+            // Créer nouvelles valeurs par défaut seulement si on a des valeurs significatives
+            let hasDistance = (exercise.hasDistance || newDistance > 0) && newDistance > 0
+            let hasReps = (exercise.hasRepetitions || newRepetitions > 0) && newRepetitions > 0
+            
+            if hasDistance || hasReps {
+                let newDefaults = ExerciseDefaults(
+                    exerciseName: exercise.name,
+                    defaultDistance: hasDistance ? newDistance : nil,
+                    defaultRepetitions: hasReps ? newRepetitions : nil
+                )
+                newDefaults.isCustomized = true
+                modelContext.insert(newDefaults)
+            }
         }
         
         try? modelContext.save()
@@ -153,9 +174,11 @@ struct ExerciseDefaultsView: View {
     
     private func resetDefaults(for exercise: Exercise) {
         if let existingDefaults = defaults.first(where: { $0.exerciseName == exercise.name }) {
+            // Supprimer complètement l'entrée personnalisée
             modelContext.delete(existingDefaults)
             try? modelContext.save()
         }
+        editingExercise = nil
     }
     
     private func resetAllDefaults() {
@@ -239,29 +262,52 @@ struct ExerciseDefaultRow: View {
     
     private var currentValues: some View {
         HStack(spacing: 16) {
-            if exercise.hasDistance, let distance = effectiveDistance, distance > 0 {
-                HStack(spacing: 4) {
-                    Image(systemName: "ruler")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                    Text("\(Int(distance))m")
-                        .font(.caption)
-                        .foregroundColor(.gray)
+            // Afficher la distance si l'exercice a hasDistance OU si des valeurs personnalisées existent
+            if exercise.hasDistance || (currentDefaults?.defaultDistance != nil && currentDefaults!.defaultDistance! > 0) {
+                if let distance = effectiveDistance, distance > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "ruler")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        Text("\(Int(distance))m")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        
+                        // Indicateur si c'est une valeur personnalisée
+                        if currentDefaults?.defaultDistance != nil && currentDefaults?.isCustomized == true {
+                            Image(systemName: "person.fill")
+                                .font(.caption2)
+                                .foregroundColor(.green)
+                        }
+                    }
                 }
             }
             
-            if exercise.hasRepetitions, let reps = effectiveRepetitions, reps > 0 {
-                HStack(spacing: 4) {
-                    Image(systemName: "repeat")
-                        .font(.caption)
-                        .foregroundColor(.green)
-                    Text("\(reps) reps")
-                        .font(.caption)
-                        .foregroundColor(.gray)
+            // Afficher les répétitions si l'exercice a hasRepetitions OU si des valeurs personnalisées existent
+            if exercise.hasRepetitions || (currentDefaults?.defaultRepetitions != nil && currentDefaults!.defaultRepetitions! > 0) {
+                if let reps = effectiveRepetitions, reps > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "repeat")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                        Text("\(reps) reps")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        
+                        // Indicateur si c'est une valeur personnalisée
+                        if currentDefaults?.defaultRepetitions != nil && currentDefaults?.isCustomized == true {
+                            Image(systemName: "person.fill")
+                                .font(.caption2)
+                                .foregroundColor(.green)
+                        }
+                    }
                 }
             }
             
-            if !exercise.hasDistance && !exercise.hasRepetitions {
+            // Afficher "Temps seulement" uniquement si aucune valeur n'est définie
+            if !exercise.hasDistance && !exercise.hasRepetitions && 
+               (currentDefaults?.defaultDistance == nil || currentDefaults!.defaultDistance! <= 0) &&
+               (currentDefaults?.defaultRepetitions == nil || currentDefaults!.defaultRepetitions! <= 0) {
                 HStack(spacing: 4) {
                     Image(systemName: "clock")
                         .font(.caption)
@@ -278,7 +324,8 @@ struct ExerciseDefaultRow: View {
     
     private var editingFields: some View {
         VStack(spacing: 8) {
-            if exercise.hasDistance {
+            // Permettre l'édition de la distance si l'exercice l'autorise OU si des valeurs personnalisées existent
+            if exercise.hasDistance || (currentDefaults?.defaultDistance != nil) {
                 HStack {
                     Text("Distance :")
                         .font(.caption)
@@ -297,7 +344,8 @@ struct ExerciseDefaultRow: View {
                 }
             }
             
-            if exercise.hasRepetitions {
+            // Permettre l'édition des répétitions si l'exercice l'autorise OU si des valeurs personnalisées existent
+            if exercise.hasRepetitions || (currentDefaults?.defaultRepetitions != nil) {
                 HStack {
                     Text("Répétitions :")
                         .font(.caption)
@@ -314,6 +362,46 @@ struct ExerciseDefaultRow: View {
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
+            }
+            
+            // Section pour ajouter de nouveaux paramètres si l'exercice n'en a pas par défaut
+            if !exercise.hasDistance && !exercise.hasRepetitions && currentDefaults == nil {
+                VStack(spacing: 8) {
+                    Text("Cet exercice utilise uniquement le temps par défaut")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    Text("Vous pouvez ajouter des paramètres personnalisés :")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    HStack(spacing: 12) {
+                        Button {
+                            newDistance = 100
+                        } label: {
+                            Label("Ajouter distance", systemImage: "ruler")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(6)
+                        }
+                        
+                        Button {
+                            newRepetitions = 10
+                        } label: {
+                            Label("Ajouter répétitions", systemImage: "repeat")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.green.opacity(0.1))
+                                .cornerRadius(6)
+                        }
+                    }
+                }
+                .padding(.top, 8)
             }
         }
     }

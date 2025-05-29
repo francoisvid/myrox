@@ -5,12 +5,14 @@ struct ExerciseConfigurationView: View {
     let exercise: Exercise
     @Binding var templateExercises: [TemplateExercise]
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \ExerciseDefaults.exerciseName) private var exerciseDefaults: [ExerciseDefaults]
     
     @State private var distance: Double = 0
     @State private var repetitions: Int = 0
     @State private var hasCustomDistance = false
     @State private var hasCustomRepetitions = false
+    @State private var showSavedMessage = false
     
     // Calculer les valeurs effectives (personnalisées ou standards)
     private var effectiveDistance: Double? {
@@ -163,6 +165,22 @@ struct ExerciseConfigurationView: View {
             .background(Color(.systemGray6))
             .cornerRadius(8)
             
+            // Message de confirmation si valeurs sauvegardées
+            if showSavedMessage {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    Text("Valeurs sauvegardées comme nouvelles valeurs par défaut")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 4)
+                .background(Color.green.opacity(0.1))
+                .cornerRadius(6)
+                .transition(.opacity)
+            }
+            
             Button {
                 addExerciseToTemplate()
             } label: {
@@ -187,15 +205,91 @@ struct ExerciseConfigurationView: View {
         let finalDistance = hasCustomDistance ? distance : effectiveDistance
         let finalRepetitions = hasCustomRepetitions ? repetitions : effectiveRepetitions
         
-        let templateExercise = TemplateExercise(
-            exerciseName: exercise.name,
-            targetDistance: finalDistance,
-            targetRepetitions: finalRepetitions,
-            order: templateExercises.count
-        )
+        // Sauvegarder les nouvelles valeurs comme défaut si elles ont été personnalisées
+        let wasSaved = saveAsDefaults(distance: finalDistance, repetitions: finalRepetitions)
         
-        templateExercises.append(templateExercise)
-        dismiss()
+        // Afficher le message de confirmation si des valeurs ont été sauvegardées
+        if wasSaved {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                showSavedMessage = true
+            }
+            
+            // Masquer le message après 2 secondes puis fermer
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    showSavedMessage = false
+                }
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    // Créer et ajouter l'exercice au template
+                    let templateExercise = TemplateExercise(
+                        exerciseName: exercise.name,
+                        targetDistance: finalDistance,
+                        targetRepetitions: finalRepetitions,
+                        order: templateExercises.count
+                    )
+                    
+                    templateExercises.append(templateExercise)
+                    dismiss()
+                }
+            }
+        } else {
+            // Pas de sauvegarde, ajouter directement
+            let templateExercise = TemplateExercise(
+                exerciseName: exercise.name,
+                targetDistance: finalDistance,
+                targetRepetitions: finalRepetitions,
+                order: templateExercises.count
+            )
+            
+            templateExercises.append(templateExercise)
+            dismiss()
+        }
+    }
+    
+    private func saveAsDefaults(distance: Double?, repetitions: Int?) -> Bool {
+        // Ne sauvegarder que si on a ajouté des valeurs personnalisées
+        let shouldSaveDistance = hasCustomDistance && distance != nil && distance! > 0
+        let shouldSaveRepetitions = hasCustomRepetitions && repetitions != nil && repetitions! > 0
+        
+        if shouldSaveDistance || shouldSaveRepetitions {
+            // Chercher ou créer ExerciseDefaults
+            if let existingDefaults = exerciseDefaults.first(where: { $0.exerciseName == exercise.name }) {
+                // Mettre à jour les valeurs existantes
+                if shouldSaveDistance {
+                    existingDefaults.defaultDistance = distance
+                }
+                if shouldSaveRepetitions {
+                    existingDefaults.defaultRepetitions = repetitions
+                }
+                existingDefaults.isCustomized = true
+                existingDefaults.updatedAt = Date()
+                
+                print("✅ Mise à jour valeurs par défaut pour \(exercise.name): distance=\(distance ?? 0), reps=\(repetitions ?? 0)")
+            } else {
+                // Créer nouvelles valeurs par défaut
+                let newDefaults = ExerciseDefaults(
+                    exerciseName: exercise.name,
+                    defaultDistance: shouldSaveDistance ? distance : nil,
+                    defaultRepetitions: shouldSaveRepetitions ? repetitions : nil
+                )
+                newDefaults.isCustomized = true
+                
+                modelContext.insert(newDefaults)
+                print("✅ Création nouvelles valeurs par défaut pour \(exercise.name): distance=\(distance ?? 0), reps=\(repetitions ?? 0)")
+            }
+            
+            // Sauvegarder le contexte
+            do {
+                try modelContext.save()
+                return true // Indique qu'une sauvegarde a eu lieu
+            } catch {
+                print("❌ Erreur lors de la sauvegarde des valeurs par défaut: \(error)")
+                return false
+            }
+        }
+        
+        return false // Aucune sauvegarde nécessaire
     }
     
     private func getPreviewText() -> String {
