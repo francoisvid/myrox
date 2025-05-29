@@ -78,7 +78,8 @@ struct ExerciseConfigurationView: View {
                 .font(.headline)
                 .foregroundColor(Color(.label))
             
-            if exercise.hasDistance {
+            // Distance - toujours afficher si hasDistance OU si on veut permettre la saisie
+            if exercise.hasDistance || hasCustomDistance {
                 DistanceConfigurationSection(
                     exercise: exercise,
                     effectiveDistance: effectiveDistance,
@@ -87,7 +88,8 @@ struct ExerciseConfigurationView: View {
                 )
             }
             
-            if exercise.hasRepetitions {
+            // Répétitions - toujours afficher si hasRepetitions OU si on veut permettre la saisie  
+            if exercise.hasRepetitions || hasCustomRepetitions {
                 RepetitionsConfigurationSection(
                     exercise: exercise,
                     effectiveRepetitions: effectiveRepetitions,
@@ -96,13 +98,48 @@ struct ExerciseConfigurationView: View {
                 )
             }
             
-            if !exercise.hasDistance && !exercise.hasRepetitions {
-                Text("Cet exercice se base uniquement sur le temps")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
+            // Section pour ajouter des paramètres si aucun n'est configuré
+            if !exercise.hasDistance && !exercise.hasRepetitions && !hasCustomDistance && !hasCustomRepetitions {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Cet exercice se base uniquement sur le temps par défaut")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                    
+                    Text("Vous pouvez ajouter des paramètres personnalisés :")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    HStack(spacing: 12) {
+                        Button {
+                            hasCustomDistance = true
+                            distance = 100 // Valeur par défaut raisonnable
+                        } label: {
+                            Label("Ajouter distance", systemImage: "ruler")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(8)
+                        }
+                        
+                        Button {
+                            hasCustomRepetitions = true
+                            repetitions = 10 // Valeur par défaut raisonnable
+                        } label: {
+                            Label("Ajouter répétitions", systemImage: "repeat")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.green.opacity(0.1))
+                                .cornerRadius(8)
+                        }
+                    }
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
             }
         }
     }
@@ -202,14 +239,42 @@ struct DistanceConfigurationSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Toggle("Distance personnalisée", isOn: $hasCustomDistance)
-                    .font(.subheadline)
+                if exercise.hasDistance {
+                    Toggle("Distance personnalisée", isOn: $hasCustomDistance)
+                        .font(.subheadline)
+                } else {
+                    HStack {
+                        Text("Distance personnalisée")
+                            .font(.subheadline)
+                        
+                        Spacer()
+                        
+                        Button {
+                            hasCustomDistance = false
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.red)
+                        }
+                    }
+                }
             }
             
             if hasCustomDistance {
                 CustomDistanceInput(distance: $distance)
             } else if let standardDistance = effectiveDistance {
                 StandardDistanceDisplay(standardDistance: standardDistance)
+            } else if exercise.hasDistance {
+                // Exercice qui devrait avoir une distance mais n'en a pas
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Aucune distance par défaut définie")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                    
+                    Text("Activez 'Distance personnalisée' pour en définir une")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                .padding(.vertical, 4)
             }
         }
         .padding()
@@ -228,14 +293,42 @@ struct RepetitionsConfigurationSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Toggle("Répétitions personnalisées", isOn: $hasCustomRepetitions)
-                    .font(.subheadline)
+                if exercise.hasRepetitions {
+                    Toggle("Répétitions personnalisées", isOn: $hasCustomRepetitions)
+                        .font(.subheadline)
+                } else {
+                    HStack {
+                        Text("Répétitions personnalisées")
+                            .font(.subheadline)
+                        
+                        Spacer()
+                        
+                        Button {
+                            hasCustomRepetitions = false
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.red)
+                        }
+                    }
+                }
             }
             
             if hasCustomRepetitions {
                 CustomRepetitionsInput(repetitions: $repetitions)
             } else if let standardReps = effectiveRepetitions {
                 StandardRepetitionsDisplay(standardRepetitions: standardReps)
+            } else if exercise.hasRepetitions {
+                // Exercice qui devrait avoir des répétitions mais n'en a pas
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Aucune répétition par défaut définie")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                    
+                    Text("Activez 'Répétitions personnalisées' pour en définir")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                .padding(.vertical, 4)
             }
         }
         .padding()
