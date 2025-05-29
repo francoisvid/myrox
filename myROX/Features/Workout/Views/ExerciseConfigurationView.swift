@@ -5,11 +5,21 @@ struct ExerciseConfigurationView: View {
     let exercise: Exercise
     @Binding var templateExercises: [TemplateExercise]
     @Environment(\.dismiss) private var dismiss
+    @Query(sort: \ExerciseDefaults.exerciseName) private var exerciseDefaults: [ExerciseDefaults]
     
     @State private var distance: Double = 0
     @State private var repetitions: Int = 0
     @State private var hasCustomDistance = false
     @State private var hasCustomRepetitions = false
+    
+    // Calculer les valeurs effectives (personnalisées ou standards)
+    private var effectiveDistance: Double? {
+        exerciseDefaults.first(where: { $0.exerciseName == exercise.name })?.defaultDistance ?? exercise.standardDistance
+    }
+    
+    private var effectiveRepetitions: Int? {
+        exerciseDefaults.first(where: { $0.exerciseName == exercise.name })?.defaultRepetitions ?? exercise.standardRepetitions
+    }
     
     var body: some View {
         NavigationStack {
@@ -71,6 +81,7 @@ struct ExerciseConfigurationView: View {
             if exercise.hasDistance {
                 DistanceConfigurationSection(
                     exercise: exercise,
+                    effectiveDistance: effectiveDistance,
                     hasCustomDistance: $hasCustomDistance,
                     distance: $distance
                 )
@@ -79,6 +90,7 @@ struct ExerciseConfigurationView: View {
             if exercise.hasRepetitions {
                 RepetitionsConfigurationSection(
                     exercise: exercise,
+                    effectiveRepetitions: effectiveRepetitions,
                     hasCustomRepetitions: $hasCustomRepetitions,
                     repetitions: $repetitions
                 )
@@ -125,18 +137,18 @@ struct ExerciseConfigurationView: View {
     }
     
     private func setupInitialValues() {
-        if let standardDistance = exercise.standardDistance, standardDistance > 0 {
-            distance = standardDistance
+        if let distance = effectiveDistance, distance > 0 {
+            self.distance = distance
         }
         
-        if let standardReps = exercise.standardRepetitions, standardReps > 0 {
-            repetitions = standardReps
+        if let reps = effectiveRepetitions, reps > 0 {
+            repetitions = reps
         }
     }
     
     private func addExerciseToTemplate() {
-        let finalDistance = hasCustomDistance ? distance : exercise.standardDistance
-        let finalRepetitions = hasCustomRepetitions ? repetitions : exercise.standardRepetitions
+        let finalDistance = hasCustomDistance ? distance : effectiveDistance
+        let finalRepetitions = hasCustomRepetitions ? repetitions : effectiveRepetitions
         
         let templateExercise = TemplateExercise(
             exerciseName: exercise.name,
@@ -152,8 +164,8 @@ struct ExerciseConfigurationView: View {
     private func getPreviewText() -> String {
         var components: [String] = [exercise.name]
         
-        let finalDistance = hasCustomDistance ? distance : exercise.standardDistance
-        let finalRepetitions = hasCustomRepetitions ? repetitions : exercise.standardRepetitions
+        let finalDistance = hasCustomDistance ? distance : effectiveDistance
+        let finalRepetitions = hasCustomRepetitions ? repetitions : effectiveRepetitions
         
         if let dist = finalDistance, dist > 0 {
             components.append("\(Int(dist))m")
@@ -183,6 +195,7 @@ struct ExerciseConfigurationView: View {
 // MARK: - Distance Configuration Section
 struct DistanceConfigurationSection: View {
     let exercise: Exercise
+    let effectiveDistance: Double?
     @Binding var hasCustomDistance: Bool
     @Binding var distance: Double
     
@@ -195,7 +208,7 @@ struct DistanceConfigurationSection: View {
             
             if hasCustomDistance {
                 CustomDistanceInput(distance: $distance)
-            } else if let standardDistance = exercise.standardDistance {
+            } else if let standardDistance = effectiveDistance {
                 StandardDistanceDisplay(standardDistance: standardDistance)
             }
         }
@@ -208,6 +221,7 @@ struct DistanceConfigurationSection: View {
 // MARK: - Repetitions Configuration Section
 struct RepetitionsConfigurationSection: View {
     let exercise: Exercise
+    let effectiveRepetitions: Int?
     @Binding var hasCustomRepetitions: Bool
     @Binding var repetitions: Int
     
@@ -220,7 +234,7 @@ struct RepetitionsConfigurationSection: View {
             
             if hasCustomRepetitions {
                 CustomRepetitionsInput(repetitions: $repetitions)
-            } else if let standardReps = exercise.standardRepetitions {
+            } else if let standardReps = effectiveRepetitions {
                 StandardRepetitionsDisplay(standardRepetitions: standardReps)
             }
         }

@@ -383,19 +383,41 @@ struct SimpleExercisePickerView: View {
     let exercises: [Exercise]
     let onExerciseSelected: (Exercise) -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+    @State private var selectedCategory: String = "Tous"
+    
+    private let categories = ["Tous", "Cardio", "Force", "Core", "Plyo"]
+    
+    private var filteredExercises: [Exercise] {
+        var filtered = exercises
+        
+        // Filtrer par catégorie
+        if selectedCategory != "Tous" {
+            filtered = filtered.filter { $0.category == selectedCategory }
+        }
+        
+        // Filtrer par recherche
+        if !searchText.isEmpty {
+            filtered = filtered.filter { exercise in
+                exercise.name.localizedCaseInsensitiveContains(searchText) ||
+                exercise.category.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+        
+        return filtered.sorted { $0.name < $1.name }
+    }
     
     var body: some View {
         NavigationStack {
-            List {
-                ForEach(exercises) { exercise in
-                    ExerciseListItem(
-                        exercise: exercise,
-                        onSelect: {
-                            onExerciseSelected(exercise)
-                            dismiss()
-                        }
-                    )
-                }
+            VStack(spacing: 0) {
+                // Barre de recherche
+                searchSection
+                
+                // Sélecteur de catégorie
+                categorySection
+                
+                // Liste des exercices
+                exercisesList
             }
             .navigationTitle("Choisir un exercice")
             .navigationBarTitleDisplayMode(.inline)
@@ -407,6 +429,114 @@ struct SimpleExercisePickerView: View {
                     .foregroundColor(.yellow)
                 }
             }
+        }
+    }
+    
+    private var searchSection: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.gray)
+                .padding(.leading, 8)
+            
+            TextField("Rechercher un exercice...", text: $searchText)
+                .textFieldStyle(PlainTextFieldStyle())
+                .padding(.vertical, 10)
+            
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.gray)
+                }
+                .padding(.trailing, 8)
+            }
+        }
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
+        .padding(.horizontal)
+        .padding(.top)
+    }
+    
+    private var categorySection: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(categories, id: \.self) { category in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectedCategory = category
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            if category != "Tous" {
+                                Image(systemName: iconForCategory(category))
+                                    .font(.caption)
+                            }
+                            
+                            Text(category)
+                                .font(.caption.bold())
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            selectedCategory == category ? Color.yellow : Color(.systemGray5)
+                        )
+                        .foregroundColor(
+                            selectedCategory == category ? .black : Color(.label)
+                        )
+                        .cornerRadius(20)
+                    }
+                }
+            }
+            .padding(.horizontal)
+        }
+        .padding(.vertical, 8)
+    }
+    
+    private var exercisesList: some View {
+        List {
+            if filteredExercises.isEmpty {
+                HStack {
+                    Spacer()
+                    VStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 40))
+                            .foregroundColor(.gray)
+                        
+                        Text("Aucun exercice trouvé")
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                        
+                        Text("Essayez un autre terme de recherche")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.vertical, 40)
+                    Spacer()
+                }
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(filteredExercises) { exercise in
+                    ExerciseListItem(
+                        exercise: exercise,
+                        onSelect: {
+                            onExerciseSelected(exercise)
+                            dismiss()
+                        }
+                    )
+                }
+            }
+        }
+        .listStyle(PlainListStyle())
+    }
+    
+    private func iconForCategory(_ category: String) -> String {
+        switch category {
+        case "Cardio": return "heart.fill"
+        case "Force": return "dumbbell.fill"
+        case "Plyo": return "figure.jumprope"
+        case "Core": return "figure.strengthtraining.traditional"
+        default: return "list.bullet"
         }
     }
 }
