@@ -56,17 +56,17 @@ actor ModelContainer {
         // (name, category, hasDistance, hasReps, distance, reps, description, tempsEstimé)
         let hyroxExercises = [
             // 8 Exercices officiels HYROX avec valeurs de compétition
-            ("SkiErg", "Cardio", true, false, 1000.0, 0, "1000m sur la machine SkiErg", 180),
-            ("Sled Push", "Force", true, false, 50.0, 0, "50m de poussée de traîneau", 240),
-            ("Sled Pull", "Force", true, false, 50.0, 0, "50m de traction de traîneau", 240),
-            ("Burpees Broad Jump", "Plyo", false, true, 0.0, 80, "80 burpees avec saut en longueur", 300),
-            ("RowErg", "Cardio", true, false, 1000.0, 0, "1000m sur rameur", 180),
-            ("Farmers Carry", "Force", true, false, 200.0, 0, "200m de transport de poids", 240),
-            ("Sandbag Lunges", "Force", true, false, 200.0, 0, "200m de fentes avec sac de sable", 300),
-            ("Wall Balls", "Force", false, true, 0.0, 100, "100 répétitions de wall balls", 210),
+            ("SkiErg", "Cardio", true, false, 1000.0, 0, "Machine SkiErg", 180),
+            ("Sled Push", "Force", true, false, 50.0, 0, "Poussée de traîneau", 240),
+            ("Sled Pull", "Force", true, false, 50.0, 0, "Traction de traîneau", 240),
+            ("Burpees Broad Jump", "Plyo", false, true, 0.0, 80, "Burpees avec saut en longueur", 300),
+            ("RowErg", "Cardio", true, false, 1000.0, 0, "Rameur", 180),
+            ("Farmers Carry", "Force", true, false, 200.0, 0, "Transport de poids", 240),
+            ("Sandbag Lunges", "Force", true, false, 200.0, 0, "Fentes avec sac de sable", 300),
+            ("Wall Balls", "Force", false, true, 0.0, 100, "Wall balls", 210),
             
             // Exercices d'entraînement supplémentaires
-            ("1 km Run", "Cardio", true, false, 1000.0, 0, "Course de 1 kilomètre", nil),
+            ("Run", "Cardio", true, false, 1000.0, 0, "Course à pied", nil),
             ("Assault Bike", "Cardio", false, false, 0.0, 0, "Exercice sur Assault Bike", nil),
             ("Jump Rope", "Cardio", false, false, 0.0, 0, "Exercice de corde à sauter", nil),
             ("Sprint Intervals", "Cardio", false, false, 0.0, 0, "Intervalles de sprint", nil),
