@@ -130,7 +130,7 @@ struct WorkoutListView: View {
                 Button {
                     viewModel?.cleanupLegacyTemplates()
                 } label: {
-                    Label("Nettoyer les anciens templates", systemImage: "broom")
+                    Label("Nettoyer les anciens templates", systemImage: "arrow.clockwise.circle")
                 }
                 
                 Divider()

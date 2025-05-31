@@ -8,6 +8,7 @@ struct ActiveWorkoutView: View {
     
     @State private var showingExerciseDetail = false
     @State private var selectedExercise: WorkoutExercise?
+    @State private var showEndWorkoutAlert = false
     
     var body: some View {
         NavigationStack {
@@ -32,7 +33,7 @@ struct ActiveWorkoutView: View {
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        showEndWorkoutAlert()
+                        showEndWorkoutAlert = true
                     } label: {
                         Image(systemName: "stop.circle.fill")
                             .font(.title2)
@@ -45,6 +46,27 @@ struct ActiveWorkoutView: View {
                     exercise: exercise,
                     viewModel: viewModel
                 )
+            }
+            .sheet(isPresented: $viewModel.showWorkoutCompletion) {
+                if let completedWorkout = viewModel.completedWorkout {
+                    WorkoutCompletionView(
+                        workout: completedWorkout,
+                        onComplete: {
+                            // Nettoyer tous les états
+                            viewModel.cleanupAfterWorkoutCompletion()
+                            dismiss() // Fermer l'ActiveWorkoutView
+                        }
+                    )
+                }
+            }
+            .alert("Terminer la séance", isPresented: $showEndWorkoutAlert) {
+                Button("Continuer", role: .cancel) { }
+                Button("Terminer", role: .destructive) {
+                    viewModel.endWorkout()
+                    // Ne pas fermer ici - la vue de fin de séance s'ouvrira automatiquement
+                }
+            } message: {
+                Text("Êtes-vous sûr de vouloir terminer cette séance ?")
             }
         }
     }
@@ -129,13 +151,6 @@ struct ActiveWorkoutView: View {
             }
             .padding()
         }
-    }
-    
-    private func showEndWorkoutAlert() {
-        // Pour iOS 15+, on peut utiliser .alert avec des boutons personnalisés
-        // Pour l'instant, on termine directement
-        viewModel.endWorkout()
-        dismiss()
     }
 }
 

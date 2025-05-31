@@ -13,6 +13,7 @@ final class WorkoutExercise {
     var maxHeartRate: Int = 0
     var round: Int = 1 // Numéro du round
     var order: Int = 0 // Ordre dans le round
+    var isPersonalRecord: Bool = false // Indique si c'est un record personnel
     
     @Relationship(inverse: \Workout.performances)
     var workout: Workout?

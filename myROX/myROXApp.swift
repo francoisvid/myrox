@@ -62,6 +62,14 @@ struct MyROXApp: App {
                 workoutViewModel.cleanupLegacyTemplates()
             }
             
+            // Demander les permissions de notification
+            let notificationGranted = await NotificationService.shared.requestPermission()
+            if notificationGranted {
+                print("Permissions de notification accordées")
+            } else {
+                print("Permissions de notification refusées")
+            }
+            
             await MainActor.run {
                 isInitialized = true
             }

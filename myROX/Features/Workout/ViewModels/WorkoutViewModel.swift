@@ -9,6 +9,8 @@ class WorkoutViewModel {
     var selectedExercise: WorkoutExercise?
     var isEditingExercise = false
     var showCreateTemplate = false
+    var showWorkoutCompletion = false
+    var completedWorkout: Workout?
     
     // MARK: - État Workout
     var activeWorkout: Workout?
@@ -120,18 +122,45 @@ class WorkoutViewModel {
         do {
             try modelContext.save()
             WatchConnectivityService.shared.sendWorkoutCount()
+            
+            // Programmer la notification de fin de séance
+            Task {
+                await NotificationService.shared.scheduleWorkoutCompletionNotification(for: workout)
+                
+                // Vérifier et notifier les nouveaux records personnels
+                let personalRecords = workout.performances.filter { $0.isPersonalRecord }
+                for record in personalRecords {
+                    await NotificationService.shared.schedulePersonalRecordNotification(
+                        exerciseName: record.exerciseName,
+                        recordType: "Temps"
+                    )
+                }
+            }
+            
         } catch {
             print("Erreur lors de la sauvegarde du workout : \(error)")
         }
         
-        // Réinitialiser l'état
+        // Préparer l'affichage de la vue de fin de séance
+        completedWorkout = workout
+        showWorkoutCompletion = true
+        
+        // Arrêter le timer mais garder l'état workout actif jusqu'à la fermeture de la vue de completion
         stopTimer()
+        
+        // NE PAS réinitialiser activeWorkout et isWorkoutActive ici
+        // Cela sera fait quand l'utilisateur fermera la vue de completion
+    }
+    
+    // Nouvelle méthode pour nettoyer l'état après fermeture de la vue de completion
+    func cleanupAfterWorkoutCompletion() {
         activeWorkout = nil
         isWorkoutActive = false
         currentRound = 1
         elapsedTime = 0
         workoutProgress = 0
         workoutStartTime = nil
+        completedWorkout = nil
     }
     
     // MARK: - Exercise Management
@@ -393,6 +422,97 @@ class WorkoutViewModel {
     func selectExercise(_ exercise: WorkoutExercise) {
         selectedExercise = exercise
         isEditingExercise = true
+    }
+    
+    // MARK: - Test Functions (à supprimer en production)
+    func testNotifications() {
+        Task {
+            // Tester la demande de permission
+            let granted = await NotificationService.shared.requestPermission()
+            print("Permissions de notification: \(granted)")
+            
+            // Vérifier le statut
+            let status = await NotificationService.shared.checkNotificationStatus()
+            print("Statut des notifications: \(status)")
+            
+            // Vérifier les notifications en attente avant
+            await NotificationService.shared.checkPendingNotifications()
+            
+            // Créer un workout de test
+            let testWorkout = Workout()
+            testWorkout.templateName = "Test Séance"
+            testWorkout.totalDuration = 1200 // 20 minutes
+            testWorkout.completedAt = Date()
+            
+            // Tester la notification de fin de séance
+            await NotificationService.shared.scheduleWorkoutCompletionNotification(for: testWorkout)
+            
+            // Tester une notification de record personnel
+            await NotificationService.shared.schedulePersonalRecordNotification(
+                exerciseName: "SkiErg",
+                recordType: "Temps"
+            )
+            
+            // Vérifier les notifications en attente après
+            await NotificationService.shared.checkPendingNotifications()
+        }
+    }
+    
+    func testWatchNotification() {
+        Task {
+            // Créer un workout de test simulant une séance Watch
+            let watchWorkout = Workout()
+            watchWorkout.templateName = "LA DÉFENSE"
+            watchWorkout.totalDuration = 1200 // 20 minutes
+            watchWorkout.completedAt = Date()
+            
+            // Ajouter 6 exercices pour tester le mode compact
+            let exercise1 = WorkoutExercise(exerciseName: "Run", round: 1, order: 0)
+            exercise1.duration = 45 // ~45 secondes pour 150m
+            exercise1.distance = 150
+            exercise1.completedAt = Date()
+            
+            let exercise2 = WorkoutExercise(exerciseName: "Kettlebell Swings", round: 1, order: 1)
+            exercise2.duration = 90 // ~1min30 pour 30 swings
+            exercise2.repetitions = 30
+            exercise2.completedAt = Date()
+            
+            let exercise3 = WorkoutExercise(exerciseName: "Run", round: 1, order: 2)
+            exercise3.duration = 45 // ~45 secondes pour 150m
+            exercise3.distance = 150
+            exercise3.completedAt = Date()
+            
+            let exercise4 = WorkoutExercise(exerciseName: "Wall Balls", round: 1, order: 3)
+            exercise4.duration = 180 // ~3 minutes pour 40 wall balls
+            exercise4.repetitions = 40
+            exercise4.completedAt = Date()
+            exercise4.isPersonalRecord = true // 🏆 Record personnel !
+            
+            let exercise5 = WorkoutExercise(exerciseName: "Run", round: 1, order: 4)
+            exercise5.duration = 45 // ~45 secondes pour 150m
+            exercise5.distance = 150
+            exercise5.completedAt = Date()
+            
+            let exercise6 = WorkoutExercise(exerciseName: "Sled Pull", round: 1, order: 5)
+            exercise6.duration = 60 // ~1 minute pour 50m de sled
+            exercise6.distance = 50
+            exercise6.completedAt = Date()
+            exercise6.isPersonalRecord = true // 🏆 Autre record personnel !
+            
+            watchWorkout.performances = [exercise1, exercise2, exercise3, exercise4, exercise5, exercise6]
+            
+            // Calculer la distance totale
+            watchWorkout.totalDistance = watchWorkout.performances.reduce(0.0) { $0 + $1.distance }
+            
+            // Sauvegarder temporairement
+            modelContext.insert(watchWorkout)
+            try? modelContext.save()
+            
+            // Tester la notification spécifique Watch
+            await NotificationService.shared.scheduleWorkoutCompletionFromWatchNotification(for: watchWorkout)
+            
+            print("📱⌚ Test notification Apple Watch envoyée")
+        }
     }
     
     // MARK: - Private Methods

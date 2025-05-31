@@ -77,6 +77,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A70D2DDE2DE9FD0000663EF6 /* Exceptions for "myROX" folder in "MyROX" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A77F82092DE246A90028CE89 /* MyROX */;
+		};
 		A7936D4B2DE499E3008631EE /* Exceptions for "myROX" folder in "MyROX_watch Watch App" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -92,6 +99,7 @@
 		A77F820C2DE246A90028CE89 /* myROX */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				A70D2DDE2DE9FD0000663EF6 /* Exceptions for "myROX" folder in "MyROX" target */,
 				A7936D4B2DE499E3008631EE /* Exceptions for "myROX" folder in "MyROX_watch Watch App" target */,
 			);
 			path = myROX;
@@ -657,6 +665,7 @@
 				DEVELOPMENT_TEAM = 9DJHH4ZSN5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MyROX/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyROX;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -693,6 +702,7 @@
 				DEVELOPMENT_TEAM = 9DJHH4ZSN5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MyROX/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyROX;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
