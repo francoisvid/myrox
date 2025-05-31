@@ -19,6 +19,35 @@ class ProfileViewModel: ObservableObject {
     }()
     @AppStorage("followSystemTheme") var followSystemTheme = true
     
+    // Propriété computed pour le picker de thème
+    var themeSelection: Int {
+        get {
+            if followSystemTheme {
+                return 0 // Auto
+            } else if isDarkModeEnabled {
+                return 2 // Sombre
+            } else {
+                return 1 // Clair
+            }
+        }
+        set {
+            switch newValue {
+            case 0: // Auto
+                resetToSystemTheme()
+            case 1: // Clair
+                followSystemTheme = false
+                isDarkModeEnabled = false
+                applyTheme()
+            case 2: // Sombre
+                followSystemTheme = false
+                isDarkModeEnabled = true
+                applyTheme()
+            default:
+                break
+            }
+        }
+    }
+    
     private let modelContext: ModelContext
     
     init(modelContext: ModelContext) {
@@ -107,12 +136,7 @@ class ProfileViewModel: ObservableObject {
     func toggleDarkMode() {
         isDarkModeEnabled.toggle()
         followSystemTheme = false // L'utilisateur a pris le contrôle manuel
-        
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-            windowScene.windows.forEach { window in
-                window.overrideUserInterfaceStyle = isDarkModeEnabled ? .dark : .light
-            }
-        }
+        applyTheme()
     }
     
     func resetToSystemTheme() {
@@ -122,6 +146,14 @@ class ProfileViewModel: ObservableObject {
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
             windowScene.windows.forEach { window in
                 window.overrideUserInterfaceStyle = .unspecified // Suivre le système
+            }
+        }
+    }
+    
+    private func applyTheme() {
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+            windowScene.windows.forEach { window in
+                window.overrideUserInterfaceStyle = isDarkModeEnabled ? .dark : .light
             }
         }
     }

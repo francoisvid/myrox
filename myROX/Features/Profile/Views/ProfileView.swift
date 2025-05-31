@@ -220,33 +220,21 @@ struct SettingsView: View {
                 .pickerStyle(SegmentedPickerStyle())
             }
             
-            // Mode sombre
+            // Thème d'apparence
             VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("Mode sombre")
-                    
-                    Spacer()
-                    
-                    if viewModel.followSystemTheme {
-                        Text("Auto")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                Toggle("Mode sombre", isOn: $viewModel.isDarkModeEnabled)
-                    .toggleStyle(SwitchToggleStyle(tint: .yellow))
-                    .onChange(of: viewModel.isDarkModeEnabled) { _ in
-                        viewModel.toggleDarkMode()
-                    }
-                
-                if !viewModel.followSystemTheme {
-                    Button("Suivre le thème système") {
-                        viewModel.resetToSystemTheme()
-                    }
+                Text("Thème")
                     .font(.caption)
-                    .foregroundColor(.yellow)
+                    .foregroundColor(.gray)
+                
+                Picker("Thème", selection: Binding(
+                    get: { viewModel.themeSelection },
+                    set: { viewModel.themeSelection = $0 }
+                )) {
+                    Text("Auto").tag(0)
+                    Text("Clair").tag(1)
+                    Text("Sombre").tag(2)
                 }
+                .pickerStyle(SegmentedPickerStyle())
             }
             
             // Valeurs par défaut des exercices
