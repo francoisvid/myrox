@@ -43,7 +43,7 @@ struct ProfileView: View {
             .background(Color.adaptiveGradient)
             .navigationTitle("Profil")
             .navigationBarTitleDisplayMode(.large)
-            .preferredColorScheme(viewModel.isDarkModeEnabled ? .dark : .light)
+            .preferredColorScheme(viewModel.followSystemTheme ? nil : (viewModel.isDarkModeEnabled ? .dark : .light))
             .onAppear {
                 viewModel.refreshUserInfo()
             }
@@ -221,11 +221,33 @@ struct SettingsView: View {
             }
             
             // Mode sombre
-            Toggle("Mode sombre", isOn: $viewModel.isDarkModeEnabled)
-                .toggleStyle(SwitchToggleStyle(tint: .yellow))
-                .onChange(of: viewModel.isDarkModeEnabled) { _ in
-                    viewModel.toggleDarkMode()
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Mode sombre")
+                    
+                    Spacer()
+                    
+                    if viewModel.followSystemTheme {
+                        Text("Auto")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
+                
+                Toggle("Mode sombre", isOn: $viewModel.isDarkModeEnabled)
+                    .toggleStyle(SwitchToggleStyle(tint: .yellow))
+                    .onChange(of: viewModel.isDarkModeEnabled) { _ in
+                        viewModel.toggleDarkMode()
+                    }
+                
+                if !viewModel.followSystemTheme {
+                    Button("Suivre le thème système") {
+                        viewModel.resetToSystemTheme()
+                    }
+                    .font(.caption)
+                    .foregroundColor(.yellow)
+                }
+            }
             
             // Valeurs par défaut des exercices
             Button {
