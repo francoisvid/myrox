@@ -6,6 +6,7 @@ struct ProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel: ProfileViewModel
+    @State private var showingExerciseDefaults = false
     
     init() {
         let context = ModelContainer.shared.mainContext
@@ -22,11 +23,11 @@ struct ProfileView: View {
                     // Résumé d'activité
                     ActivitySummaryView(viewModel: viewModel)
                     
-                    // Objectifs
-                    GoalsSection()
+                    // Objectifs HYROX
+                    HyroxGoalsSection()
                     
                     // Paramètres
-                    SettingsView(viewModel: viewModel)
+                    SettingsView(viewModel: viewModel, showingExerciseDefaults: $showingExerciseDefaults)
                     
                     // Déconnexion
                     LogoutButton()
@@ -45,6 +46,9 @@ struct ProfileView: View {
             .preferredColorScheme(viewModel.isDarkModeEnabled ? .dark : .light)
             .onAppear {
                 viewModel.refreshUserInfo()
+            }
+            .sheet(isPresented: $showingExerciseDefaults) {
+                ExerciseDefaultsView()
             }
         }
     }
@@ -175,6 +179,7 @@ struct ActivitySummaryView: View {
 
 struct SettingsView: View {
     @ObservedObject var viewModel: ProfileViewModel
+    @Binding var showingExerciseDefaults: Bool
     @State private var showResetAlert = false
     
     var body: some View {
@@ -221,6 +226,14 @@ struct SettingsView: View {
                 .onChange(of: viewModel.isDarkModeEnabled) { _ in
                     viewModel.toggleDarkMode()
                 }
+            
+            // Valeurs par défaut des exercices
+            Button {
+                showingExerciseDefaults = true
+            } label: {
+                Label("Valeurs par défaut des exercices", systemImage: "slider.horizontal.3")
+                    .foregroundColor(.yellow)
+            }
             
             // Réinitialiser le catalogue d'exercices
             Button {
@@ -283,7 +296,9 @@ struct LogoutButton: View {
 }
 
 #Preview {
-    ProfileView()
+    @State var showingDefaults = false
+    
+    return ProfileView()
         .environmentObject(AuthViewModel())
         .modelContainer(ModelContainer.shared.container)
 }

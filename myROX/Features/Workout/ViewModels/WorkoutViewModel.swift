@@ -46,7 +46,9 @@ class WorkoutViewModel {
     // MARK: - Workout Actions
     func startWorkout(from template: WorkoutTemplate) {
         // Validation du template
-        guard !template.exerciseNames.isEmpty else {
+        let templateExercises = template.exercises.sorted(by: { $0.order < $1.order })
+        
+        guard !templateExercises.isEmpty else {
             print("Erreur: Le template ne contient aucun exercice")
             return
         }
@@ -56,14 +58,25 @@ class WorkoutViewModel {
         workout.templateName = template.name
         workout.totalRounds = template.rounds
         
-        // Créer les exercices pour chaque round
+        // Créer les exercices pour chaque round avec les paramètres des TemplateExercise
         for round in 1...template.rounds {
-            let roundExercises = template.exerciseNames.enumerated().map { index, exerciseName in
-                WorkoutExercise(
-                    exerciseName: exerciseName,
+            let roundExercises = templateExercises.enumerated().map { index, templateExercise in
+                let workoutExercise = WorkoutExercise(
+                    exerciseName: templateExercise.exerciseName,
                     round: round,
                     order: index
                 )
+                
+                // Pré-remplir avec les valeurs cibles du template si disponibles
+                if let targetDistance = templateExercise.targetDistance {
+                    workoutExercise.distance = targetDistance
+                }
+                
+                if let targetReps = templateExercise.targetRepetitions {
+                    workoutExercise.repetitions = targetReps
+                }
+                
+                return workoutExercise
             }
             workout.performances.append(contentsOf: roundExercises)
         }
@@ -71,7 +84,11 @@ class WorkoutViewModel {
         // Debug: Vérification de l'ordre des exercices
         print("Ordre des exercices créés :")
         for exercise in workout.performances {
-            print("Round \(exercise.round) - Ordre \(exercise.order): \(exercise.exerciseName)")
+            let params = [
+                exercise.distance > 0 ? "\(Int(exercise.distance))m" : "",
+                exercise.repetitions > 0 ? "\(exercise.repetitions) reps" : ""
+            ].filter { !$0.isEmpty }.joined(separator: ", ")
+            print("Round \(exercise.round) - Ordre \(exercise.order): \(exercise.exerciseName) \(params)")
         }
         
         // Initialiser le workout
@@ -162,14 +179,14 @@ class WorkoutViewModel {
     }
     
     // MARK: - Template Management
-    func createTemplate(name: String, exerciseNames: [String], rounds: Int = 1) {
+    func createTemplate(name: String, exercises: [TemplateExercise], rounds: Int = 1) {
         // Validation des données
         guard !name.isEmpty else {
             print("Erreur: Le nom du template ne peut pas être vide")
             return
         }
         
-        guard !exerciseNames.isEmpty else {
+        guard !exercises.isEmpty else {
             print("Erreur: Le template doit contenir au moins un exercice")
             return
         }
@@ -180,7 +197,12 @@ class WorkoutViewModel {
         }
         
         let template = WorkoutTemplate(name: name, rounds: rounds)
-        template.exerciseNames = exerciseNames
+        
+        // Ajouter les exercices au template
+        for exercise in exercises {
+            exercise.template = template
+            modelContext.insert(exercise)
+        }
         
         modelContext.insert(template)
         do {
@@ -192,14 +214,14 @@ class WorkoutViewModel {
         }
     }
     
-    func updateTemplate(_ template: WorkoutTemplate, name: String, exerciseNames: [String], rounds: Int) {
+    func updateTemplate(_ template: WorkoutTemplate, name: String, exercises: [TemplateExercise], rounds: Int) {
         // Validation des données
         guard !name.isEmpty else {
             print("Erreur: Le nom du template ne peut pas être vide")
             return
         }
         
-        guard !exerciseNames.isEmpty else {
+        guard !exercises.isEmpty else {
             print("Erreur: Le template doit contenir au moins un exercice")
             return
         }
@@ -209,13 +231,77 @@ class WorkoutViewModel {
             return
         }
         
+        print("Début mise à jour template: \(template.name) -> \(name)")
+        print("Exercices existants: \(template.exercises.count)")
+        print("Nouveaux exercices: \(exercises.count)")
+        
         // Mettre à jour le template
         template.name = name
-        template.exerciseNames = exerciseNames
         template.rounds = rounds
+        
+        // Récupérer les exercices existants
+        let existingExercises = template.exercises
+        
+        // Créer un mappage des exercices à conserver/mettre à jour/ajouter
+        var exercisesToKeep: [TemplateExercise] = []
+        var exercisesToAdd: [TemplateExercise] = []
+        
+        for (index, newExercise) in exercises.enumerated() {
+            // Chercher un exercice existant correspondant (même nom, même ordre)
+            if let existingExercise = existingExercises.first(where: { 
+                $0.exerciseName == newExercise.exerciseName && $0.order == index 
+            }) {
+                // Mettre à jour l'exercice existant
+                existingExercise.targetDistance = newExercise.targetDistance
+                existingExercise.targetRepetitions = newExercise.targetRepetitions
+                existingExercise.order = index
+                exercisesToKeep.append(existingExercise)
+                print("Mise à jour exercice existant: \(existingExercise.exerciseName)")
+            } else {
+                // Chercher un exercice existant avec le même nom mais ordre différent
+                if let existingExercise = existingExercises.first(where: { 
+                    $0.exerciseName == newExercise.exerciseName && !exercisesToKeep.contains($0)
+                }) {
+                    // Réutiliser et mettre à jour l'exercice existant
+                    existingExercise.targetDistance = newExercise.targetDistance
+                    existingExercise.targetRepetitions = newExercise.targetRepetitions
+                    existingExercise.order = index
+                    exercisesToKeep.append(existingExercise)
+                    print("Réutilisation exercice existant: \(existingExercise.exerciseName)")
+                } else {
+                    // Créer un nouvel exercice
+                    let templateExercise = TemplateExercise(
+                        exerciseName: newExercise.exerciseName,
+                        targetDistance: newExercise.targetDistance,
+                        targetRepetitions: newExercise.targetRepetitions,
+                        order: index
+                    )
+                    templateExercise.template = template
+                    exercisesToAdd.append(templateExercise)
+                    print("Création nouvel exercice: \(templateExercise.exerciseName)")
+                }
+            }
+        }
+        
+        // Supprimer les exercices qui ne sont plus nécessaires
+        let exercisesToDelete = existingExercises.filter { !exercisesToKeep.contains($0) }
+        for exercise in exercisesToDelete {
+            print("Suppression exercice: \(exercise.exerciseName)")
+            modelContext.delete(exercise)
+        }
+        
+        // Ajouter les nouveaux exercices
+        for exercise in exercisesToAdd {
+            modelContext.insert(exercise)
+        }
+        
+        print("Exercices conservés: \(exercisesToKeep.count)")
+        print("Exercices ajoutés: \(exercisesToAdd.count)")
+        print("Exercices supprimés: \(exercisesToDelete.count)")
         
         do {
             try modelContext.save()
+            print("Sauvegarde réussie")
             fetchTemplates()
             WatchConnectivityService.shared.sendTemplates()
         } catch {
@@ -262,6 +348,44 @@ class WorkoutViewModel {
             fetchTemplates() // Recharger les templates après la suppression de tous
         } catch {
             print("Erreur lors de la suppression de tous les templates : \(error)")
+        }
+    }
+    
+    // MARK: - Migration/Cleanup
+    func cleanupLegacyTemplates() {
+        print("🧹 Début du nettoyage des anciens templates...")
+        
+        do {
+            let descriptor = FetchDescriptor<WorkoutTemplate>()
+            let allTemplates = try modelContext.fetch(descriptor)
+            
+            var deletedCount = 0
+            var keptCount = 0
+            
+            for template in allTemplates {
+                if template.exercises.isEmpty {
+                    print("❌ Suppression template vide: \(template.name)")
+                    modelContext.delete(template)
+                    deletedCount += 1
+                } else {
+                    print("✅ Conservation template valide: \(template.name) (\(template.exercises.count) exercices)")
+                    keptCount += 1
+                }
+            }
+            
+            // Sauvegarder les changements
+            try modelContext.save()
+            
+            print("🎯 Nettoyage terminé:")
+            print("   - Templates supprimés: \(deletedCount)")
+            print("   - Templates conservés: \(keptCount)")
+            
+            // Recharger les templates et synchroniser
+            fetchTemplates()
+            WatchConnectivityService.shared.sendTemplates()
+            
+        } catch {
+            print("❌ Erreur lors du nettoyage des anciens templates: \(error)")
         }
     }
     

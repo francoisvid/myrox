@@ -11,7 +11,9 @@ actor ModelContainer {
         let schema = Schema([
             Exercise.self,
             ExerciseGoal.self,
+            ExerciseDefaults.self,
             WorkoutTemplate.self,
+            TemplateExercise.self,
             Workout.self,
             WorkoutExercise.self,
             HeartRatePoint.self
@@ -51,11 +53,20 @@ actor ModelContainer {
         }
         
         // Créer le catalogue d'exercices HYROX
+        // (name, category, hasDistance, hasReps, distance, reps, description, tempsEstimé)
         let hyroxExercises = [
-            // Cardio
-            ("SkiErg", "Cardio", true, false, 1000.0, 0, "1000m sur la machine SkiErg", 180),
-            ("RowErg", "Cardio", true, false, 1000.0, 0, "1000m sur rameur", 180),
-            ("1 km Run", "Cardio", true, false, 1000.0, 0, "Course de 1 kilomètre", nil),
+            // 8 Exercices officiels HYROX avec valeurs de compétition
+            ("SkiErg", "Cardio", true, false, 1000.0, 0, "Machine SkiErg", 180),
+            ("Sled Push", "Force", true, false, 50.0, 0, "Poussée de traîneau", 240),
+            ("Sled Pull", "Force", true, false, 50.0, 0, "Traction de traîneau", 240),
+            ("Burpees Broad Jump", "Plyo", false, true, 0.0, 80, "Burpees avec saut en longueur", 300),
+            ("RowErg", "Cardio", true, false, 1000.0, 0, "Rameur", 180),
+            ("Farmers Carry", "Force", true, false, 200.0, 0, "Transport de poids", 240),
+            ("Sandbag Lunges", "Force", true, false, 200.0, 0, "Fentes avec sac de sable", 300),
+            ("Wall Balls", "Force", false, true, 0.0, 100, "Wall balls", 210),
+            
+            // Exercices d'entraînement supplémentaires
+            ("Run", "Cardio", true, false, 1000.0, 0, "Course à pied", nil),
             ("Assault Bike", "Cardio", false, false, 0.0, 0, "Exercice sur Assault Bike", nil),
             ("Jump Rope", "Cardio", false, false, 0.0, 0, "Exercice de corde à sauter", nil),
             ("Sprint Intervals", "Cardio", false, false, 0.0, 0, "Intervalles de sprint", nil),
@@ -65,11 +76,6 @@ actor ModelContainer {
             ("Battle Ropes", "Cardio", false, false, 0.0, 0, "Exercice avec cordes ondulatoires", nil),
             
             // Force
-            ("Sled Push", "Force", true, false, 50.0, 0, "50m de poussée de traîneau", 240),
-            ("Sled Pull", "Force", true, false, 50.0, 0, "50m de traction de traîneau", 240),
-            ("Farmers Carry", "Force", true, false, 200.0, 0, "200m de transport de poids", 240),
-            ("Sandbag Lunges", "Force", true, false, 200.0, 0, "200m de fentes avec sac de sable", 300),
-            ("Wall Balls", "Force", false, true, 0.0, 75, "75 répétitions", 210),
             ("Deadlifts", "Force", false, false, 0.0, 0, "Soulevés de terre", nil),
             ("Dumbbell Thrusters", "Force", false, false, 0.0, 0, "Thrusters avec haltères", nil),
             ("Dumbbell Snatch", "Force", false, false, 0.0, 0, "Arraché avec haltère", nil),
@@ -95,11 +101,9 @@ actor ModelContainer {
             ("Air Squats", "Core", false, false, 0.0, 0, "Squats au poids du corps", nil),
             
             // Plyo
-            ("Burpees Broad Jump", "Plyo", false, true, 0.0, 80, "80 répétitions", 300),
             ("Box Jumps", "Plyo", false, false, 0.0, 0, "Sauts sur caisse", nil),
             ("Broad Jumps", "Plyo", false, false, 0.0, 0, "Sauts en longueur", nil),
             ("Jumping Lunges", "Plyo", false, false, 0.0, 0, "Fentes sautées", nil),
-            ("Burpee Broad Jumps", "Plyo", false, false, 0.0, 0, "Burpees avec saut en longueur", nil),
             ("Burpees", "Plyo", false, false, 0.0, 0, "Burpees classiques", nil),
             ("Lateral Hops", "Plyo", false, false, 0.0, 0, "Sauts latéraux", nil)
         ]

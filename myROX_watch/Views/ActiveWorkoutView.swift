@@ -29,7 +29,10 @@ struct ActiveWorkoutView: View {
                                 Text(exercise.name)
                                     .font(.headline)
                                 
-                                // Afficher l'objectif
+                                // Afficher les paramètres de l'exercice
+                                ActiveExerciseParametersView(exercise: exercise)
+                                
+                                // Afficher l'objectif de temps
                                 if let targetTime = dataService.goals[exercise.name], targetTime > 0 {
                                     Text("Objectif: \(targetTime.formatted)")
                                         .font(.caption)
@@ -141,6 +144,47 @@ struct ActiveWorkoutView: View {
             // Démarrer automatiquement le timer si un workout est actif
             if dataService.activeWorkout != nil && !viewModel.isTimerRunning {
                 viewModel.startExerciseTimer()
+            }
+        }
+    }
+}
+
+// MARK: - Active Exercise Parameters View
+struct ActiveExerciseParametersView: View {
+    let exercise: WatchExercise
+    
+    var body: some View {
+        if exercise.targetDistance != nil || exercise.targetRepetitions != nil {
+            HStack(spacing: 8) {
+                if let distance = exercise.targetDistance, distance > 0 {
+                    HStack(spacing: 2) {
+                        Image(systemName: "ruler")
+                            .font(.system(size: 12))
+                            .foregroundColor(.blue)
+                        Text("\(Int(distance))m")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.blue)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.blue.opacity(0.2))
+                    .clipShape(Capsule())
+                }
+                
+                if let reps = exercise.targetRepetitions, reps > 0 {
+                    HStack(spacing: 2) {
+                        Image(systemName: "repeat")
+                            .font(.system(size: 12))
+                            .foregroundColor(.green)
+                        Text("\(reps) reps")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.green)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.green.opacity(0.2))
+                    .clipShape(Capsule())
+                }
             }
         }
     }

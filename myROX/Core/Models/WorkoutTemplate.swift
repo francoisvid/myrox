@@ -6,8 +6,10 @@ final class WorkoutTemplate {
     var id: UUID
     var name: String
     var createdAt: Date
-    var exerciseNames: [String] = []
     var rounds: Int = 1
+    
+    @Relationship(deleteRule: .cascade)
+    var exercises: [TemplateExercise] = []
     
     init(name: String, rounds: Int = 1) {
         self.id = UUID()
