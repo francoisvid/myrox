@@ -347,14 +347,10 @@ struct IndividualExerciseView: View {
     }
     
     var body: some View {
-        HStack {
-            // Indicateur visuel
-            Circle()
-                .fill(Color.yellow)
-                .frame(width: 6, height: 6)
-            
+        HStack(alignment: .top, spacing: 12) {
+            // Colonne principale (nom + status)
             VStack(alignment: .leading, spacing: 2) {
-                // Nom de l'exercice avec paramètres
+                // Nom de l'exercice avec paramètres et icône record
                 HStack(spacing: 4) {
                     if isNewRecord {
                         Image(systemName: "trophy.fill")
@@ -371,41 +367,42 @@ struct IndividualExerciseView: View {
                         .foregroundColor(.gray)
                 }
                 
-                // Round et temps
-                HStack {
-                    if shouldShowRound {
-                        Text("Round \(exercise.round)")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    } else {
-                        Text("Réalisé")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                    
-                    Spacer()
-                    
-                    Text(exercise.duration.formatted)
-                        .font(.subheadline.bold())
-                        .foregroundColor(exercise.duration == personalBest?.duration ? .yellow : Color(.label))
+                // Status (Round ou Réalisé)
+                if shouldShowRound {
+                    Text("Round \(exercise.round)")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                } else {
+                    Text("Réalisé")
+                        .font(.caption)
+                        .foregroundColor(.gray)
                 }
             }
             
             Spacer()
             
-            // Record personnel à droite
-            if let best = personalBest {
-                VStack(alignment: .trailing, spacing: 1) {
-                    Text("Record")
-                        .font(.caption2)
-                        .foregroundColor(.gray)
-                    Text(best.duration.formatted)
-                        .font(.caption.bold())
-                        .foregroundColor(.yellow)
+            // Colonne temps (alignée à droite)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(exercise.duration.formatted)
+                    .font(.subheadline.bold())
+                    .foregroundColor(exercise.duration == personalBest?.duration ? .yellow : Color(.label))
+                
+                // Record personnel en dessous
+                if let best = personalBest {
+                    HStack(spacing: 4) {
+                        Image(systemName: "trophy.fill")
+                            .font(.caption2)
+                            .foregroundColor(.yellow)
+                        
+                        Text(best.duration.formatted)
+                            .font(.caption.bold())
+                            .foregroundColor(.yellow)
+                    }
                 }
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
     }
 }
 
