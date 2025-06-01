@@ -4,10 +4,12 @@
 <dict>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
-		<string>facebook-stories</string>
+		<string>instagram</string>
 		<string>instagram-stories</string>
+		<string>facebook-stories</string>
 	</array>
-	<key>UIBackgroundModes</key>
-	<array/>
+	
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>myROX souhaite sauvegarder vos cartes d'entraînement dans Photos pour les partager sur les réseaux sociaux.</string>
 </dict>
 </plist>

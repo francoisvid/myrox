@@ -167,6 +167,11 @@ class WatchConnectivityService: NSObject, ObservableObject {
         // Créer un nouveau workout depuis les données Watch
         let workout = Workout()
         
+        // Récupérer le nom du template si disponible
+        if let templateName = workoutData["templateName"] as? String {
+            workout.templateName = templateName
+        }
+        
         if let exercises = workoutData["exercises"] as? [[String: Any]] {
             for exerciseData in exercises {
                 let exercise = WorkoutExercise(
@@ -175,6 +180,7 @@ class WatchConnectivityService: NSObject, ObservableObject {
                 exercise.duration = exerciseData["duration"] as? TimeInterval ?? 0
                 exercise.distance = exerciseData["distance"] as? Double ?? 0
                 exercise.repetitions = exerciseData["repetitions"] as? Int ?? 0
+                exercise.completedAt = Date() // Marquer comme complété
                 
                 // Ajouter les données de fréquence cardiaque si disponibles
                 if let heartRateData = exerciseData["heartRate"] as? [[String: Any]] {
@@ -207,10 +213,23 @@ class WatchConnectivityService: NSObject, ObservableObject {
         modelContext.insert(workout)
         try? modelContext.save()
         
+        // 🔔 NOUVEAU : Déclencher des notifications pour la séance terminée depuis la Watch
+        Task { @MainActor in
+            print("🏋️ Séance terminée depuis la Watch - Envoi de notification")
+            
+            // Notification spécifique pour les séances Watch
+            await NotificationService.shared.scheduleWorkoutCompletionFromWatchNotification(for: workout)
+            
+            // Vérifier et notifier les nouveaux records personnels
+            // TODO: Calculer les records depuis la Watch plus tard
+            
+            print("📱⌚ Notification de fin de séance depuis Watch programmée")
+        }
+        
         // Notifier l'app
         NotificationCenter.default.post(
             name: Notification.Name("WorkoutCompletedFromWatch"),
-            object: nil
+            object: workout // Passer le workout comme objet
         )
     }
 }

@@ -23,6 +23,7 @@ struct WorkoutListView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
+            .background(Color.adaptiveGradient)
             .navigationBarTitleDisplayMode(.large)
             .navigationTitle("Entraînements")
             .toolbar {
@@ -86,6 +87,7 @@ struct WorkoutListView: View {
                 Text("Créer un entraînement")
                     .primaryButtonStyle()
             }
+            .padding()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.top, 100)
@@ -130,7 +132,7 @@ struct WorkoutListView: View {
                 Button {
                     viewModel?.cleanupLegacyTemplates()
                 } label: {
-                    Label("Nettoyer les anciens templates", systemImage: "broom")
+                    Label("Nettoyer les anciens templates", systemImage: "arrow.clockwise.circle")
                 }
                 
                 Divider()

@@ -2,11 +2,11 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
-    @State private var selectedTab = 0
+    @StateObject private var navigationService = NotificationNavigationService.shared
     
     var body: some View {
         if authViewModel.isLoggedIn {
-            TabView(selection: $selectedTab) {
+            TabView(selection: $navigationService.selectedTab) {
                 DashboardView()
                     .tabItem {
                         Label("Dashboard", systemImage: "chart.line.uptrend.xyaxis")
@@ -32,6 +32,17 @@ struct ContentView: View {
                     .tag(3)
             }
             .tint(.yellow)
+            .sheet(isPresented: $navigationService.shouldShowWorkoutCompletion) {
+                // Modale de récapitulatif déclenchée par notification
+                if let workout = navigationService.workoutToShow {
+                    WorkoutCompletionView(
+                        workout: workout,
+                        onComplete: {
+                            navigationService.resetNavigationState()
+                        }
+                    )
+                }
+            }
         } else {
             LoginView()
         }

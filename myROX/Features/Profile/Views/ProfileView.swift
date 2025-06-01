@@ -43,7 +43,7 @@ struct ProfileView: View {
             .background(Color.adaptiveGradient)
             .navigationTitle("Profil")
             .navigationBarTitleDisplayMode(.large)
-            .preferredColorScheme(viewModel.isDarkModeEnabled ? .dark : .light)
+            .preferredColorScheme(viewModel.followSystemTheme ? nil : (viewModel.isDarkModeEnabled ? .dark : .light))
             .onAppear {
                 viewModel.refreshUserInfo()
             }
@@ -220,12 +220,22 @@ struct SettingsView: View {
                 .pickerStyle(SegmentedPickerStyle())
             }
             
-            // Mode sombre
-            Toggle("Mode sombre", isOn: $viewModel.isDarkModeEnabled)
-                .toggleStyle(SwitchToggleStyle(tint: .yellow))
-                .onChange(of: viewModel.isDarkModeEnabled) { _ in
-                    viewModel.toggleDarkMode()
+            // Thème d'apparence
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Thème")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                
+                Picker("Thème", selection: Binding(
+                    get: { viewModel.themeSelection },
+                    set: { viewModel.themeSelection = $0 }
+                )) {
+                    Text("Auto").tag(0)
+                    Text("Clair").tag(1)
+                    Text("Sombre").tag(2)
                 }
+                .pickerStyle(SegmentedPickerStyle())
+            }
             
             // Valeurs par défaut des exercices
             Button {
@@ -242,6 +252,105 @@ struct SettingsView: View {
                 Label("Réinitialiser le catalogue d'exercices", systemImage: "arrow.clockwise")
                     .foregroundColor(.yellow)
             }
+            
+            // Test des notifications (en mode développement)
+            #if DEBUG
+            Button {
+                Task {
+                    let workoutViewModel = WorkoutViewModel(modelContext: ModelContainer.shared.mainContext)
+                    workoutViewModel.testNotifications()
+                }
+            } label: {
+                Label("Tester les notifications", systemImage: "bell")
+                    .foregroundColor(.orange)
+            }
+            
+            Button {
+                Task {
+                    let workoutViewModel = WorkoutViewModel(modelContext: ModelContainer.shared.mainContext)
+                    workoutViewModel.testWatchNotification()
+                }
+            } label: {
+                Label("Tester notification Apple Watch", systemImage: "applewatch")
+                    .foregroundColor(.blue)
+            }
+            
+            Button {
+                Task {
+                    // Créer un workout de test et déclencher l'ouverture de modale
+                    let testWorkout = Workout()
+                    testWorkout.templateName = "Test Modal Notification"
+                    testWorkout.totalDuration = 1500
+                    testWorkout.completedAt = Date()
+                    
+                    let exercise = WorkoutExercise(exerciseName: "Test Exercise", round: 1, order: 0)
+                    exercise.duration = 300
+                    exercise.distance = 1000
+                    exercise.completedAt = Date()
+                    testWorkout.performances.append(exercise)
+                    
+                    ModelContainer.shared.mainContext.insert(testWorkout)
+                    try? ModelContainer.shared.mainContext.save()
+                    
+                    NotificationNavigationService.shared.testNotificationTap(with: testWorkout)
+                }
+            } label: {
+                Label("Tester ouverture modale", systemImage: "rectangle.on.rectangle")
+                    .foregroundColor(.green)
+            }
+            
+            Button {
+                Task {
+                    // Créer un workout de test et tester le partage directement
+                    let testWorkout = Workout()
+                    testWorkout.templateName = "Test Partage"
+                    testWorkout.totalDuration = 1200
+                    testWorkout.completedAt = Date()
+                    
+                    let exercise = WorkoutExercise(exerciseName: "Test Partage Exercise", round: 1, order: 0)
+                    exercise.duration = 240
+                    exercise.distance = 500
+                    exercise.completedAt = Date()
+                    testWorkout.performances.append(exercise)
+                    
+                    // Tester l'ancien système de partage
+                    WorkoutSharingService.shared.shareWorkout(testWorkout)
+                }
+            } label: {
+                Label("Tester partage ancien système", systemImage: "square.and.arrow.up")
+                    .foregroundColor(.purple)
+            }
+            
+            Button {
+                Task {
+                    // Créer un workout de test pour Instagram
+                    let testWorkout = Workout()
+                    testWorkout.templateName = "Séance HYROX Intense 🔥"
+                    testWorkout.totalDuration = 2400 // 40 minutes
+                    testWorkout.totalDistance = 3000 // 3km
+                    testWorkout.completedAt = Date()
+                    
+                    let exercise1 = WorkoutExercise(exerciseName: "SkiErg", round: 1, order: 0)
+                    exercise1.duration = 180
+                    exercise1.distance = 1000
+                    exercise1.completedAt = Date()
+                    exercise1.isPersonalRecord = true
+                    
+                    let exercise2 = WorkoutExercise(exerciseName: "Burpees Broad Jump", round: 1, order: 1)
+                    exercise2.duration = 300
+                    exercise2.repetitions = 80
+                    exercise2.completedAt = Date()
+                    
+                    testWorkout.performances = [exercise1, exercise2]
+                    
+                    // Tester le partage Instagram
+                    WorkoutSharingService.shared.shareToInstagramStories(testWorkout)
+                }
+            } label: {
+                Label("Tester partage Instagram", systemImage: "camera.fill")
+                    .foregroundColor(.pink)
+            }
+            #endif
         }
         .padding()
         .background(Color(.systemGray6))
