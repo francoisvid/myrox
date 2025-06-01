@@ -172,10 +172,13 @@ class WatchConnectivityService: NSObject, ObservableObject {
             workout.templateName = templateName
         }
         
+        // Récupérer les exercices
         if let exercises = workoutData["exercises"] as? [[String: Any]] {
             for exerciseData in exercises {
                 let exercise = WorkoutExercise(
-                    exerciseName: exerciseData["name"] as? String ?? ""
+                    exerciseName: exerciseData["name"] as? String ?? "",
+                    round: exerciseData["round"] as? Int ?? 1,
+                    order: exerciseData["order"] as? Int ?? 0
                 )
                 exercise.duration = exerciseData["duration"] as? TimeInterval ?? 0
                 exercise.distance = exerciseData["distance"] as? Double ?? 0

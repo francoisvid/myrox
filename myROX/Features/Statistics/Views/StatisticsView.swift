@@ -19,6 +19,9 @@ struct StatisticsView: View {
                     if viewModel.workouts.isEmpty {
                         emptyStateView
                     } else {
+                        // Sélecteur de mode d'affichage
+                        viewModeSelector
+                        
                         // Sélecteur de période
                         periodSelector
                         
@@ -85,6 +88,45 @@ struct StatisticsView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 80)
+    }
+    
+    private var viewModeSelector: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Mode d'affichage")
+                .font(.subheadline.bold())
+                .foregroundColor(Color(.label))
+            
+            HStack(spacing: 8) {
+                ForEach(StatisticsViewMode.allCases, id: \.self) { mode in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            viewModel.selectedViewMode = mode
+                        }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(mode.displayName)
+                                .font(.subheadline.bold())
+                                .foregroundColor(viewModel.selectedViewMode == mode ? .black : .gray)
+                            
+                            Text(mode.description)
+                                .font(.caption)
+                                .foregroundColor(viewModel.selectedViewMode == mode ? .black.opacity(0.7) : .gray)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            viewModel.selectedViewMode == mode ? Color.yellow : Color.clear
+                        )
+                        .cornerRadius(8)
+                    }
+                }
+                
+                Spacer()
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
     }
     
     private var periodSelector: some View {
@@ -195,15 +237,30 @@ struct StatisticsView: View {
     
     private var exerciseHistorySection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Historique par exercice")
-                .font(.title3.bold())
-                .foregroundColor(Color(.label))
+            HStack {
+                Text("Historique par exercice")
+                    .font(.title3.bold())
+                    .foregroundColor(Color(.label))
+                
+                Spacer()
+                
+                if viewModel.selectedViewMode == .detailed {
+                    Label("Variantes séparées", systemImage: "list.bullet.indent")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                } else {
+                    Label("Vue groupée", systemImage: "list.bullet")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                }
+            }
             
-            ForEach(viewModel.uniqueExerciseNames, id: \.self) { exerciseName in
-                ExerciseHistoryCard(
-                    exerciseName: exerciseName,
-                    history: viewModel.exerciseHistory(for: exerciseName),
-                    personalBest: viewModel.personalBests[exerciseName],
+            ForEach(viewModel.uniqueExerciseKeys, id: \.self) { exerciseKey in
+                EnhancedExerciseHistoryCard(
+                    exerciseKey: exerciseKey,
+                    history: viewModel.exerciseHistory(for: exerciseKey),
+                    personalBest: viewModel.personalBest(for: exerciseKey),
+                    viewMode: viewModel.selectedViewMode,
                     onDelete: { exercise in
                         if let workout = viewModel.workouts.first(where: {
                             $0.performances.contains(where: { $0.id == exercise.id })
@@ -231,35 +288,112 @@ struct StatisticsView: View {
     }
 }
 
-// MARK: - Exercise History Card
+// MARK: - Enhanced Exercise History Card
 
-struct ExerciseHistoryCard: View {
-    let exerciseName: String
+struct EnhancedExerciseHistoryCard: View {
+    let exerciseKey: String
     let history: [(WorkoutExercise, Date)]
     let personalBest: WorkoutExercise?
+    let viewMode: StatisticsViewMode
     let onDelete: (WorkoutExercise) -> Void
     
     @State private var showDeleteAlert = false
     @State private var exerciseToDelete: WorkoutExercise?
     
+    private var displayName: String {
+        if let firstExercise = history.first?.0 {
+            return viewMode == .detailed ? firstExercise.displayName : firstExercise.exerciseName
+        }
+        return exerciseKey
+    }
+    
+    private var exerciseParameters: (distance: Double?, repetitions: Int?) {
+        guard let firstExercise = history.first?.0 else { return (nil, nil) }
+        return (
+            firstExercise.distance > 0 ? firstExercise.distance : nil,
+            firstExercise.repetitions > 0 ? firstExercise.repetitions : nil
+        )
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header
+            // Header with exercise info
             HStack {
-                Text(exerciseName)
-                    .font(.headline)
-                    .foregroundColor(Color(.label))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(displayName)
+                        .font(.headline)
+                        .foregroundColor(Color(.label))
+                    
+                    if viewMode == .detailed {
+                        HStack(spacing: 8) {
+                            if let distance = exerciseParameters.distance {
+                                Label("\(Int(distance))m", systemImage: "ruler")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                            
+                            if let reps = exerciseParameters.repetitions {
+                                Label("\(reps) reps", systemImage: "repeat")
+                                    .font(.caption)
+                                    .foregroundColor(.green)
+                            }
+                            
+                            if exerciseParameters.distance == nil && exerciseParameters.repetitions == nil {
+                                Label("Temps seulement", systemImage: "clock")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                    }
+                }
                 
                 Spacer()
                 
                 if let best = personalBest {
-                    Label(best.duration.formatted, systemImage: "trophy.fill")
-                        .font(.caption.bold())
-                        .foregroundColor(.yellow)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.yellow.opacity(0.2))
-                        .cornerRadius(6)
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Label("Record", systemImage: "trophy.fill")
+                            .font(.caption.bold())
+                            .foregroundColor(.yellow)
+                        Text(best.duration.formatted)
+                            .font(.subheadline.bold())
+                            .foregroundColor(.yellow)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.yellow.opacity(0.2))
+                    .cornerRadius(6)
+                }
+            }
+            
+            // Statistics summary
+            if history.count > 1 {
+                HStack(spacing: 16) {
+                    StatsSummaryItem(
+                        title: "Séances",
+                        value: "\(history.count)",
+                        icon: "chart.bar.fill",
+                        color: .blue
+                    )
+                    
+                    if let avgTime = averageTime {
+                        StatsSummaryItem(
+                            title: "Temps moyen",
+                            value: avgTime.formatted,
+                            icon: "clock.fill",
+                            color: .green
+                        )
+                    }
+                    
+                    if let improvement = improvement {
+                        StatsSummaryItem(
+                            title: improvement.isImprovement ? "Amélioration" : "Dégradation",
+                            value: improvement.value.formatted,
+                            icon: improvement.isImprovement ? "arrow.down" : "arrow.up",
+                            color: improvement.isImprovement ? .green : .red
+                        )
+                    }
+                    
+                    Spacer()
                 }
             }
             
@@ -324,6 +458,46 @@ struct ExerciseHistoryCard: View {
             }
         } message: {
             Text("La suppression de cet exercice supprimera toute la séance associée.")
+        }
+    }
+    
+    private var averageTime: TimeInterval? {
+        guard !history.isEmpty else { return nil }
+        let total = history.reduce(0) { $0 + $1.0.duration }
+        return total / Double(history.count)
+    }
+    
+    private var improvement: (value: TimeInterval, isImprovement: Bool)? {
+        guard history.count >= 2 else { return nil }
+        let latest = history[0].0.duration
+        let previous = history[1].0.duration
+        let diff = latest - previous
+        return (abs(diff), diff < 0)
+    }
+}
+
+// MARK: - Stats Summary Item
+
+struct StatsSummaryItem: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundColor(color)
+            
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+                Text(value)
+                    .font(.caption.bold())
+                    .foregroundColor(Color(.label))
+            }
         }
     }
 }
