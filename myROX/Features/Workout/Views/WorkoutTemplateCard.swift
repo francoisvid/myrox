@@ -104,7 +104,7 @@ struct WorkoutTemplateCard: View {
                     }
                 }
             }
-            .frame(minHeight: 120, alignment: .top)
+            .frame(minHeight: 145, alignment: .top)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .background(Color(.systemGray5).opacity(0.6))

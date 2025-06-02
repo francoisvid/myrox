@@ -82,6 +82,8 @@ class WatchDataService: NSObject, ObservableObject {
                     "duration": exercise.duration,
                     "distance": exercise.distance,
                     "repetitions": exercise.repetitions,
+                    "round": exercise.round,
+                    "order": exercise.order,
                     "heartRate": exercise.heartRatePoints.map { point in
                         ["value": point.value, "timestamp": point.timestamp.timeIntervalSince1970]
                     }
@@ -272,7 +274,16 @@ class WatchDataService: NSObject, ObservableObject {
             "templateName": workout.templateName,
             "startedAt": workout.startedAt.timeIntervalSince1970,
             "totalDuration": workout.totalDuration,
-            "exercises": workout.exercises.map { ["name": $0.name, "duration": $0.duration] }
+            "exercises": workout.exercises.map { 
+                [
+                    "name": $0.name, 
+                    "duration": $0.duration,
+                    "round": $0.round,
+                    "order": $0.order,
+                    "distance": $0.distance,
+                    "repetitions": $0.repetitions
+                ] 
+            }
         ]
         
         savedWorkouts.append(workoutData)

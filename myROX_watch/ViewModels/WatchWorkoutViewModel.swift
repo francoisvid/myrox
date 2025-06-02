@@ -78,6 +78,17 @@ class WatchWorkoutViewModel: ObservableObject {
             updatedWorkout.exercises[index].duration = self.exerciseTimer
             updatedWorkout.exercises[index].isCompleted = true
             
+            // 🔧 NOUVEAU : Copier les valeurs cibles dans les valeurs réelles
+            if let targetDistance = currentExercise.targetDistance {
+                updatedWorkout.exercises[index].distance = targetDistance
+                print("✅ Distance copiée: \(targetDistance)m pour \(currentExercise.name)")
+            }
+            
+            if let targetRepetitions = currentExercise.targetRepetitions {
+                updatedWorkout.exercises[index].repetitions = targetRepetitions
+                print("✅ Répétitions copiées: \(targetRepetitions) pour \(currentExercise.name)")
+            }
+            
             // Mettre à jour le workout dans le service
             WatchDataService.shared.activeWorkout = updatedWorkout
         }
@@ -167,6 +178,10 @@ class WatchWorkoutViewModel: ObservableObject {
                 if let startTime = self.workoutStartTime {
                     workout.totalDuration = Date().timeIntervalSince(startTime)
                     print("Temps total du workout: \(workout.totalDuration) secondes")
+                    
+                    // 🔧 NOUVEAU : Calculer la distance totale
+                    workout.totalDistance = workout.exercises.reduce(0) { $0 + $1.distance }
+                    print("✅ Distance totale calculée: \(workout.totalDistance)m")
                     
                     // Mettre à jour le workout dans le service
                     WatchDataService.shared.activeWorkout = workout
