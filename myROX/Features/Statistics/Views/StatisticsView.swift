@@ -106,27 +106,40 @@ struct StatisticsView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(mode.displayName)
                                 .font(.subheadline.bold())
-                                .foregroundColor(viewModel.selectedViewMode == mode ? .black : .gray)
+                                .foregroundColor(isSelected(mode) ? .primary : .secondary)
                             
                             Text(mode.description)
                                 .font(.caption)
-                                .foregroundColor(viewModel.selectedViewMode == mode ? .black.opacity(0.7) : .gray)
+                                .foregroundColor(isSelected(mode) ? .primary.opacity(0.8) : .secondary)
+                                .multilineTextAlignment(.leading)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
                         .background(
-                            viewModel.selectedViewMode == mode ? Color.yellow : Color.clear
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(isSelected(mode) ? Color.accentColor.opacity(0.15) : Color.clear)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(isSelected(mode) ? Color.accentColor : Color.clear, lineWidth: 1.5)
+                                )
                         )
-                        .cornerRadius(8)
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
-                
-                Spacer()
             }
         }
         .padding()
         .background(Color(.systemGray6))
-        .cornerRadius(12)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+//        .overlay(
+//            RoundedRectangle(cornerRadius: 12)
+//                .stroke(Color(.separator), lineWidth: 0.5)
+//        )
+    }
+
+    private func isSelected(_ mode: StatisticsViewMode) -> Bool {
+        viewModel.selectedViewMode == mode
     }
     
     private var periodSelector: some View {

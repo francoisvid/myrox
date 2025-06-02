@@ -7,7 +7,7 @@
 		<key>MyROX.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>1</integer>
+			<integer>0</integer>
 		</dict>
 		<key>MyROX_watch Watch App (Notification).xcscheme_^#shared#^_</key>
 		<dict>
@@ -17,7 +17,12 @@
 		<key>MyROX_watch Watch App.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>0</integer>
+			<integer>1</integer>
+		</dict>
+		<key>Promises (Playground).xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>2</integer>
 		</dict>
 		<key>myROX.xcscheme_^#shared#^_</key>
 		<dict>
@@ -33,6 +38,39 @@
 		<dict>
 			<key>orderHint</key>
 			<integer>1</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>A77F82092DE246A90028CE89</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>A77F82182DE246AB0028CE89</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>A77F82222DE246AB0028CE89</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>A77F82A92DE248CF0028CE89</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>A77F82B52DE248D00028CE89</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>A77F82BF2DE248D00028CE89</key>
+		<dict>
+			<key>primary</key>
+			<true/>
 		</dict>
 	</dict>
 </dict>

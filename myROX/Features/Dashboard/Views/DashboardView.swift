@@ -30,14 +30,8 @@ struct DashboardView: View {
                 viewModel.loadData()
             }
             .onAppear {
-                // 🔍 DEBUG : S'assurer que les stats sont chargées
-                print("🔍 DEBUG - Dashboard onAppear")
-                print("   Nombre de workouts chargés: \(statsViewModel.workouts.count)")
-                print("   Nombre de records personnels: \(statsViewModel.personalBests.count)")
-                
                 // Forcer le rechargement des stats si nécessaire
                 if statsViewModel.personalBests.isEmpty && !statsViewModel.workouts.isEmpty {
-                    print("⚠️ DEBUG - Forçage du rechargement des stats...")
                     statsViewModel.loadWorkouts()
                 }
             }
@@ -184,17 +178,7 @@ struct LastWorkoutCard: View {
     
     private func getBestForExercise(_ exercise: WorkoutExercise, from statsViewModel: StatisticsViewModel) -> WorkoutExercise? {
         let key = exercise.statisticsKey
-        let best = statsViewModel.personalBests[key]
-        
-        // 🔍 DEBUG : Afficher les informations de debug
-        print("🔍 DEBUG - Dashboard getBestForExercise:")
-        print("   Exercice: \(exercise.exerciseName)")
-        print("   Clé statistiques: \(key)")
-        print("   Record trouvé: \(best?.duration.formatted ?? "aucun")")
-        print("   Nombre total de records: \(statsViewModel.personalBests.count)")
-        print("   Clés disponibles: \(Array(statsViewModel.personalBests.keys).sorted())")
-        
-        return best
+        return statsViewModel.personalBests[key]
     }
     
     private func isNewRecord(_ exercise: WorkoutExercise, personalBest: WorkoutExercise?) -> Bool {
