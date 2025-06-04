@@ -1,7 +1,7 @@
 async function userRoutes(fastify, options) {
 
   // GET /users/firebase/:firebaseUID - Profil utilisateur
-  fastify.get('/firebase/:firebaseUID', {
+  fastify.get('/users/firebase/:firebaseUID', {
     schema: {
       description: 'Récupérer le profil utilisateur par Firebase UID',
       tags: ['Users'],
@@ -38,7 +38,7 @@ async function userRoutes(fastify, options) {
     const { firebaseUID } = request.params
     
     // Vérifier que l'utilisateur demande son propre profil
-    if (request.user.firebaseUID !== firebaseUID) {
+    if (!request.user || request.user.firebaseUID !== firebaseUID) {
       reply.code(403).send({
         success: false,
         error: 'Accès interdit - Vous ne pouvez consulter que votre propre profil'
@@ -46,36 +46,56 @@ async function userRoutes(fastify, options) {
       return
     }
     
-    fastify.log.info(`🔍 Recherche user: ${firebaseUID}`)
-    
-    // TODO: Requête base de données
-    // Pour l'instant, mock response basée sur l'UID
-    
-    // Simuler user not found pour test
-    if (firebaseUID === 'user-not-found') {
-      reply.code(404).send({
-        success: false,
-        error: 'Utilisateur non trouvé'
+    try {
+      fastify.log.info(`🔍 Recherche user: ${firebaseUID}`)
+      
+      const user = await fastify.prisma.user.findUnique({
+        where: { firebaseUID },
+        include: {
+          coach: {
+            select: {
+              id: true,
+              displayName: true,
+              specialization: true
+            }
+          }
+        }
       })
-      return
-    }
-    
-    // Simuler user avec coach
-    const hasCoach = firebaseUID.includes('coached')
-    
-    return {
-      id: "550e8400-e29b-41d4-a716-446655440000",
-      firebaseUID: firebaseUID,
-      email: request.user.email || "athlete@myrox.app",
-      displayName: "Athlète Test",
-      coachId: hasCoach ? "coach-uuid-123" : null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      
+      if (!user) {
+        reply.code(404).send({
+          success: false,
+          error: 'Utilisateur non trouvé'
+        })
+        return
+      }
+      
+      return {
+        id: user.id,
+        firebaseUID: user.firebaseUID,
+        email: user.email,
+        displayName: user.displayName,
+        coachId: user.coachId,
+        coach: user.coach,
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString()
+      }
+      
+    } catch (error) {
+      fastify.log.error('Erreur lors de la récupération utilisateur:', {
+        message: error.message,
+        stack: error.stack,
+        firebaseUID
+      })
+      reply.code(500).send({
+        success: false,
+        error: 'Erreur interne du serveur'
+      })
     }
   })
 
   // POST /users - Créer nouvel utilisateur
-  fastify.post('/', {
+  fastify.post('/users', {
     schema: {
       description: 'Créer un nouveau profil utilisateur',
       tags: ['Users'],
@@ -115,25 +135,53 @@ async function userRoutes(fastify, options) {
       return
     }
     
-    fastify.log.info(`✨ Création user: ${userData.firebaseUID}`)
-    
-    // TODO: Vérifier si l'utilisateur existe déjà
-    // TODO: Sauvegarder en base de données
-    
-    reply.code(201)
-    return {
-      id: "new-user-" + Date.now(),
-      firebaseUID: userData.firebaseUID,
-      email: userData.email || request.user.email,
-      displayName: userData.displayName || "Nouvel Athlète",
-      coachId: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    try {
+      fastify.log.info(`✨ Création user: ${userData.firebaseUID}`)
+      
+      // Vérifier si l'utilisateur existe déjà
+      const existingUser = await fastify.prisma.user.findUnique({
+        where: { firebaseUID: userData.firebaseUID }
+      })
+      
+      if (existingUser) {
+        reply.code(409).send({
+          success: false,
+          error: 'Utilisateur déjà existant'
+        })
+        return
+      }
+      
+      // Créer l'utilisateur
+      const newUser = await fastify.prisma.user.create({
+        data: {
+          firebaseUID: userData.firebaseUID,
+          email: userData.email,
+          displayName: userData.displayName
+        }
+      })
+      
+      reply.code(201)
+      return {
+        id: newUser.id,
+        firebaseUID: newUser.firebaseUID,
+        email: newUser.email,
+        displayName: newUser.displayName,
+        coachId: newUser.coachId,
+        createdAt: newUser.createdAt.toISOString(),
+        updatedAt: newUser.updatedAt.toISOString()
+      }
+      
+    } catch (error) {
+      fastify.log.error('Erreur lors de la création utilisateur:', error)
+      reply.code(500).send({
+        success: false,
+        error: 'Erreur interne du serveur'
+      })
     }
   })
 
   // PUT /users/firebase/:firebaseUID - Mettre à jour utilisateur
-  fastify.put('/firebase/:firebaseUID', {
+  fastify.put('/users/firebase/:firebaseUID', {
     schema: {
       description: 'Mettre à jour le profil utilisateur',
       tags: ['Users'],
@@ -165,23 +213,38 @@ async function userRoutes(fastify, options) {
       return
     }
     
-    fastify.log.info(`📝 Mise à jour user: ${firebaseUID}`)
-    
-    // TODO: Mettre à jour en base de données
-    
-    return {
-      id: "550e8400-e29b-41d4-a716-446655440000",
-      firebaseUID: firebaseUID,
-      email: updateData.email || request.user.email,
-      displayName: updateData.displayName || "Athlète Mis à Jour",
-      coachId: null,
-      createdAt: "2024-01-01T00:00:00.000Z",
-      updatedAt: new Date().toISOString()
+    try {
+      fastify.log.info(`📝 Mise à jour user: ${firebaseUID}`)
+      
+      const updatedUser = await fastify.prisma.user.update({
+        where: { firebaseUID },
+        data: {
+          email: updateData.email,
+          displayName: updateData.displayName
+        }
+      })
+      
+      return {
+        id: updatedUser.id,
+        firebaseUID: updatedUser.firebaseUID,
+        email: updatedUser.email,
+        displayName: updatedUser.displayName,
+        coachId: updatedUser.coachId,
+        createdAt: updatedUser.createdAt.toISOString(),
+        updatedAt: updatedUser.updatedAt.toISOString()
+      }
+      
+    } catch (error) {
+      fastify.log.error('Erreur lors de la mise à jour utilisateur:', error)
+      reply.code(500).send({
+        success: false,
+        error: 'Erreur interne du serveur'
+      })
     }
   })
 
   // GET /users/firebase/:firebaseUID/personal-templates
-  fastify.get('/firebase/:firebaseUID/personal-templates', {
+  fastify.get('/users/firebase/:firebaseUID/personal-templates', {
     schema: {
       description: 'Templates créés par l\'utilisateur',
       tags: ['Templates'],
@@ -200,14 +263,46 @@ async function userRoutes(fastify, options) {
       return
     }
     
-    fastify.log.info(`📋 Templates personnels: ${firebaseUID}`)
-    
-    // TODO: Implement - Récupérer templates depuis DB
-    return []
+    try {
+      const user = await fastify.prisma.user.findUnique({
+        where: { firebaseUID },
+        include: {
+          personalTemplates: {
+            include: {
+              exercises: {
+                include: {
+                  exercise: true
+                },
+                orderBy: {
+                  order: 'asc'
+                }
+              }
+            }
+          }
+        }
+      })
+      
+      if (!user) {
+        reply.code(404).send({ success: false, error: 'Utilisateur non trouvé' })
+        return
+      }
+      
+      return {
+        success: true,
+        data: user.personalTemplates
+      }
+      
+    } catch (error) {
+      fastify.log.error('Erreur lors de la récupération des templates:', error)
+      reply.code(500).send({
+        success: false,
+        error: 'Erreur interne du serveur'
+      })
+    }
   })
 
-  // GET /users/firebase/:firebaseUID/assigned-templates  
-  fastify.get('/firebase/:firebaseUID/assigned-templates', {
+  // GET /users/firebase/:firebaseUID/assigned-templates
+  fastify.get('/users/firebase/:firebaseUID/assigned-templates', {
     schema: {
       description: 'Templates assignés par le coach',
       tags: ['Templates'],
@@ -226,36 +321,48 @@ async function userRoutes(fastify, options) {
       return
     }
     
-    fastify.log.info(`🏃‍♂️ Templates assignés: ${firebaseUID}`)
-    
-    // TODO: Implement - Récupérer templates assignés depuis DB
-    return []
-  })
-
-  // GET /users/firebase/:firebaseUID/workouts
-  fastify.get('/firebase/:firebaseUID/workouts', {
-    schema: {
-      description: 'Historique des workouts de l\'utilisateur',
-      tags: ['Workouts'],
-      params: {
-        type: 'object',
-        properties: {
-          firebaseUID: { type: 'string' }
+    try {
+      const user = await fastify.prisma.user.findUnique({
+        where: { firebaseUID },
+        include: {
+          assignedTemplates: {
+            include: {
+              coach: {
+                select: {
+                  displayName: true,
+                  specialization: true
+                }
+              },
+              exercises: {
+                include: {
+                  exercise: true
+                },
+                orderBy: {
+                  order: 'asc'
+                }
+              }
+            }
+          }
         }
+      })
+      
+      if (!user) {
+        reply.code(404).send({ success: false, error: 'Utilisateur non trouvé' })
+        return
       }
+      
+      return {
+        success: true,
+        data: user.assignedTemplates
+      }
+      
+    } catch (error) {
+      fastify.log.error('Erreur lors de la récupération des templates assignés:', error)
+      reply.code(500).send({
+        success: false,
+        error: 'Erreur interne du serveur'
+      })
     }
-  }, async (request, reply) => {
-    const { firebaseUID } = request.params
-    
-    if (request.user.firebaseUID !== firebaseUID) {
-      reply.code(403).send({ success: false, error: 'Accès interdit' })
-      return
-    }
-    
-    fastify.log.info(`💪 Workouts: ${firebaseUID}`)
-    
-    // TODO: Implement - Récupérer workouts depuis DB
-    return []
   })
 }
 

@@ -1,0 +1,217 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// MARK: - Core Models
+
+model User {
+  id          String   @id @default(uuid())
+  firebaseUID String   @unique @map("firebase_uid")
+  email       String?
+  displayName String?  @map("display_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  coachId                String?      @map("coach_id")
+  coach                  Coach?     @relation("CoachAthletes", fields: [coachId], references: [id])
+  personalTemplates      Template[] @relation("UserTemplates")
+  assignedTemplates      Template[] @relation("AssignedTemplates")
+  workouts               Workout[]
+  personalBests          PersonalBest[]
+  coachProfile           Coach?     @relation("CoachUser")
+
+  @@map("users")
+}
+
+model Coach {
+  id                String     @id @default(uuid())
+  firebaseUID       String   @unique @map("firebase_uid")
+  displayName       String   @map("display_name")
+  email             String?
+  specialization    String?
+  bio               String?
+  profilePicture    String?  @map("profile_picture")
+  certifications    String[] // Array of certifications
+  isActive          Boolean  @default(true) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  userId            String   @unique @map("user_id") // Link to User table
+  user              User     @relation("CoachUser", fields: [userId], references: [id])
+  athletes          User[]   @relation("CoachAthletes")
+  createdTemplates  Template[] @relation("CoachTemplates")
+
+  @@map("coaches")
+}
+
+// MARK: - Workout Templates
+
+model Template {
+  id              String     @id @default(uuid())
+  name            String
+  description     String?
+  difficulty      Difficulty
+  estimatedTime   Int      @map("estimated_time") // in minutes
+  category        WorkoutCategory
+  isPersonal      Boolean  @default(true) @map("is_personal") // true = personal, false = coach created
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  creatorId       String   @map("creator_id") // User who created (for personal templates)
+  creator         User     @relation("UserTemplates", fields: [creatorId], references: [id])
+  
+  coachId         String?    @map("coach_id") // Coach who created (for coach templates)
+  coach           Coach?   @relation("CoachTemplates", fields: [coachId], references: [id])
+  
+  assignedUsers   User[]   @relation("AssignedTemplates")
+  exercises       TemplateExercise[]
+  workouts        Workout[]
+
+  @@map("templates")
+}
+
+model Exercise {
+  id              String     @id @default(uuid())
+  name            String   @unique
+  description     String?
+  category        ExerciseCategory
+  equipment       String[] // Array of required equipment
+  instructions    String?
+  videoUrl        String?  @map("video_url")
+  isHyroxExercise Boolean  @default(false) @map("is_hyrox_exercise")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  templateExercises TemplateExercise[]
+  workoutExercises  WorkoutExercise[]
+
+  @@map("exercises")
+}
+
+model TemplateExercise {
+  id              String     @id @default(uuid())
+  order           Int      // Order in the template
+  sets            Int?
+  reps            Int?
+  duration        Int?     // in seconds
+  distance        Float?   // in meters
+  weight          Float?   // in kg
+  restTime        Int?     @map("rest_time") // in seconds
+  notes           String?
+
+  // Relations
+  templateId      String     @map("template_id")
+  template        Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  exerciseId      String     @map("exercise_id")
+  exercise        Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@map("template_exercises")
+}
+
+// MARK: - Workouts & Performance
+
+model Workout {
+  id              String     @id @default(uuid())
+  name            String?
+  startedAt       DateTime @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  totalDuration   Int?     @map("total_duration") // in seconds
+  notes           String?
+  rating          Int?     // 1-5 stars
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  userId          String   @map("user_id")
+  user            User     @relation(fields: [userId], references: [id])
+  templateId      String?    @map("template_id")
+  template        Template? @relation(fields: [templateId], references: [id])
+  exercises       WorkoutExercise[]
+  personalBests   PersonalBest[]
+
+  @@map("workouts")
+}
+
+model WorkoutExercise {
+  id              String     @id @default(uuid())
+  order           Int      // Order in the workout
+  sets            Int?
+  repsCompleted   Int?     @map("reps_completed")
+  durationCompleted Int?   @map("duration_completed") // in seconds
+  distanceCompleted Float? @map("distance_completed") // in meters
+  weightUsed      Float?   @map("weight_used") // in kg
+  restTime        Int?     @map("rest_time") // in seconds
+  notes           String?
+  completedAt     DateTime? @map("completed_at")
+
+  // Relations
+  workoutId       String     @map("workout_id")
+  workout         Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exerciseId      String     @map("exercise_id")
+  exercise        Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@map("workout_exercises")
+}
+
+// MARK: - Performance Tracking
+
+model PersonalBest {
+  id              String     @id @default(uuid())
+  exerciseType    String   @map("exercise_type") // "run_1k", "burpees_100", etc.
+  value           Float    // time in seconds, reps, distance in meters, etc.
+  unit            String   // "seconds", "reps", "meters", "kg"
+  achievedAt      DateTime @map("achieved_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  userId          String   @map("user_id")
+  user            User     @relation(fields: [userId], references: [id])
+  workoutId       String?    @map("workout_id")
+  workout         Workout? @relation(fields: [workoutId], references: [id])
+
+  @@unique([userId, exerciseType])
+  @@map("personal_bests")
+}
+
+// MARK: - Enums
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum WorkoutCategory {
+  HYROX
+  STRENGTH
+  CARDIO
+  FUNCTIONAL
+  FLEXIBILITY
+  MIXED
+}
+
+enum ExerciseCategory {
+  RUNNING
+  STRENGTH
+  FUNCTIONAL
+  CARDIO
+  FLEXIBILITY
+  HYROX_STATION
+}

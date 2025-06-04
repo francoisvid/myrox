@@ -1,114 +1,135 @@
-// Charger les variables d'environnement
+const fastify = require('fastify')({ logger: true })
+const { PrismaClient } = require('@prisma/client')
+
+// Configuration des variables d'environnement
 require('dotenv').config()
+const PORT = process.env.PORT || 3000
+const NODE_ENV = process.env.NODE_ENV || 'development'
 
-const fastify = require('fastify')({
-  logger: {
-    level: 'info',
-    transport: {
-      target: 'pino-pretty',
-      options: {
-        translateTime: 'HH:MM:ss Z',
-        ignore: 'pid,hostname',
-      },
-    },
-  }
+// Initialiser Prisma
+const prisma = new PrismaClient()
+
+// Plugin pour Prisma - Rendre accessible globalement
+fastify.decorate('prisma', prisma)
+
+fastify.addHook('onClose', async () => {
+  await prisma.$disconnect()
 })
 
-// Variables d'environnement avec fallback
-const config = {
-  PORT: process.env.PORT || '3000',
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  DATABASE_URL: process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/myrox_db'
-}
-
-// Plugins de sécurité et CORS
-fastify.register(require('@fastify/helmet'))
+// Configuration CORS
 fastify.register(require('@fastify/cors'), {
-  origin: config.NODE_ENV === 'production' ? false : true,
-  credentials: true
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 })
 
-// Documentation API Swagger
+// Middleware d'authentification Firebase UID
+fastify.register(require('./src/middleware/auth'))
+
+// Documentation Swagger
 fastify.register(require('@fastify/swagger'), {
-  swagger: {
-    info: {
-      title: 'myROX API',
-      description: 'API Backend pour l\'application myROX - Fitness & HYROX Training',
-      version: '1.0.0'
+  openapi: {
+    info: { 
+      title: 'myROX API', 
+      version: '1.0.0',
+      description: 'API REST pour l\'application myROX - Fitness & HYROX'
     },
-    host: 'localhost:3000',
-    schemes: ['http'],
-    consumes: ['application/json'],
-    produces: ['application/json'],
-    tags: [
-      { name: 'Health', description: 'Health check endpoints' },
-      { name: 'Users', description: 'User management' },
-      { name: 'Coaches', description: 'Coach information' },
-      { name: 'Templates', description: 'Workout templates' },
-      { name: 'Workouts', description: 'Workout tracking' }
-    ]
+    servers: [{ url: 'http://localhost:3000' }],
+    components: {
+      securitySchemes: {
+        FirebaseUID: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'x-firebase-uid'
+        }
+      }
+    }
   }
 })
 
 fastify.register(require('@fastify/swagger-ui'), {
   routePrefix: '/docs',
   uiConfig: {
-    docExpansion: 'full',
+    docExpansion: 'list',
     deepLinking: false
-  },
-  uiHooks: {
-    onRequest: function (request, reply, next) { next() },
-    preHandler: function (request, reply, next) { next() }
-  },
-  staticCSP: true,
-  transformStaticCSP: (header) => header
+  }
 })
-
-// Middleware d'authentification Firebase UID
-fastify.register(require('./src/middleware/auth'))
 
 // Routes
 fastify.register(require('./src/routes/health'), { prefix: '/api/v1' })
-fastify.register(require('./src/routes/users'), { prefix: '/api/v1/users' })
-fastify.register(require('./src/routes/coaches'), { prefix: '/api/v1/coaches' })
+fastify.register(require('./src/routes/users'), { prefix: '/api/v1' })
+fastify.register(require('./src/routes/coaches'), { prefix: '/api/v1' })
 
 // Route racine
 fastify.get('/', async (request, reply) => {
   return {
-    message: '🚀 myROX API is running!',
+    message: '🚀 myROX API',
     version: '1.0.0',
+    environment: NODE_ENV,
     endpoints: {
       health: '/api/v1/health',
       docs: '/docs',
-      users: '/api/v1/users',
-      coaches: '/api/v1/coaches'
+      swagger: '/docs/json'
     }
   }
 })
 
-// Démarrage du serveur
+// Gestionnaire d'erreur global
+fastify.setErrorHandler(async (error, request, reply) => {
+  const statusCode = error.statusCode || 500
+  
+  fastify.log.error({
+    error: error.message,
+    stack: error.stack,
+    request: {
+      method: request.method,
+      url: request.url,
+      headers: request.headers
+    }
+  })
+
+  return reply.status(statusCode).send({
+    error: true,
+    message: statusCode === 500 ? 'Internal Server Error' : error.message,
+    statusCode,
+    timestamp: new Date().toISOString()
+  })
+})
+
+// Démarrer le serveur
 const start = async () => {
   try {
+    // Test de connexion à la base de données
+    await prisma.$connect()
+    fastify.log.info('✅ Connexion à la base de données établie')
+    
+    // Démarrer le serveur
     await fastify.listen({ 
-      port: parseInt(config.PORT),
-      host: '0.0.0.0'
+      port: PORT, 
+      host: NODE_ENV === 'development' ? '0.0.0.0' : '127.0.0.1' 
     })
     
-    console.log(`🚀 myROX API running on http://localhost:${config.PORT}`)
-    console.log(`📚 Documentation: http://localhost:${config.PORT}/docs`)
-    console.log(`🏥 Health Check: http://localhost:${config.PORT}/api/v1/health`)
-    console.log(`🌍 Environment: ${config.NODE_ENV}`)
+    fastify.log.info(`🚀 myROX API démarrée sur http://localhost:${PORT}`)
+    fastify.log.info(`📖 Documentation: http://localhost:${PORT}/docs`)
     
   } catch (err) {
-    fastify.log.error(err)
+    fastify.log.error('❌ Erreur au démarrage:', err)
+    await prisma.$disconnect()
     process.exit(1)
   }
 }
 
 // Gestion propre de l'arrêt
 process.on('SIGINT', async () => {
-  console.log('\n🛑 Arrêt du serveur...')
+  fastify.log.info('🛑 Arrêt du serveur...')
   await fastify.close()
+  await prisma.$disconnect()
+  process.exit(0)
+})
+
+process.on('SIGTERM', async () => {
+  fastify.log.info('🛑 Arrêt du serveur...')
+  await fastify.close()
+  await prisma.$disconnect()
   process.exit(0)
 })
 

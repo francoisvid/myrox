@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # Base de données PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: myrox-postgres
+    environment:
+      POSTGRES_DB: myrox_db
+      POSTGRES_USER: myrox_user
+      POSTGRES_PASSWORD: myrox_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myrox_user -d myrox_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - myrox-network
+
+  # API myROX Fastify
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: myrox-api
+    environment:
+      PORT: 3000
+      NODE_ENV: development
+      DATABASE_URL: "postgresql://myrox_user:myrox_password@postgres:5432/myrox_db"
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - myrox-network
+
+  # pgAdmin pour administration (optionnel)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: myrox-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@myrox.dev
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - myrox-network
+    profiles:
+      - admin
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  myrox-network:
+    driver: bridge 

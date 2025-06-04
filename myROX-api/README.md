@@ -1,193 +1,218 @@
 # myROX API 🚀
 
-API Backend pour l'application myROX - Plateforme de fitness et d'entraînement HYROX.
+API REST pour l'application myROX - Fitness & HYROX tracker.
 
-## 🏗️ Architecture
+## 🛠️ Stack Technique
 
-- **API** : Fastify + Node.js
-- **Base de données** : PostgreSQL (avec Prisma - à implémenter)
-- **Authentification** : Firebase UID Trust (dev) / Firebase Admin SDK (prod)
-- **Documentation** : Swagger UI automatique
+- **Runtime**: Node.js 18
+- **Framework**: Fastify
+- **Base de données**: PostgreSQL 15
+- **ORM**: Prisma
+- **Authentification**: Firebase Auth
+- **Conteneurisation**: Docker & Docker Compose
 
-## 📦 Installation
+## 🚀 Démarrage Rapide avec Docker
 
-1. **Cloner et installer les dépendances**
+### Prérequis
+- Docker & Docker Compose installés
+- Git
+
+### 1. Cloner et installer
 ```bash
+git clone <repo-url>
 cd myROX-api
 npm install
 ```
 
-2. **Configuration environnement**
+### 2. Configuration
 ```bash
-# Copier le fichier d'exemple
+# Copier le fichier d'environnement
 cp .env.example .env
 
 # Éditer les variables si nécessaire
 nano .env
 ```
 
-3. **Démarrer le serveur**
+### 3. Lancer avec Docker
 ```bash
-# Mode développement avec auto-reload
-npm run dev
+# Construire et démarrer tous les services
+npm run docker:dev
 
-# Mode production
-npm start
+# Ou avec docker-compose directement
+docker-compose up --build
 ```
 
-## 🚀 Démarrage Rapide
-
+### 4. Initialiser la base de données
 ```bash
-npm run dev
+# Génerer le client Prisma
+npm run db:generate
+
+# Appliquer le schéma
+npm run db:push
+
+# Seed avec des données de test
+npm run db:seed
 ```
 
-L'API sera accessible sur :
-- **Serveur** : http://localhost:3000
-- **Documentation** : http://localhost:3000/docs
-- **Health Check** : http://localhost:3000/api/v1/health
+## 🐳 Services Docker
 
-## 📍 Endpoints Principaux
+Le `docker-compose.yml` lance 3 services :
 
-### Health & Monitoring
-- `GET /api/v1/health` - Vérification de l'état de l'API
-- `GET /api/v1/ping` - Ping simple
+### 📊 PostgreSQL (`postgres`)
+- **Port**: 5432
+- **Database**: `myrox_db`
+- **User**: `myrox_user`
+- **Password**: `myrox_password`
 
-### Gestion Utilisateurs
-- `GET /api/v1/users/firebase/{uid}` - Profil utilisateur
-- `POST /api/v1/users` - Créer un utilisateur
-- `PUT /api/v1/users/firebase/{uid}` - Mettre à jour profil
+### 🚀 API myROX (`api`) 
+- **Port**: 3000
+- **URL**: http://localhost:3000
+- **Hot Reload**: Activé avec volumes
 
-### Informations Coach (Lecture seule)
-- `GET /api/v1/coaches/{id}` - Informations publiques du coach
+### 🔧 pgAdmin (`pgadmin`) - Optionnel
+- **Port**: 8080
+- **URL**: http://localhost:8080
+- **Email**: admin@myrox.local
+- **Password**: admin123
 
-### Templates d'Entraînement
-- `GET /api/v1/users/firebase/{uid}/personal-templates` - Templates créés par l'utilisateur
-- `GET /api/v1/users/firebase/{uid}/assigned-templates` - Templates assignés par le coach
+```bash
+# Démarrer avec pgAdmin
+docker-compose --profile admin up
+```
 
-### Workouts & Statistiques
-- `GET /api/v1/users/firebase/{uid}/workouts` - Historique des entraînements
-- `GET /api/v1/users/firebase/{uid}/stats` - Statistiques personnelles
+## 📜 Scripts NPM
+
+### Docker
+```bash
+npm run docker:build    # Construire les images
+npm run docker:up       # Démarrer en arrière-plan
+npm run docker:down     # Arrêter tous les services  
+npm run docker:dev      # Développement (logs visibles)
+npm run docker:logs     # Voir les logs de l'API
+```
+
+### Base de données
+```bash
+npm run db:generate     # Générer le client Prisma
+npm run db:push         # Appliquer le schéma
+npm run db:migrate      # Créer une migration
+npm run db:seed         # Insérer des données de test
+npm run db:studio       # Interface Prisma Studio
+```
+
+### Développement
+```bash
+npm run dev            # Démarrer en mode développement
+npm start              # Démarrer en production
+npm test               # Lancer les tests
+```
+
+## 🔌 Endpoints API
+
+### Health Check
+```http
+GET /api/v1/health
+```
+
+### Utilisateurs
+```http
+GET /api/v1/users/firebase/{firebaseUID}
+POST /api/v1/users
+```
+
+### Templates
+```http
+GET /api/v1/users/firebase/{firebaseUID}/personal-templates
+GET /api/v1/users/firebase/{firebaseUID}/assigned-templates
+```
+
+### Documentation complète
+- **Swagger UI**: http://localhost:3000/docs
+- **JSON Schema**: http://localhost:3000/docs/json
+
+## 🗄️ Structure de la Base
+
+### Modèles Principaux
+- **User**: Utilisateurs (athletes)
+- **Coach**: Coachs/Entraîneurs
+- **Template**: Templates d'entraînement
+- **Exercise**: Exercices individuels
+- **Workout**: Séances d'entraînement réalisées
+- **PersonalBest**: Records personnels
+
+### Relations
+- Un Coach peut avoir plusieurs Athletes
+- Un User peut avoir des Templates personnels et assignés
+- Les Templates contiennent des Exercises
+- Les Workouts trackent les performances
+
+## 🛠️ Développement Local (sans Docker)
+
+```bash
+# Installer les dépendances
+npm install
+
+# Démarrer PostgreSQL localement
+# Modifier DATABASE_URL dans .env
+
+# Générer le client Prisma
+npm run db:generate
+
+# Appliquer le schéma
+npm run db:push
+
+# Seed
+npm run db:seed
+
+# Démarrer l'API
+npm run dev
+```
 
 ## 🔐 Authentification
 
-L'API utilise Firebase UID pour l'authentification :
+L'API utilise Firebase Auth avec le modèle "Trust UID" :
+- Les requêtes incluent le header `X-Firebase-UID`
+- L'API fait confiance à cet UID en développement
+- En production, utiliser le Firebase Admin SDK
+
+## 📝 Logs et Debug
 
 ```bash
-# Headers requis pour les routes protégées
-curl -H "x-firebase-uid: YOUR_FIREBASE_UID" \
-     -H "x-firebase-email: user@example.com" \
-     http://localhost:3000/api/v1/users/firebase/YOUR_FIREBASE_UID
+# Voir les logs en temps réel
+npm run docker:logs
+
+# Logs spécifiques
+docker-compose logs postgres
+docker-compose logs pgadmin
+
+# Exec dans un container
+docker exec -it myrox-api sh
+docker exec -it myrox-postgres psql -U myrox_user -d myrox_db
 ```
 
-### Routes Publiques (sans auth)
-- `/` - Page d'accueil
-- `/api/v1/health` - Health check
-- `/api/v1/ping` - Ping
-- `/docs` - Documentation Swagger
+## 🚀 Déploiement
 
-## 🧪 Test de l'API
-
-### 1. Health Check
+### Production
 ```bash
-curl http://localhost:3000/api/v1/health
+# Build pour production
+docker build -f Dockerfile -t myrox-api:latest .
+
+# Avec docker-compose
+NODE_ENV=production docker-compose -f docker-compose.prod.yml up -d
 ```
 
-### 2. Tester un profil utilisateur
-```bash
-curl -H "x-firebase-uid: test-user-123" \
-     -H "x-firebase-email: test@myrox.app" \
-     http://localhost:3000/api/v1/users/firebase/test-user-123
-```
-
-### 3. Créer un utilisateur
-```bash
-curl -X POST \
-     -H "Content-Type: application/json" \
-     -H "x-firebase-uid: new-user-456" \
-     -H "x-firebase-email: newuser@myrox.app" \
-     -d '{"firebaseUID":"new-user-456","email":"newuser@myrox.app","displayName":"Nouvel Athlète"}' \
-     http://localhost:3000/api/v1/users
-```
-
-### 4. Infos d'un coach
-```bash
-curl -H "x-firebase-uid: any-user" \
-     http://localhost:3000/api/v1/coaches/coach-123
-```
-
-## 📂 Structure du Projet
-
-```
-myROX-api/
-├── server.js              # Point d'entrée principal
-├── package.json           # Dépendances npm
-├── .env.example          # Variables d'environnement exemple
-├── README.md             # Cette documentation
-└── src/
-    ├── middleware/
-    │   └── auth.js        # Middleware d'authentification Firebase
-    └── routes/
-        ├── health.js      # Routes de monitoring
-        ├── users.js       # Gestion des utilisateurs
-        └── coaches.js     # Informations des coachs
-```
-
-## 🔧 Configuration
-
-### Variables d'Environnement
-
-```bash
-PORT=3000                   # Port du serveur
-NODE_ENV=development        # Environnement (development/production)
-DATABASE_URL="postgresql://user:password@localhost:5432/myrox_db"
-
-# Firebase Admin SDK (pour production)
-# FIREBASE_PROJECT_ID=your-project-id
-# FIREBASE_PRIVATE_KEY="your-private-key"
-# FIREBASE_CLIENT_EMAIL=your-client-email
-```
-
-### Mode Développement vs Production
-
-**Développement** : L'API fait confiance aux Firebase UIDs envoyés dans les headers (approche "Trust UID").
-
-**Production** : Utilisation du Firebase Admin SDK pour valider les tokens Firebase Auth.
-
-## 🚧 TODO - Prochaines Étapes
-
-1. **Base de Données**
-   - [ ] Configurer Prisma ORM
-   - [ ] Créer le schéma de base de données
-   - [ ] Remplacer les mocks par de vraies requêtes
-
-2. **Authentification Production**
-   - [ ] Intégrer Firebase Admin SDK
-   - [ ] Validation des tokens JWT Firebase
-
-3. **Endpoints Complets**
-   - [ ] CRUD complet pour templates
-   - [ ] CRUD complet pour workouts
-   - [ ] Gestion des relations coach/athlete
-
-4. **Interface Web Coach**
-   - [ ] Créer l'application web pour les coachs
-   - [ ] Dashboard coach avec analytics
-   - [ ] Gestion des athletes et assignation de templates
-
-## 📖 Documentation
-
-La documentation interactive Swagger est disponible sur `/docs` quand le serveur tourne.
+### Variables d'environnement Production
+- `DATABASE_URL`: URL PostgreSQL de production
+- `FIREBASE_PROJECT_ID`: ID du projet Firebase
+- `NODE_ENV=production`
 
 ## 🤝 Intégration iOS
 
-Cette API est conçue pour fonctionner avec l'app iOS myROX :
-- Les endpoints correspondent exactement à `APIEndpoints.swift`
-- L'authentification via Firebase UID est compatible
-- Séparation claire entre fonctionnalités athlete (iOS) et coach (Web)
+L'app iOS communique avec cette API via :
+- **APIService.swift**: Client HTTP
+- **Headers**: `X-Firebase-UID` pour l'auth
+- **Cache local**: SwiftData pour le mode offline
 
-## 📞 Support
+---
 
-Pour toute question sur l'API :
-- Consulter la documentation Swagger : `/docs`
-- Vérifier les logs du serveur en mode développement
-- Tester les endpoints avec les exemples ci-dessus 
+**Happy coding! 🏃‍♂️💪** 

@@ -2,6 +2,8 @@ const fp = require('fastify-plugin')
 
 async function authMiddleware(fastify, options) {
   fastify.addHook('preHandler', async (request, reply) => {
+    fastify.log.info(`🔍 Auth middleware - URL: ${request.url}`)
+    
     // Skip auth pour les routes publiques
     const publicRoutes = [
       '/api/v1/health',
@@ -15,11 +17,14 @@ async function authMiddleware(fastify, options) {
     )
     
     if (isPublicRoute) {
+      fastify.log.info(`⚡ Route publique, skip auth: ${request.url}`)
       return
     }
 
     const firebaseUID = request.headers['x-firebase-uid']
     const firebaseEmail = request.headers['x-firebase-email']
+
+    fastify.log.info(`🔑 Headers: UID=${firebaseUID}, Email=${firebaseEmail}`)
 
     if (!firebaseUID) {
       reply.code(401).send({
@@ -46,8 +51,10 @@ async function authMiddleware(fastify, options) {
       email: firebaseEmail
     }
 
-    fastify.log.info(`🔐 Auth: ${firebaseUID} (${firebaseEmail || 'no email'})`)
+    fastify.log.info(`🔐 Auth OK: ${firebaseUID} - User defined: ${!!request.user}`)
   })
 }
 
-module.exports = fp(authMiddleware) 
+module.exports = fp(authMiddleware, {
+  encapsulate: false
+}) 
