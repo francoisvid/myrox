@@ -233,8 +233,16 @@ class ExerciseSyncService: ObservableObject {
             
             // Notifier s'il y a de nouveaux exercices
             newExercisesCount = stats.added
-            if stats.added > 0 {
+            
+            // 🔧 NOUVEAU: Ne notifier que s'il y a vraiment de nouveaux exercices ajoutés
+            // et que ce n'est pas la première sync (sinon tous les exercices seraient "nouveaux")
+            let isFirstSync = localExercises.isEmpty
+            
+            if stats.added > 0 && !isFirstSync {
+                print("🔔 Notification pour \(stats.added) nouveaux exercices")
                 sendNotificationForNewExercises(count: stats.added)
+            } else if stats.added > 0 && isFirstSync {
+                print("📱 Première synchronisation: \(stats.added) exercices ajoutés (pas de notification)")
             }
             
             print("🎯 ExerciseSyncService: Synchronisation terminée")
