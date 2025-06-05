@@ -134,6 +134,10 @@ class WorkoutViewModel {
                 do {
                     try await workoutRepository.syncCompletedWorkout(workout)
                     print("✅ Workout synchronisé avec l'API")
+                    
+                    // 🏆 Calculer les personal bests après synchronisation du workout
+                    await calculatePersonalBests(for: workout)
+                    
                 } catch {
                     print("⚠️ Erreur synchronisation API (workout sauvé localement): \(error)")
                     // Le workout reste sauvé localement même si la sync API échoue
@@ -687,6 +691,45 @@ class WorkoutViewModel {
             
             print("📱⌚ Test notification Apple Watch envoyée")
         }
+    }
+    
+    // MARK: - Personal Best Calculation
+    
+    /// Calcule les personal bests pour un workout complété
+    private func calculatePersonalBests(for workout: Workout) async {
+        print("🏆 Calcul des personal bests pour le workout: \(workout.templateName ?? "Sans nom")")
+        
+        let personalBestRepository = PersonalBestRepository(modelContext: modelContext)
+        
+        for exercise in workout.performances {
+            // Vérifier que l'exercice est complété et a un temps valide
+            guard let completedAt = exercise.completedAt,
+                  exercise.duration > 0 else {
+                print("⏭️ Skip exercice \(exercise.exerciseName): pas complété ou temps invalide")
+                continue
+            }
+            
+            let exerciseType = exercise.personalBestExerciseType
+            print("📊 Traitement exercice: \(exerciseType) (\(exercise.duration)s)")
+            
+            do {
+                // Utiliser la méthode du repository qui gère l'update ou création + sync API
+                try await personalBestRepository.updateOrCreatePersonalBest(
+                    exerciseType: exerciseType,
+                    value: exercise.duration,
+                    unit: "seconds",
+                    achievedAt: completedAt,
+                    workoutId: workout.id
+                )
+                
+                print("✅ Personal best traité: \(exerciseType)")
+                
+            } catch {
+                print("❌ Erreur calcul personal best pour \(exerciseType): \(error)")
+            }
+        }
+        
+        print("🎯 Calcul des personal bests terminé")
     }
     
     // MARK: - Private Methods

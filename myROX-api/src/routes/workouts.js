@@ -719,6 +719,268 @@ async function workoutRoutes(fastify, options) {
       });
     }
   });
+
+  // POST /users/firebase/:firebaseUID/personal-bests - Créer un nouveau record personnel
+  fastify.post('/users/firebase/:firebaseUID/personal-bests', {
+    schema: {
+      description: 'Créer un nouveau record personnel',
+      tags: ['Personal Bests'],
+      params: {
+        type: 'object',
+        properties: {
+          firebaseUID: { type: 'string' }
+        },
+        required: ['firebaseUID']
+      },
+      body: {
+        type: 'object',
+        properties: {
+          exerciseType: { type: 'string' },
+          value: { type: 'number' },
+          unit: { type: 'string' },
+          achievedAt: { type: 'string' },
+          workoutId: { type: 'string' }
+        },
+        required: ['exerciseType', 'value', 'unit', 'achievedAt']
+      }
+    }
+  }, async (request, reply) => {
+    const { firebaseUID } = request.params;
+    const { exerciseType, value, unit, achievedAt, workoutId } = request.body;
+    
+    // Vérifier les permissions
+    if (!request.user || request.user.firebaseUID !== firebaseUID) {
+      reply.code(403).send({
+        success: false,
+        error: 'Accès interdit'
+      });
+      return;
+    }
+
+    try {
+      const user = await fastify.prisma.user.findUnique({
+        where: { firebaseUID }
+      });
+
+      if (!user) {
+        reply.code(404).send({
+          success: false,
+          error: 'Utilisateur non trouvé'
+        });
+        return;
+      }
+
+      const personalBest = await fastify.prisma.personalBest.create({
+        data: {
+          userId: user.id,
+          exerciseType,
+          value,
+          unit,
+          achievedAt: new Date(achievedAt),
+          workoutId
+        },
+        include: {
+          workout: {
+            select: {
+              id: true,
+              name: true,
+              completedAt: true
+            }
+          }
+        }
+      });
+
+      return {
+        id: personalBest.id,
+        exerciseType: personalBest.exerciseType,
+        value: personalBest.value,
+        unit: personalBest.unit,
+        achievedAt: personalBest.achievedAt.toISOString(),
+        workoutId: personalBest.workoutId,
+        workout: personalBest.workout ? {
+          id: personalBest.workout.id,
+          name: personalBest.workout.name,
+          completedAt: personalBest.workout.completedAt?.toISOString() || null
+        } : null
+      };
+
+    } catch (error) {
+      fastify.log.error('Erreur lors de la création du personal best:', error);
+      reply.code(500).send({
+        success: false,
+        error: 'Erreur interne du serveur'
+      });
+    }
+  });
+
+  // PUT /users/firebase/:firebaseUID/personal-bests/:personalBestId - Mettre à jour un record personnel
+  fastify.put('/users/firebase/:firebaseUID/personal-bests/:personalBestId', {
+    schema: {
+      description: 'Mettre à jour un record personnel',
+      tags: ['Personal Bests'],
+      params: {
+        type: 'object',
+        properties: {
+          firebaseUID: { type: 'string' },
+          personalBestId: { type: 'string' }
+        },
+        required: ['firebaseUID', 'personalBestId']
+      },
+      body: {
+        type: 'object',
+        properties: {
+          value: { type: 'number' },
+          achievedAt: { type: 'string' },
+          workoutId: { type: 'string' }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { firebaseUID, personalBestId } = request.params;
+    const { value, achievedAt, workoutId } = request.body;
+    
+    // Vérifier les permissions
+    if (!request.user || request.user.firebaseUID !== firebaseUID) {
+      reply.code(403).send({
+        success: false,
+        error: 'Accès interdit'
+      });
+      return;
+    }
+
+    try {
+      const user = await fastify.prisma.user.findUnique({
+        where: { firebaseUID }
+      });
+
+      if (!user) {
+        reply.code(404).send({
+          success: false,
+          error: 'Utilisateur non trouvé'
+        });
+        return;
+      }
+
+      // Vérifier que le record appartient à l'utilisateur
+      const existingRecord = await fastify.prisma.personalBest.findUnique({
+        where: { id: personalBestId }
+      });
+
+      if (!existingRecord || existingRecord.userId !== user.id) {
+        reply.code(404).send({
+          success: false,
+          error: 'Record personnel non trouvé'
+        });
+        return;
+      }
+
+      const updatedRecord = await fastify.prisma.personalBest.update({
+        where: { id: personalBestId },
+        data: {
+          ...(value !== undefined && { value }),
+          ...(achievedAt !== undefined && { achievedAt: new Date(achievedAt) }),
+          ...(workoutId !== undefined && { workoutId })
+        },
+        include: {
+          workout: {
+            select: {
+              id: true,
+              name: true,
+              completedAt: true
+            }
+          }
+        }
+      });
+
+      return {
+        id: updatedRecord.id,
+        exerciseType: updatedRecord.exerciseType,
+        value: updatedRecord.value,
+        unit: updatedRecord.unit,
+        achievedAt: updatedRecord.achievedAt.toISOString(),
+        workoutId: updatedRecord.workoutId,
+        workout: updatedRecord.workout ? {
+          id: updatedRecord.workout.id,
+          name: updatedRecord.workout.name,
+          completedAt: updatedRecord.workout.completedAt?.toISOString() || null
+        } : null
+      };
+
+    } catch (error) {
+      fastify.log.error('Erreur lors de la mise à jour du personal best:', error);
+      reply.code(500).send({
+        success: false,
+        error: 'Erreur interne du serveur'
+      });
+    }
+  });
+
+  // DELETE /users/firebase/:firebaseUID/personal-bests/:personalBestId - Supprimer un record personnel
+  fastify.delete('/users/firebase/:firebaseUID/personal-bests/:personalBestId', {
+    schema: {
+      description: 'Supprimer un record personnel',
+      tags: ['Personal Bests'],
+      params: {
+        type: 'object',
+        properties: {
+          firebaseUID: { type: 'string' },
+          personalBestId: { type: 'string' }
+        },
+        required: ['firebaseUID', 'personalBestId']
+      }
+    }
+  }, async (request, reply) => {
+    const { firebaseUID, personalBestId } = request.params;
+    
+    // Vérifier les permissions
+    if (!request.user || request.user.firebaseUID !== firebaseUID) {
+      reply.code(403).send({
+        success: false,
+        error: 'Accès interdit'
+      });
+      return;
+    }
+
+    try {
+      const user = await fastify.prisma.user.findUnique({
+        where: { firebaseUID }
+      });
+
+      if (!user) {
+        reply.code(404).send({
+          success: false,
+          error: 'Utilisateur non trouvé'
+        });
+        return;
+      }
+
+      // Vérifier que le record appartient à l'utilisateur
+      const existingRecord = await fastify.prisma.personalBest.findUnique({
+        where: { id: personalBestId }
+      });
+
+      if (!existingRecord || existingRecord.userId !== user.id) {
+        reply.code(404).send({
+          success: false,
+          error: 'Record personnel non trouvé'
+        });
+        return;
+      }
+
+      await fastify.prisma.personalBest.delete({
+        where: { id: personalBestId }
+      });
+
+      reply.code(204).send();
+
+    } catch (error) {
+      fastify.log.error('Erreur lors de la suppression du personal best:', error);
+      reply.code(500).send({
+        success: false,
+        error: 'Erreur interne du serveur'
+      });
+    }
+  });
 }
 
 // MARK: - Helper Functions
@@ -728,9 +990,12 @@ async function workoutRoutes(fastify, options) {
  */
 async function calculatePersonalBests(prisma, userId, workoutId, exercises) {
   try {
+    console.log(`🏆 Calcul des personal bests pour le workout ${workoutId} avec ${exercises.length} exercices`);
+    
     for (const exercise of exercises) {
-      if (!exercise.completedAt || !exercise.durationCompleted) {
-        continue; // Skip non-completed exercises
+      if (!exercise.completedAt || !exercise.durationCompleted || exercise.durationCompleted <= 0) {
+        console.log(`⏭️ Skip exercice ${exercise.id}: pas de temps valide`);
+        continue; // Skip non-completed exercises ou temps invalide
       }
 
       // Récupérer l'exercice pour avoir son nom
@@ -739,22 +1004,15 @@ async function calculatePersonalBests(prisma, userId, workoutId, exercises) {
         include: { exercise: true }
       });
 
-      if (!workoutExercise) continue;
+      if (!workoutExercise) {
+        console.log(`❌ WorkoutExercise ${exercise.id} introuvable`);
+        continue;
+      }
 
-      // Générer la clé du type d'exercice (similaire à iOS)
-      let exerciseType = workoutExercise.exercise.name;
+      // Générer la clé du type d'exercice avec logique améliorée
+      const exerciseType = generateExerciseType(workoutExercise.exercise.name, exercise);
       
-      if (exercise.distanceCompleted && exercise.distanceCompleted > 0) {
-        exerciseType += `_${Math.round(exercise.distanceCompleted)}m`;
-      }
-      
-      if (exercise.repsCompleted && exercise.repsCompleted > 0) {
-        exerciseType += `_${exercise.repsCompleted}reps`;
-      }
-      
-      if (!exercise.distanceCompleted && !exercise.repsCompleted) {
-        exerciseType += '_timeOnly';
-      }
+      console.log(`📊 Traitement exercice: ${exerciseType} (${exercise.durationCompleted}s)`);
 
       // Vérifier s'il existe déjà un record pour ce type d'exercice
       const existingRecord = await prisma.personalBest.findUnique({
@@ -771,6 +1029,15 @@ async function calculatePersonalBests(prisma, userId, workoutId, exercises) {
       const shouldUpdateRecord = !existingRecord || newTime < existingRecord.value;
 
       if (shouldUpdateRecord) {
+        const recordData = {
+          userId: userId,
+          exerciseType: exerciseType,
+          value: newTime,
+          unit: 'seconds',
+          achievedAt: new Date(exercise.completedAt),
+          workoutId: workoutId
+        };
+
         await prisma.personalBest.upsert({
           where: {
             userId_exerciseType: {
@@ -778,29 +1045,48 @@ async function calculatePersonalBests(prisma, userId, workoutId, exercises) {
               exerciseType: exerciseType
             }
           },
-          update: {
-            value: newTime,
-            unit: 'seconds',
-            achievedAt: new Date(exercise.completedAt),
-            workoutId: workoutId
-          },
-          create: {
-            userId: userId,
-            exerciseType: exerciseType,
-            value: newTime,
-            unit: 'seconds',
-            achievedAt: new Date(exercise.completedAt),
-            workoutId: workoutId
-          }
+          update: recordData,
+          create: recordData
         });
 
-        console.log(`🏆 Nouveau record personnel: ${exerciseType} - ${newTime}s`);
+        const improvement = existingRecord 
+          ? `(amélioration de ${(existingRecord.value - newTime).toFixed(1)}s)`
+          : '(premier record)';
+        
+        console.log(`🎉 Nouveau record personnel: ${exerciseType} - ${newTime}s ${improvement}`);
+      } else {
+        console.log(`📈 Record existant meilleur: ${exerciseType} - actuel: ${existingRecord.value}s vs nouveau: ${newTime}s`);
       }
     }
   } catch (error) {
     console.error('Erreur lors du calcul des personal bests:', error);
     // Ne pas faire échouer le workout pour une erreur de calcul de records
   }
+}
+
+/**
+ * Génère une clé d'exercice standardisée pour les personal bests
+ * Format: exerciseName_distance_reps ou exerciseName_timeOnly
+ */
+function generateExerciseType(exerciseName, exercise) {
+  // Nettoyer le nom de l'exercice (enlever espaces, mettre en minuscules)
+  const cleanName = exerciseName.toLowerCase().replace(/\s+/g, '');
+  
+  let suffix = '';
+  
+  // Priorité: distance > reps > timeOnly
+  if (exercise.distanceCompleted && exercise.distanceCompleted > 0) {
+    // Arrondir la distance et créer la clé
+    const roundedDistance = Math.round(exercise.distanceCompleted);
+    suffix = `_${roundedDistance}m`;
+  } else if (exercise.repsCompleted && exercise.repsCompleted > 0) {
+    suffix = `_${exercise.repsCompleted}reps`;
+  } else {
+    // Exercice basé uniquement sur le temps (ex: plank, dead hang)
+    suffix = '_timeonly';
+  }
+  
+  return `${cleanName}${suffix}`;
 }
 
 module.exports = workoutRoutes; 

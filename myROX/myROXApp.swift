@@ -70,6 +70,9 @@ struct MyROXApp: App {
             let workoutRepository = WorkoutRepository(modelContext: modelContainer.mainContext)
             await WorkoutSyncService.shared.syncUnsyncedWorkouts(with: workoutRepository)
             
+            // 🏆 NOUVEAU : Synchroniser les personal bests
+            await PersonalBestSyncService.shared.syncPersonalBestsIfNeeded()
+            
             // Nettoyer automatiquement les anciens templates au démarrage
             await MainActor.run {
                 let workoutViewModel = WorkoutViewModel(modelContext: modelContainer.mainContext)

@@ -291,4 +291,20 @@ extension APIService {
     func fetchPersonalBests(firebaseUID: String) async throws -> [APIPersonalBest] {
         return try await get(.personalBests(firebaseUID: firebaseUID), responseType: [APIPersonalBest].self)
     }
+    
+    /// Création d'un record personnel
+    func createPersonalBest(firebaseUID: String, _ request: CreatePersonalBestRequest) async throws -> APIPersonalBest {
+        return try await post(.createPersonalBest(firebaseUID: firebaseUID), body: request, responseType: APIPersonalBest.self)
+    }
+    
+    /// Mise à jour d'un record personnel
+    func updatePersonalBest(firebaseUID: String, personalBestId: String, _ request: UpdatePersonalBestRequest) async throws -> APIPersonalBest {
+        return try await put(.updatePersonalBest(firebaseUID: firebaseUID, personalBestId: personalBestId), body: request, responseType: APIPersonalBest.self)
+    }
+    
+    /// Suppression d'un record personnel
+    func deletePersonalBest(firebaseUID: String, personalBestId: String) async throws {
+        struct EmptyResponse: Codable {}
+        _ = try await delete(.deletePersonalBest(firebaseUID: firebaseUID, personalBestId: personalBestId), responseType: EmptyResponse.self)
+    }
 } 

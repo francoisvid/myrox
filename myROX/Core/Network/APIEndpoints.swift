@@ -29,6 +29,9 @@ enum APIEndpoints {
     // MARK: - Stats (Firebase UID based)
     case personalStats(firebaseUID: String)
     case personalBests(firebaseUID: String)
+    case createPersonalBest(firebaseUID: String)
+    case updatePersonalBest(firebaseUID: String, personalBestId: String)
+    case deletePersonalBest(firebaseUID: String, personalBestId: String)
     
     // MARK: - Exercises (Global catalog)
     case exercises
@@ -79,6 +82,12 @@ enum APIEndpoints {
             return "/users/firebase/\(firebaseUID)/stats"
         case .personalBests(let firebaseUID):
             return "/users/firebase/\(firebaseUID)/personal-bests"
+        case .createPersonalBest(let firebaseUID):
+            return "/users/firebase/\(firebaseUID)/personal-bests"
+        case .updatePersonalBest(let firebaseUID, let personalBestId):
+            return "/users/firebase/\(firebaseUID)/personal-bests/\(personalBestId)"
+        case .deletePersonalBest(let firebaseUID, let personalBestId):
+            return "/users/firebase/\(firebaseUID)/personal-bests/\(personalBestId)"
             
         // Exercises
         case .exercises:
@@ -90,11 +99,11 @@ enum APIEndpoints {
     
     var method: HTTPMethod {
         switch self {
-        case .createUser, .createPersonalTemplate, .createWorkout:
+        case .createUser, .createPersonalTemplate, .createWorkout, .createPersonalBest:
             return .POST
-        case .updateUser, .updatePersonalTemplate, .updateWorkout:
+        case .updateUser, .updatePersonalTemplate, .updateWorkout, .updatePersonalBest:
             return .PUT
-        case .deletePersonalTemplate, .deleteWorkout:
+        case .deletePersonalTemplate, .deleteWorkout, .deletePersonalBest:
             return .DELETE
         default:
             return .GET
@@ -149,6 +158,18 @@ struct UserEndpoints {
     
     func deleteWorkout(workoutId: UUID) -> APIEndpoints {
         .deleteWorkout(firebaseUID: firebaseUID, workoutId: workoutId)
+    }
+    
+    func createPersonalBest() -> APIEndpoints {
+        .createPersonalBest(firebaseUID: firebaseUID)
+    }
+    
+    func updatePersonalBest(personalBestId: String) -> APIEndpoints {
+        .updatePersonalBest(firebaseUID: firebaseUID, personalBestId: personalBestId)
+    }
+    
+    func deletePersonalBest(personalBestId: String) -> APIEndpoints {
+        .deletePersonalBest(firebaseUID: firebaseUID, personalBestId: personalBestId)
     }
 }
 

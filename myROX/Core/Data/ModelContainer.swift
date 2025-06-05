@@ -16,7 +16,8 @@ actor ModelContainer {
             TemplateExercise.self,
             Workout.self,
             WorkoutExercise.self,
-            HeartRatePoint.self
+            HeartRatePoint.self,
+            PersonalBest.self
         ])
         
         let modelConfiguration = ModelConfiguration(

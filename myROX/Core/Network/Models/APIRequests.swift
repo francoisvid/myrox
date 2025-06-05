@@ -90,4 +90,20 @@ struct UpdateWorkoutExerciseRequest: Codable {
     let restTime: Int? // en secondes
     let notes: String?
     let completedAt: String? // ISO8601
+}
+
+// MARK: - Personal Best Requests
+
+struct CreatePersonalBestRequest: Codable {
+    let exerciseType: String
+    let value: Double
+    let unit: String
+    let achievedAt: String // ISO8601
+    let workoutId: String?
+}
+
+struct UpdatePersonalBestRequest: Codable {
+    let value: Double?
+    let achievedAt: String? // ISO8601
+    let workoutId: String?
 } 
