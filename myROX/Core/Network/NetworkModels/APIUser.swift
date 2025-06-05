@@ -93,16 +93,4 @@ struct APIResponse<T: Codable>: Codable {
     let data: T?
     let message: String?
     let error: String?
-}
-
-// MARK: - Empty Response for DELETE requests
-
-struct EmptyResponse: Codable {
-    let success: Bool
-    let message: String?
-    
-    init(success: Bool = true, message: String? = nil) {
-        self.success = success
-        self.message = message
-    }
 } 

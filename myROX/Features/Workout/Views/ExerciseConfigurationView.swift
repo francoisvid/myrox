@@ -226,7 +226,7 @@ struct ExerciseConfigurationView: View {
                         exerciseName: exercise.name,
                         targetDistance: finalDistance,
                         targetRepetitions: finalRepetitions,
-                        order: templateExercises.count
+                        order: templateExercises.count + 1
                     )
                     
                     templateExercises.append(templateExercise)
@@ -239,7 +239,7 @@ struct ExerciseConfigurationView: View {
                 exerciseName: exercise.name,
                 targetDistance: finalDistance,
                 targetRepetitions: finalRepetitions,
-                order: templateExercises.count
+                order: templateExercises.count + 1
             )
             
             templateExercises.append(templateExercise)

@@ -6,6 +6,7 @@ protocol UserRepositoryProtocol {
     func createUserProfile(_ user: APIUser) async throws -> APIUser
     func updateUserProfile(_ user: UserUpdateRequest) async throws -> APIUser
     func fetchCoach(coachId: UUID) async throws -> Coach
+    func syncCurrentUser() async throws -> APIUser
 }
 
 class UserRepository: UserRepositoryProtocol {
@@ -46,6 +47,28 @@ class UserRepository: UserRepositoryProtocol {
     func fetchCoach(coachId: UUID) async throws -> Coach {
         return try await apiService.get(.coach(id: coachId), responseType: Coach.self)
     }
+    
+    // MARK: - User Synchronization
+    
+    func syncCurrentUser() async throws -> APIUser {
+        guard let firebaseUser = Auth.auth().currentUser else {
+            throw APIError.unauthorized
+        }
+        
+        // Essayer de récupérer le profil existant
+        if let existingUser = try await fetchUserProfile(firebaseUID: firebaseUser.uid) {
+            return existingUser
+        }
+        
+        // Créer un nouveau profil
+        let newUser = APIUser(
+            firebaseUID: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName
+        )
+        
+        return try await createUserProfile(newUser)
+    }
 }
 
 // MARK: - APIUser Convenience Initializers
@@ -66,27 +89,6 @@ extension APIUser {
 // MARK: - Convenience Extensions
 
 extension UserRepository {
-    
-    // Sync current Firebase user with API
-    func syncCurrentUser() async throws -> APIUser {
-        guard let firebaseUser = Auth.auth().currentUser else {
-            throw APIError.unauthorized
-        }
-        
-        // Essayer de récupérer le profil existant
-        if let existingUser = try await fetchUserProfile(firebaseUID: firebaseUser.uid) {
-            return existingUser
-        }
-        
-        // Créer un nouveau profil
-        let newUser = APIUser(
-            firebaseUID: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName
-        )
-        
-        return try await createUserProfile(newUser)
-    }
     
     // Get current user endpoints helper
     var currentUserEndpoints: UserEndpoints? {
@@ -148,5 +150,10 @@ class MockUserRepository: UserRepositoryProtocol {
             totalWorkouts: 250,
             averageWorkoutDuration: 45 * 60 // 45 minutes
         )
+    }
+    
+    func syncCurrentUser() async throws -> APIUser {
+        if shouldFail { throw APIError.networkError(NSError(domain: "Mock", code: 0)) }
+        return mockUser ?? APIUser(firebaseUID: "mock", email: "mock@test.com", displayName: "Mock User")
     }
 } 

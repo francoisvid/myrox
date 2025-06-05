@@ -287,10 +287,11 @@ async function userRoutes(fastify, options) {
         return
       }
       
-      return {
-        success: true,
-        data: user.personalTemplates
-      }
+      return user.personalTemplates.map(template => ({
+        ...template,
+        userId: template.creatorId,
+        creatorId: undefined
+      }))
       
     } catch (error) {
       fastify.log.error('Erreur lors de la récupération des templates:', error)
@@ -351,13 +352,136 @@ async function userRoutes(fastify, options) {
         return
       }
       
-      return {
-        success: true,
-        data: user.assignedTemplates
-      }
+      return user.assignedTemplates.map(template => ({
+        ...template,
+        userId: template.creatorId,
+        creatorId: undefined
+      }))
       
     } catch (error) {
       fastify.log.error('Erreur lors de la récupération des templates assignés:', error)
+      reply.code(500).send({
+        success: false,
+        error: 'Erreur interne du serveur'
+      })
+    }
+  })
+
+  // POST /users/firebase/:firebaseUID/personal-templates - Créer un template personnel
+  fastify.post('/users/firebase/:firebaseUID/personal-templates', {
+    schema: {
+      description: 'Créer un nouveau template personnel',
+      tags: ['Templates'],
+      params: {
+        type: 'object',
+        properties: {
+          firebaseUID: { type: 'string' }
+        }
+      },
+      body: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          description: { type: 'string' },
+          rounds: { type: 'integer', minimum: 1 },
+          difficulty: { type: 'string', enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'] },
+          category: { type: 'string', enum: ['HYROX', 'FUNCTIONAL', 'STRENGTH', 'CARDIO'] },
+          estimatedTime: { type: 'integer', minimum: 1 },
+          exercises: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                exerciseId: { type: 'string' },
+                order: { type: 'integer', minimum: 1 },
+                sets: { type: 'integer' },
+                targetRepetitions: { type: 'integer' },
+                targetTime: { type: 'integer' },
+                targetDistance: { type: 'integer' },
+                weight: { type: 'number' },
+                restTime: { type: 'integer' }
+              },
+              required: ['exerciseId', 'order']
+            }
+          }
+        },
+        required: ['name', 'rounds']
+      }
+    }
+  }, async (request, reply) => {
+    const { firebaseUID } = request.params
+    const templateData = request.body
+    
+    if (request.user.firebaseUID !== firebaseUID) {
+      reply.code(403).send({ success: false, error: 'Accès interdit' })
+      return
+    }
+    
+    try {
+      fastify.log.info(`✨ Création template pour user: ${firebaseUID}`)
+      
+      // Vérifier que l'utilisateur existe
+      const user = await fastify.prisma.user.findUnique({
+        where: { firebaseUID }
+      })
+      
+      if (!user) {
+        reply.code(404).send({ success: false, error: 'Utilisateur non trouvé' })
+        return
+      }
+      
+      // Préparer les données du template
+      const templateCreateData = {
+        name: templateData.name,
+        rounds: templateData.rounds || 1,
+        description: templateData.description || null,
+        difficulty: templateData.difficulty || 'BEGINNER',
+        category: templateData.category || 'FUNCTIONAL',
+        estimatedTime: templateData.estimatedTime || 30,
+        creatorId: user.id,
+        isPersonal: true
+      }
+      
+      // Créer le template avec les exercices
+      const newTemplate = await fastify.prisma.template.create({
+        data: {
+          ...templateCreateData,
+          exercises: {
+            create: templateData.exercises?.map(exercise => ({
+              exerciseId: exercise.exerciseId,
+              order: exercise.order,
+              sets: exercise.sets,
+              reps: exercise.targetRepetitions,
+              duration: exercise.targetTime,
+              distance: exercise.targetDistance,
+              weight: exercise.weight,
+              restTime: exercise.restTime
+            })) || []
+          }
+        },
+        include: {
+          exercises: {
+            include: {
+              exercise: true
+            },
+            orderBy: {
+              order: 'asc'
+            }
+          }
+        }
+      })
+      
+      fastify.log.info(`✅ Template créé: ${newTemplate.id}`)
+      
+      reply.code(201)
+      return {
+        ...newTemplate,
+        userId: newTemplate.creatorId,
+        creatorId: undefined
+      }
+      
+    } catch (error) {
+      fastify.log.error('Erreur lors de la création du template:', error)
       reply.code(500).send({
         success: false,
         error: 'Erreur interne du serveur'

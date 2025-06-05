@@ -62,6 +62,7 @@ model Coach {
 model Template {
   id              String     @id @default(uuid())
   name            String
+  rounds          Int        @default(1) // Number of rounds for this template
   description     String?
   difficulty      Difficulty
   estimatedTime   Int      @map("estimated_time") // in minutes

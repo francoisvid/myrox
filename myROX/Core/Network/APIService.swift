@@ -193,6 +193,11 @@ extension APIService {
     func healthCheck() async throws -> HealthResponse {
         return try await get(.health, responseType: HealthResponse.self)
     }
+    
+    // Fetch exercises
+    func fetchExercises() async throws -> [APIExercise] {
+        return try await get(.exercises, responseType: [APIExercise].self)
+    }
 }
 
 // MARK: - Health Response Model

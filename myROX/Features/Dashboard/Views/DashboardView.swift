@@ -16,6 +16,19 @@ struct DashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
+                    // User Profile Section
+                    if let userProfile = viewModel.userProfile {
+                        userProfileSection(userProfile)
+                    }
+                    
+                    // Coach Info Section
+                    if let coachInfo = viewModel.coachInfo {
+                        coachInfoSection(coachInfo)
+                    }
+                    
+                    // Templates Summary
+                    templatesSummarySection
+                    
                     // Dernier entraînement
                     lastWorkoutSection
                     
@@ -27,7 +40,7 @@ struct DashboardView: View {
             .navigationTitle("Dashboard")
             .navigationBarTitleDisplayMode(.large)
             .refreshable {
-                viewModel.loadData()
+                await viewModel.refreshData()
             }
             .onAppear {
                 // Forcer le rechargement des stats si nécessaire
@@ -35,7 +48,175 @@ struct DashboardView: View {
                     statsViewModel.loadWorkouts()
                 }
             }
+            .overlay {
+                if viewModel.isLoading {
+                    ProgressView("Synchronisation...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black.opacity(0.1))
+                }
+            }
+            .alert("Erreur", isPresented: .constant(viewModel.errorMessage != nil)) {
+                Button("OK") { }
+            } message: {
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                }
+            }
         }
+    }
+    
+    // MARK: - User Profile Section
+    
+    private func userProfileSection(_ userProfile: APIUser) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Profil")
+                    .font(.title3.bold())
+                    .foregroundColor(Color(.label))
+                
+                Spacer()
+                
+                if viewModel.isCoached {
+                    Label("Coaché", systemImage: "person.2.fill")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(8)
+                }
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                if let displayName = userProfile.displayName {
+                    Text(displayName)
+                        .font(.headline)
+                        .foregroundColor(Color(.label))
+                }
+                
+                if let email = userProfile.email {
+                    Text(email)
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+                
+                Text("Membre depuis \(userProfile.createdAt)")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    // MARK: - Coach Info Section
+    
+    private func coachInfoSection(_ coach: Coach) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Votre Coach")
+                .font(.title3.bold())
+                .foregroundColor(Color(.label))
+            
+            HStack(spacing: 16) {
+                // Coach Avatar (placeholder)
+                Circle()
+                    .fill(Color.blue.opacity(0.2))
+                    .frame(width: 50, height: 50)
+                    .overlay {
+                        Text(coachInitial(from: coach.displayName))
+                            .font(.title2.bold())
+                            .foregroundColor(.blue)
+                    }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(coach.displayName ?? "Coach")
+                        .font(.headline)
+                        .foregroundColor(Color(.label))
+                    
+                    if let specialization = coach.specialization {
+                        Text("Spécialité: \(specialization)")
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                    }
+                    
+                    HStack(spacing: 16) {
+                        Label("\(coach.athleteCount)", systemImage: "person.2")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        
+                        Label("\(coach.totalWorkouts)", systemImage: "dumbbell")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                }
+                
+                Spacer()
+            }
+            
+            if let bio = coach.bio, !bio.isEmpty {
+                Text(bio)
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                    .lineLimit(3)
+            }
+        }
+        .padding()
+        .background(Color.blue.opacity(0.05))
+        .cornerRadius(12)
+    }
+    
+    // Helper function for coach initial
+    private func coachInitial(from name: String?) -> String {
+        guard let name = name, let firstChar = name.first else {
+            return "C"
+        }
+        return String(firstChar).uppercased()
+    }
+    
+    // MARK: - Templates Summary Section
+    
+    private var templatesSummarySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Templates")
+                .font(.title3.bold())
+                .foregroundColor(Color(.label))
+            
+            HStack(spacing: 16) {
+                templateSummaryCard(
+                    title: "Personnels",
+                    count: viewModel.personalTemplatesCount,
+                    color: .green
+                )
+                
+                if viewModel.isCoached {
+                    templateSummaryCard(
+                        title: "Assignés",
+                        count: viewModel.assignedTemplatesCount,
+                        color: .blue
+                    )
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    private func templateSummaryCard(title: String, count: Int, color: Color) -> some View {
+        VStack(spacing: 8) {
+            Text("\(count)")
+                .font(.title.bold())
+                .foregroundColor(color)
+            
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(color.opacity(0.1))
+        .cornerRadius(8)
     }
     
     // MARK: - Sections

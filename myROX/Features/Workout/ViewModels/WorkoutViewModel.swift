@@ -12,12 +12,16 @@ class WorkoutViewModel {
     var showWorkoutCompletion = false
     var completedWorkout: Workout?
     
-    // MARK: - État Workout
+    // MARK: - État Workflow
     var activeWorkout: Workout?
     var isWorkoutActive = false
     var elapsedTime: TimeInterval = 0
     var workoutProgress: Double = 0
     var currentRound: Int = 1
+    
+    // MARK: - Loading states
+    var isCreatingTemplate = false
+    var templateCreationError: String?
     
     // MARK: - Timer
     private var timer: Timer?
@@ -25,24 +29,20 @@ class WorkoutViewModel {
     
     // MARK: - Dependencies
     private let modelContext: ModelContext
+    private let templateRepository: TemplateRepositoryProtocol
     
     // MARK: - Templates
     var templates: [WorkoutTemplate] = []
     
-    init(modelContext: ModelContext) {
+    init(modelContext: ModelContext, templateRepository: TemplateRepositoryProtocol? = nil) {
         self.modelContext = modelContext
+        self.templateRepository = templateRepository ?? TemplateRepository(modelContext: modelContext)
         fetchTemplates()
     }
     
     // MARK: - Méthode pour charger les templates
     func fetchTemplates() {
-        do {
-            let descriptor = FetchDescriptor<WorkoutTemplate>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
-            self.templates = try modelContext.fetch(descriptor)
-        } catch {
-            print("Erreur lors du chargement des templates : \(error)")
-            self.templates = []
-        }
+        templates = templateRepository.getCachedTemplates()
     }
     
     // MARK: - Workout Actions
@@ -209,22 +209,85 @@ class WorkoutViewModel {
     
     // MARK: - Template Management
     func createTemplate(name: String, exercises: [TemplateExercise], rounds: Int = 1) {
-        // Validation des données
-        guard !name.isEmpty else {
-            print("Erreur: Le nom du template ne peut pas être vide")
-            return
+        Task {
+            await createTemplateAsync(name: name, exercises: exercises, rounds: rounds)
+        }
+    }
+    
+    private func createTemplateAsync(name: String, exercises: [TemplateExercise], rounds: Int = 1) async {
+        print("🚀 WorkoutViewModel.createTemplateAsync() appelé avec:")
+        print("   - Nom: '\(name)'")
+        print("   - Exercices: \(exercises.count)")
+        print("   - Rounds: \(rounds)")
+        
+        // Debug des exercices reçus
+        for (index, exercise) in exercises.enumerated() {
+            print("   - Exercice \(index + 1): '\(exercise.exerciseName)' (ordre: \(exercise.order))")
         }
         
-        guard !exercises.isEmpty else {
-            print("Erreur: Le template doit contenir au moins un exercice")
+        // Validation des données
+        guard !name.isEmpty else {
+            templateCreationError = "Le nom du template ne peut pas être vide"
             return
         }
         
         guard rounds > 0 else {
-            print("Erreur: Le nombre de rounds doit être supérieur à 0")
+            templateCreationError = "Le nombre de rounds doit être supérieur à 0"
             return
         }
         
+        isCreatingTemplate = true
+        templateCreationError = nil
+        
+        do {
+            print("🔄 Début chargement des exercices API...")
+            
+            // Charger les exercices API si pas encore fait
+            await ExerciseMapper.shared.loadExercises()
+            
+            print("✅ Exercices API chargés, début mapping...")
+            
+            // Mapper les exercices iOS vers les exercices API
+            let mappedExercises = ExerciseMapper.shared.mapTemplateExercises(exercises)
+            
+            print("🔄 Mapping des exercices: \(exercises.count) exercices iOS → \(mappedExercises.count) exercices API")
+            
+            // Create template via API avec les exercices mappés
+            let request = CreateTemplateRequest(
+                name: name,
+                rounds: rounds,
+                exercises: mappedExercises
+            )
+            
+            _ = try await templateRepository.createTemplate(request)
+            
+            // Sync cache and reload templates sur la main queue
+            await MainActor.run {
+                Task {
+                    try await templateRepository.syncTemplatesWithCache()
+                    fetchTemplates()
+                    
+                    // Sync with Watch
+                    WatchConnectivityService.shared.sendTemplates()
+                    
+                    print("✅ Template créé et synchronisé avec l'API: \(name) avec \(mappedExercises.count) exercices")
+                }
+            }
+            
+        } catch {
+            print("❌ Erreur lors de la création du template: \(error)")
+            templateCreationError = "Erreur lors de la création du template"
+            
+            // Fallback: Create locally only if API fails
+            await MainActor.run {
+                createTemplateLocally(name: name, exercises: exercises, rounds: rounds)
+            }
+        }
+        
+        isCreatingTemplate = false
+    }
+    
+    private func createTemplateLocally(name: String, exercises: [TemplateExercise], rounds: Int) {
         let template = WorkoutTemplate(name: name, rounds: rounds)
         
         // Ajouter les exercices au template
@@ -238,8 +301,10 @@ class WorkoutViewModel {
             try modelContext.save()
             fetchTemplates()
             WatchConnectivityService.shared.sendTemplates()
+            print("⚠️ Template créé localement uniquement: \(name)")
         } catch {
-            print("Erreur lors de la création du template : \(error)")
+            print("❌ Erreur lors de la création locale du template: \(error)")
+            templateCreationError = "Erreur lors de la création du template"
         }
     }
     
@@ -278,12 +343,12 @@ class WorkoutViewModel {
         for (index, newExercise) in exercises.enumerated() {
             // Chercher un exercice existant correspondant (même nom, même ordre)
             if let existingExercise = existingExercises.first(where: { 
-                $0.exerciseName == newExercise.exerciseName && $0.order == index 
+                $0.exerciseName == newExercise.exerciseName && $0.order == index + 1  // Ordre commence à 1
             }) {
                 // Mettre à jour l'exercice existant
                 existingExercise.targetDistance = newExercise.targetDistance
                 existingExercise.targetRepetitions = newExercise.targetRepetitions
-                existingExercise.order = index
+                existingExercise.order = index + 1  // Ordre commence à 1
                 exercisesToKeep.append(existingExercise)
                 print("Mise à jour exercice existant: \(existingExercise.exerciseName)")
             } else {
@@ -294,7 +359,7 @@ class WorkoutViewModel {
                     // Réutiliser et mettre à jour l'exercice existant
                     existingExercise.targetDistance = newExercise.targetDistance
                     existingExercise.targetRepetitions = newExercise.targetRepetitions
-                    existingExercise.order = index
+                    existingExercise.order = index + 1  // Ordre commence à 1
                     exercisesToKeep.append(existingExercise)
                     print("Réutilisation exercice existant: \(existingExercise.exerciseName)")
                 } else {
@@ -303,7 +368,7 @@ class WorkoutViewModel {
                         exerciseName: newExercise.exerciseName,
                         targetDistance: newExercise.targetDistance,
                         targetRepetitions: newExercise.targetRepetitions,
-                        order: index
+                        order: index + 1  // Ordre commence à 1
                     )
                     templateExercise.template = template
                     exercisesToAdd.append(templateExercise)

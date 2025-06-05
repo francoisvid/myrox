@@ -217,9 +217,9 @@ struct CreateTemplateView: View {
         withAnimation {
             if let index = templateExercises.firstIndex(where: { $0.id == templateExercise.id }) {
                 templateExercises.remove(at: index)
-                // Réorganiser les ordres
+                // Réorganiser les ordres (commencer à 1)
                 for i in 0..<templateExercises.count {
-                    templateExercises[i].order = i
+                    templateExercises[i].order = i + 1
                 }
             }
         }
@@ -229,9 +229,9 @@ struct CreateTemplateView: View {
         var sortedExercises = templateExercises.sorted(by: { $0.order < $1.order })
         sortedExercises.move(fromOffsets: source, toOffset: destination)
         
-        // Mettre à jour les ordres
+        // Mettre à jour les ordres (commencer à 1)
         for (index, exercise) in sortedExercises.enumerated() {
-            exercise.order = index
+            exercise.order = index + 1
         }
         
         templateExercises = sortedExercises

@@ -148,6 +148,7 @@ async function main() {
   const hyroxTemplate = await prisma.template.create({
     data: {
       name: 'Full HYROX Simulation',
+      rounds: 1,
       description: 'Complete HYROX race simulation with all 8 stations',
       difficulty: 'ADVANCED',
       estimatedTime: 90,
@@ -182,6 +183,7 @@ async function main() {
   const beginnerTemplate = await prisma.template.create({
     data: {
       name: 'Functional Fitness Intro',
+      rounds: 3,
       description: 'Perfect for beginners to functional fitness',
       difficulty: 'BEGINNER',
       estimatedTime: 30,
