@@ -30,13 +30,19 @@ class WorkoutViewModel {
     // MARK: - Dependencies
     private let modelContext: ModelContext
     private let templateRepository: TemplateRepositoryProtocol
+    private let workoutRepository: WorkoutRepositoryProtocol
     
     // MARK: - Templates
     var templates: [WorkoutTemplate] = []
     
-    init(modelContext: ModelContext, templateRepository: TemplateRepositoryProtocol? = nil) {
+    init(
+        modelContext: ModelContext, 
+        templateRepository: TemplateRepositoryProtocol? = nil,
+        workoutRepository: WorkoutRepositoryProtocol? = nil
+    ) {
         self.modelContext = modelContext
         self.templateRepository = templateRepository ?? TemplateRepository(modelContext: modelContext)
+        self.workoutRepository = workoutRepository ?? WorkoutRepository(modelContext: modelContext)
         fetchTemplates()
     }
     
@@ -118,10 +124,21 @@ class WorkoutViewModel {
         // Calculer les statistiques par round
         calculateRoundStatistics(for: workout)
         
-        // Sauvegarder
+        // Sauvegarder localement
         do {
             try modelContext.save()
             WatchConnectivityService.shared.sendWorkoutCount()
+            
+            // Synchroniser avec l'API en arrière-plan
+            Task {
+                do {
+                    try await workoutRepository.syncCompletedWorkout(workout)
+                    print("✅ Workout synchronisé avec l'API")
+                } catch {
+                    print("⚠️ Erreur synchronisation API (workout sauvé localement): \(error)")
+                    // Le workout reste sauvé localement même si la sync API échoue
+                }
+            }
             
             // Programmer la notification de fin de séance
             Task {

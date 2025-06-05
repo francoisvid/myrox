@@ -260,4 +260,35 @@ extension APIService {
     func createPersonalTemplate(firebaseUID: String, _ request: CreateTemplateRequest) async throws -> APITemplate {
         return try await post(.createPersonalTemplate(firebaseUID: firebaseUID), body: request, responseType: APITemplate.self)
     }
+    
+    // MARK: - Workout Methods
+    
+    /// Récupération des workouts d'un utilisateur
+    func fetchWorkouts(firebaseUID: String, includeIncomplete: Bool = false, limit: Int = 50, offset: Int = 0) async throws -> [APIWorkout] {
+        var endpoint = APIEndpoints.workouts(firebaseUID: firebaseUID)
+        // Note: Pour les paramètres de requête, on pourrait étendre APIEndpoints pour les gérer
+        // Pour l'instant, on utilise l'endpoint de base
+        return try await get(endpoint, responseType: [APIWorkout].self)
+    }
+    
+    /// Création d'un workout
+    func createWorkout(firebaseUID: String, _ request: CreateWorkoutRequest) async throws -> APIWorkout {
+        return try await post(.createWorkout(firebaseUID: firebaseUID), body: request, responseType: APIWorkout.self)
+    }
+    
+    /// Mise à jour d'un workout
+    func updateWorkout(firebaseUID: String, workoutId: UUID, _ request: UpdateWorkoutRequest) async throws -> APIWorkout {
+        return try await put(.updateWorkout(firebaseUID: firebaseUID, workoutId: workoutId), body: request, responseType: APIWorkout.self)
+    }
+    
+    /// Suppression d'un workout
+    func deleteWorkout(firebaseUID: String, workoutId: UUID) async throws {
+        struct EmptyResponse: Codable {}
+        _ = try await delete(.deleteWorkout(firebaseUID: firebaseUID, workoutId: workoutId), responseType: EmptyResponse.self)
+    }
+    
+    /// Récupération des records personnels
+    func fetchPersonalBests(firebaseUID: String) async throws -> [APIPersonalBest] {
+        return try await get(.personalBests(firebaseUID: firebaseUID), responseType: [APIPersonalBest].self)
+    }
 } 

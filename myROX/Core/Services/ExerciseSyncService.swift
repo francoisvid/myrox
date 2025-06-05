@@ -63,18 +63,29 @@ class ExerciseSyncService: ObservableObject {
         let descriptor = FetchDescriptor<Exercise>()
         let localExercises = (try? modelContext.fetch(descriptor)) ?? []
         
-        // Si pas d'exercices locaux, forcer la synchronisation
-        if localExercises.isEmpty {
-            print("🔄 ExerciseSyncService: Aucun exercice local - synchronisation forcée")
+        // Vérifier si c'est le premier lancement depuis le démarrage de l'app
+        let appStartSyncKey = "app_start_sync_\(Date().startOfDay.timeIntervalSince1970)"
+        let hasPerformedAppStartSync = userDefaults.bool(forKey: appStartSyncKey)
+        
+        // Si pas d'exercices locaux OU premier lancement, forcer la synchronisation
+        if localExercises.isEmpty || !hasPerformedAppStartSync {
+            if localExercises.isEmpty {
+                print("🔄 ExerciseSyncService: Aucun exercice local - synchronisation forcée")
+            } else {
+                print("🔄 ExerciseSyncService: Premier lancement du jour - synchronisation forcée pour garantir la source de vérité")
+            }
             await syncExercises(modelContext: modelContext)
+            
+            // Marquer comme sync effectuée pour ce démarrage
+            userDefaults.set(true, forKey: appStartSyncKey)
             return
         }
         
-        // Sinon, vérifier la temporisation
+        // Sinon, vérifier la temporisation habituelle
         let shouldSync = shouldPerformSync()
         
         if shouldSync {
-            print("🔄 ExerciseSyncService: Synchronisation nécessaire")
+            print("🔄 ExerciseSyncService: Synchronisation nécessaire (temporisation)")
             await syncExercises(modelContext: modelContext)
         } else {
             print("✅ ExerciseSyncService: Synchronisation pas nécessaire")
@@ -347,7 +358,13 @@ class ExerciseSyncService: ObservableObject {
     }
     
     private func createLocalExercise(from apiExercise: APIExercise) -> Exercise {
-        let exercise = Exercise(name: apiExercise.name, category: mapAPICategory(apiExercise.category))
+        // Utiliser l'ID de l'API pour préserver la correspondance
+        let exercise = Exercise(
+            id: apiExercise.uuid, 
+            name: apiExercise.name, 
+            category: mapAPICategory(apiExercise.category)
+        )
+        print("✅ ExerciseSyncService: Création exercice avec ID API: \(apiExercise.name) -> \(apiExercise.uuid)")
         return exercise
     }
     
@@ -377,4 +394,12 @@ struct SyncStats {
     var added = 0
     var updated = 0
     var deleted = 0
+}
+
+// MARK: - Date Extension
+
+extension Date {
+    var startOfDay: Date {
+        return Calendar.current.startOfDay(for: self)
+    }
 } 

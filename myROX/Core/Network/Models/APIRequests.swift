@@ -57,7 +57,7 @@ struct UpdateUserRequest: Codable {
 
 struct CreateWorkoutRequest: Codable {
     let templateId: String?
-    let name: String
+    let name: String?
     let startedAt: String // ISO8601
     let exercises: [CreateWorkoutExerciseRequest]
 }
@@ -65,9 +65,12 @@ struct CreateWorkoutRequest: Codable {
 struct CreateWorkoutExerciseRequest: Codable {
     let exerciseId: String
     let order: Int
-    let targetRepetitions: Int?
-    let targetDistance: Int?
-    let targetTime: Int?
+    let sets: Int?
+    let targetReps: Int?
+    let targetDuration: Int? // en secondes
+    let targetDistance: Double? // en mètres
+    let targetWeight: Double? // en kg
+    let restTime: Int? // en secondes
 }
 
 struct UpdateWorkoutRequest: Codable {
@@ -75,4 +78,16 @@ struct UpdateWorkoutRequest: Codable {
     let totalDuration: Int? // en secondes
     let notes: String?
     let rating: Int? // 1-5 étoiles
+    let exercises: [UpdateWorkoutExerciseRequest]?
+}
+
+struct UpdateWorkoutExerciseRequest: Codable {
+    let id: String
+    let repsCompleted: Int?
+    let durationCompleted: Int? // en secondes
+    let distanceCompleted: Double? // en mètres
+    let weightUsed: Double? // en kg
+    let restTime: Int? // en secondes
+    let notes: String?
+    let completedAt: String? // ISO8601
 } 
