@@ -14,6 +14,7 @@ protocol WorkoutRepositoryProtocol {
     func syncWorkoutsWithCache() async throws
     func getCachedWorkouts() -> [Workout]
     func getCachedWorkout(id: UUID) -> Workout?
+    func getUnsyncedWorkouts() -> [Workout]
     
     // Local Workout Management
     func saveWorkoutLocally(_ workout: Workout) throws
@@ -133,6 +134,20 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
         }
     }
     
+    func getUnsyncedWorkouts() -> [Workout] {
+        let descriptor = FetchDescriptor<Workout>(
+            predicate: #Predicate { $0.completedAt != nil && $0.isSynced == false },
+            sortBy: [SortDescriptor(\.completedAt, order: .reverse)]
+        )
+        
+        do {
+            return try modelContext.fetch(descriptor)
+        } catch {
+            print("Error fetching unsynced workouts: \(error)")
+            return []
+        }
+    }
+    
     // MARK: - Local Workout Management
     
     func saveWorkoutLocally(_ workout: Workout) throws {
@@ -198,6 +213,10 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
                 let updateRequest = convertWorkoutToUpdateRequest(workout)
                 _ = try await updateWorkout(workoutId: workout.id, updateRequest)
             }
+            
+            // ✅ Marquer le workout comme synchronisé
+            workout.isSynced = true
+            try modelContext.save()
         }
     }
     
@@ -212,6 +231,7 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
         workout.completedAt = apiWorkout.completionDate
         workout.totalDuration = TimeInterval(apiWorkout.totalDuration ?? 0)
         workout.totalDistance = apiWorkout.exercises.reduce(0.0) { $0 + ($1.distanceCompleted ?? 0) }
+        workout.isSynced = true
         
         // Convert API exercises to SwiftData WorkoutExercise
         for apiExercise in apiWorkout.exercises {
@@ -279,10 +299,14 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
             )
         }
         
+        let startedAtString = workout.startedAt.localAsUTCString // TEST: Heure locale formatée comme UTC
+        print("🕐 DEBUG: Date envoyée à l'API - startedAt: '\(startedAtString)'")
+        print("🕐 DEBUG: Date locale originale: \(workout.startedAt)")
+        
         return CreateWorkoutRequest(
             templateId: workout.templateID?.uuidString.lowercased(), // Forcer minuscules
             name: workout.templateName,
-            startedAt: ISO8601DateFormatter().string(from: workout.startedAt),
+            startedAt: startedAtString, // Utiliser le formatter API correct
             exercises: exercises
         )
     }
@@ -353,25 +377,17 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
                 weightUsed: nil,
                 restTime: nil,
                 notes: nil,
-                completedAt: exercise.completedAt?.iso8601String
+                completedAt: exercise.completedAt?.localAsUTCString // TEST: Heure locale formatée comme UTC
             )
         }
         
         return UpdateWorkoutRequest(
-            completedAt: workout.completedAt?.iso8601String,
+            completedAt: workout.completedAt?.localAsUTCString, // TEST: Heure locale formatée comme UTC
             totalDuration: workout.totalDuration > 0 ? Int(workout.totalDuration) : nil,
             notes: nil,
             rating: nil,
             exercises: exercises
         )
-    }
-}
-
-// MARK: - Date Extension for ISO8601
-
-extension Date {
-    var iso8601String: String {
-        return ISO8601DateFormatter().string(from: self)
     }
 }
 
@@ -407,7 +423,7 @@ class MockWorkoutRepository: WorkoutRepositoryProtocol {
         return mockWorkouts.first ?? APIWorkout(
             id: workoutId.uuidString,
             name: "Mock Workout",
-            startedAt: Date().iso8601String,
+            startedAt: Date().utcString, // TEST: Forcer UTC
             completedAt: request.completedAt,
             totalDuration: request.totalDuration,
             notes: request.notes,
@@ -437,6 +453,10 @@ class MockWorkoutRepository: WorkoutRepositoryProtocol {
     
     func getCachedWorkout(id: UUID) -> Workout? {
         return nil
+    }
+    
+    func getUnsyncedWorkouts() -> [Workout] {
+        return []
     }
     
     func saveWorkoutLocally(_ workout: Workout) throws {

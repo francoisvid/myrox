@@ -107,11 +107,45 @@ extension ISO8601DateFormatter {
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter
     }()
+    
+    static let utcFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        formatter.timeZone = TimeZone(secondsFromGMT: 0) // Force UTC
+        return formatter
+    }()
+    
+    static let localAsUTCFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        // Utilise le timezone local mais formate comme UTC
+        return formatter
+    }()
 }
 
 extension Date {
     var apiString: String {
         return ISO8601DateFormatter.apiFormatter.string(from: self)
+    }
+    
+    var utcString: String {
+        return ISO8601DateFormatter.utcFormatter.string(from: self)
+    }
+    
+    var localAsUTCString: String {
+        // Prendre les composants de date locale et les formater comme UTC
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second, .nanosecond], from: self)
+        
+        // Créer une date UTC avec ces composants
+        var utcCalendar = Calendar.current
+        utcCalendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        
+        guard let utcDate = utcCalendar.date(from: components) else {
+            return utcString // Fallback
+        }
+        
+        return ISO8601DateFormatter.utcFormatter.string(from: utcDate)
     }
     
     static func fromAPIString(_ string: String) -> Date? {

@@ -66,6 +66,10 @@ struct MyROXApp: App {
             // Puis synchroniser avec l'API si possible
             await exerciseSyncService.syncExercisesIfNeeded(modelContext: modelContainer.mainContext)
             
+            // 🚀 NOUVEAU : Synchroniser les workouts non synchronisés au démarrage
+            let workoutRepository = WorkoutRepository(modelContext: modelContainer.mainContext)
+            await WorkoutSyncService.shared.syncUnsyncedWorkouts(with: workoutRepository)
+            
             // Nettoyer automatiquement les anciens templates au démarrage
             await MainActor.run {
                 let workoutViewModel = WorkoutViewModel(modelContext: modelContainer.mainContext)

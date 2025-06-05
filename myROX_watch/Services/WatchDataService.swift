@@ -126,9 +126,52 @@ class WatchDataService: NSObject, ObservableObject {
         print("Démarrage de la session de workout pour le template: \(template.name)")
         
         // Vérifier si un workout est déjà actif
-        if activeWorkout != nil {
-            print("Un workout est déjà actif, on ne crée pas de nouvelle session")
-            return
+        if let existingWorkout = activeWorkout {
+            print("Un workout est déjà actif: \(existingWorkout.templateName)")
+            
+            // Si c'est le même template, ne pas créer de nouveau workout mais permettre la navigation
+            if existingWorkout.templateName == template.name {
+                print("Même template déjà actif, autorisation de continuer")
+                return
+            }
+            
+            // Si c'est un template différent, remplacer le workout actuel
+            print("Template différent, remplacement du workout actuel")
+            endWorkoutSession()
+        }
+        
+        // 🔧 CRÉER LE WORKOUT IMMÉDIATEMENT (synchrone) pour que la navigation fonctionne
+        var exercises: [WatchExercise] = []
+        let rounds = template.rounds
+        let templateExercises = template.templateExercises
+        
+        for round in 1...rounds {
+            let roundExercises = templateExercises.map { templateExercise in
+                WatchExercise(
+                    name: templateExercise.name,
+                    round: round,
+                    order: templateExercise.order,
+                    targetDistance: templateExercise.targetDistance,
+                    targetRepetitions: templateExercise.targetRepetitions
+                )
+            }
+            exercises.append(contentsOf: roundExercises)
+        }
+        
+        // Créer le workout IMMÉDIATEMENT (synchrone sur le thread principal)
+        self.activeWorkout = WatchWorkout(
+            templateId: template.id,
+            templateName: template.name,
+            startedAt: Date(),
+            exercises: exercises
+        )
+        print("Workout créé avec \(exercises.count) exercices répartis sur \(rounds) rounds")
+        for exercise in exercises {
+            let params = [
+                exercise.targetDistance.map { "\($0)m" },
+                exercise.targetRepetitions.map { "\($0) reps" }
+            ].compactMap { $0 }.joined(separator: ", ")
+            print("Round \(exercise.round) - \(exercise.name) \(params)")
         }
         
         let configuration = HKWorkoutConfiguration()
@@ -143,42 +186,6 @@ class WatchDataService: NSObject, ObservableObject {
             
             workoutSession?.delegate = self
             builder?.delegate = self
-            
-            // Créer d'abord le workout avec les exercices groupés par round
-            DispatchQueue.main.async {
-                // Créer les exercices pour chaque round en utilisant les paramètres des templates
-                var exercises: [WatchExercise] = []
-                let rounds = template.rounds
-                let templateExercises = template.templateExercises
-                
-                for round in 1...rounds {
-                    let roundExercises = templateExercises.map { templateExercise in
-                        WatchExercise(
-                            name: templateExercise.name,
-                            round: round,
-                            order: templateExercise.order,
-                            targetDistance: templateExercise.targetDistance,
-                            targetRepetitions: templateExercise.targetRepetitions
-                        )
-                    }
-                    exercises.append(contentsOf: roundExercises)
-                }
-                
-                self.activeWorkout = WatchWorkout(
-                    templateId: template.id,
-                    templateName: template.name,
-                    startedAt: Date(),
-                    exercises: exercises
-                )
-                print("Workout créé avec \(exercises.count) exercices répartis sur \(rounds) rounds")
-                for exercise in exercises {
-                    let params = [
-                        exercise.targetDistance.map { "\($0)m" },
-                        exercise.targetRepetitions.map { "\($0) reps" }
-                    ].compactMap { $0 }.joined(separator: ", ")
-                    print("Round \(exercise.round) - \(exercise.name) \(params)")
-                }
-            }
             
             // Démarrer la session HealthKit
             workoutSession?.startActivity(with: Date())

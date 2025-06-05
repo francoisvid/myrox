@@ -167,6 +167,13 @@ class WatchConnectivityService: NSObject, ObservableObject {
         // Créer un nouveau workout depuis les données Watch
         let workout = Workout()
         
+        // Récupérer le templateId si disponible  
+        if let templateIdString = workoutData["templateId"] as? String,
+           !templateIdString.isEmpty,
+           let templateId = UUID(uuidString: templateIdString) {
+            workout.templateID = templateId
+        }
+        
         // Récupérer le nom du template si disponible
         if let templateName = workoutData["templateName"] as? String {
             workout.templateName = templateName
@@ -212,9 +219,27 @@ class WatchConnectivityService: NSObject, ObservableObject {
         workout.totalDuration = workoutData["totalDuration"] as? TimeInterval ?? 0
         workout.totalDistance = workoutData["totalDistance"] as? Double ?? 0
         
+        // Récupérer la vraie heure de début si disponible
+        if let startedAtTimestamp = workoutData["startedAt"] as? TimeInterval {
+            workout.startedAt = Date(timeIntervalSince1970: startedAtTimestamp)
+        }
+        
         // Sauvegarder
         modelContext.insert(workout)
         try? modelContext.save()
+        
+        // 🚀 NOUVEAU : Synchroniser avec l'API en arrière-plan
+        Task {
+            do {
+                let workoutRepository = WorkoutRepository(modelContext: modelContext)
+                try await workoutRepository.syncCompletedWorkout(workout)
+                print("✅ Workout Watch synchronisé avec l'API")
+            } catch {
+                print("⚠️ Erreur synchronisation API workout Watch (workout sauvé localement): \(error)")
+                // Le workout reste sauvé localement même si la sync API échoue
+                // isSynced reste à false pour une prochaine tentative
+            }
+        }
         
         // 🔔 NOUVEAU : Déclencher des notifications pour la séance terminée depuis la Watch
         Task { @MainActor in

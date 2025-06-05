@@ -11,6 +11,7 @@ final class Workout {
     var completedAt: Date?
     var totalDuration: TimeInterval = 0
     var totalDistance: Double = 0
+    var isSynced: Bool = false // Flag pour tracker la synchronisation API
     
     @Relationship(deleteRule: .cascade)
     var performances: [WorkoutExercise] = []

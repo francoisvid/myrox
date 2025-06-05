@@ -111,6 +111,29 @@ class WorkoutSyncService: ObservableObject {
         }
     }
     
+    /// Synchronise uniquement les workouts non synchronisés (plus efficace)
+    func syncUnsyncedWorkouts(with repository: WorkoutRepositoryProtocol) async {
+        print("🔄 WorkoutSyncService: Synchronisation des workouts non synchronisés")
+        
+        let unsyncedWorkouts = repository.getUnsyncedWorkouts()
+        
+        if unsyncedWorkouts.isEmpty {
+            print("✅ WorkoutSyncService: Aucun workout à synchroniser")
+            return
+        }
+        
+        print("📊 WorkoutSyncService: \(unsyncedWorkouts.count) workout(s) à synchroniser")
+        
+        for workout in unsyncedWorkouts {
+            do {
+                try await repository.syncCompletedWorkout(workout)
+                print("✅ Workout synchronisé: \(workout.templateName ?? "Sans nom") (\(workout.id))")
+            } catch {
+                print("❌ Erreur sync workout \(workout.id): \(error)")
+            }
+        }
+    }
+    
     // MARK: - Private Methods
     
     private func shouldPerformSync() -> Bool {
