@@ -50,7 +50,7 @@ enum APIEndpoints {
             
         // Coach Info (Read-only)
         case .coach(let id):
-            return "/coaches/\(id.uuidString)"
+            return "/coaches/\(id.uuidString.lowercased())"
             
         // Templates
         case .personalTemplates(let firebaseUID):
@@ -60,9 +60,9 @@ enum APIEndpoints {
         case .createPersonalTemplate(let firebaseUID):
             return "/users/firebase/\(firebaseUID)/personal-templates"
         case .updatePersonalTemplate(let firebaseUID, let templateId):
-            return "/users/firebase/\(firebaseUID)/personal-templates/\(templateId.uuidString)"
+            return "/users/firebase/\(firebaseUID)/personal-templates/\(templateId.uuidString.lowercased())"
         case .deletePersonalTemplate(let firebaseUID, let templateId):
-            return "/users/firebase/\(firebaseUID)/personal-templates/\(templateId.uuidString)"
+            return "/users/firebase/\(firebaseUID)/personal-templates/\(templateId.uuidString.lowercased())"
             
         // Workouts
         case .workouts(let firebaseUID):
@@ -70,9 +70,9 @@ enum APIEndpoints {
         case .createWorkout(let firebaseUID):
             return "/users/firebase/\(firebaseUID)/workouts"
         case .updateWorkout(let firebaseUID, let workoutId):
-            return "/users/firebase/\(firebaseUID)/workouts/\(workoutId.uuidString)"
+            return "/users/firebase/\(firebaseUID)/workouts/\(workoutId.uuidString.lowercased())"
         case .deleteWorkout(let firebaseUID, let workoutId):
-            return "/users/firebase/\(firebaseUID)/workouts/\(workoutId.uuidString)"
+            return "/users/firebase/\(firebaseUID)/workouts/\(workoutId.uuidString.lowercased())"
             
         // Stats
         case .personalStats(let firebaseUID):
@@ -84,7 +84,7 @@ enum APIEndpoints {
         case .exercises:
             return "/exercises"
         case .exercise(let id):
-            return "/exercises/\(id.uuidString)"
+            return "/exercises/\(id.uuidString.lowercased())"
         }
     }
     

@@ -7,6 +7,7 @@ async function authMiddleware(fastify, options) {
     // Skip auth pour les routes publiques
     const publicRoutes = [
       '/api/v1/health',
+      '/api/v1/exercises',
       '/docs',
       '/',
       '/favicon.ico'

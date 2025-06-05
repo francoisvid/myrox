@@ -64,15 +64,27 @@ class TemplateRepository: TemplateRepositoryProtocol {
     }
     
     func deleteTemplate(id: String) async throws {
+        print("🗑️ TemplateRepository.deleteTemplate - ID reçu: '\(id)'")
+        
         guard let endpoints = APIEndpoints.forCurrentUser() else {
+            print("❌ TemplateRepository.deleteTemplate - Pas d'endpoints (utilisateur non connecté)")
             throw APIError.unauthorized
         }
         
         guard let templateUUID = UUID(uuidString: id) else {
+            print("❌ TemplateRepository.deleteTemplate - UUID invalide: '\(id)'")
             throw APIError.invalidURL
         }
         
-        try await apiService.delete(endpoints.deletePersonalTemplate(templateId: templateUUID), responseType: EmptyResponse.self)
+        print("🆔 TemplateRepository.deleteTemplate - UUID construit: \(templateUUID)")
+        print("🆔 TemplateRepository.deleteTemplate - UUID.uuidString: \(templateUUID.uuidString)")
+        print("🆔 TemplateRepository.deleteTemplate - UUID.uuidString.lowercased(): \(templateUUID.uuidString.lowercased())")
+        
+        let deleteEndpoint = endpoints.deletePersonalTemplate(templateId: templateUUID)
+        print("🌐 TemplateRepository.deleteTemplate - Endpoint path: \(deleteEndpoint.path)")
+        
+        let _: DeleteResponse = try await apiService.delete(deleteEndpoint, responseType: DeleteResponse.self)
+        print("✅ TemplateRepository.deleteTemplate - Suppression réussie")
     }
     
     // MARK: - Cache Management
@@ -83,17 +95,43 @@ class TemplateRepository: TemplateRepositoryProtocol {
         let assignedTemplates = try await fetchAssignedTemplates()
         let allAPITemplates = personalTemplates + assignedTemplates
         
-        // 2. Convert API templates to SwiftData models
-        let convertedTemplates = allAPITemplates.map { apiTemplate in
-            convertAPITemplateToSwiftData(apiTemplate)
+        // 2. Get existing cached templates
+        let existingTemplates = getCachedTemplates()
+        let existingTemplateIds = Set(existingTemplates.map { $0.id })
+        
+        // 3. Determine which templates to update/add/remove
+        let apiTemplateIds = Set(allAPITemplates.map { $0.uuid })
+        
+        // Remove templates that no longer exist in API
+        for template in existingTemplates {
+            if !apiTemplateIds.contains(template.id) {
+                modelContext.delete(template)
+            }
         }
         
-        // 3. Clear existing cache
-        clearTemplateCache()
-        
-        // 4. Save new templates to cache
-        for template in convertedTemplates {
-            modelContext.insert(template)
+        // Add or update templates from API
+        for apiTemplate in allAPITemplates {
+            if let existingTemplate = existingTemplates.first(where: { $0.id == apiTemplate.uuid }) {
+                // Update existing template
+                existingTemplate.name = apiTemplate.name
+                existingTemplate.rounds = apiTemplate.rounds
+                
+                // Update exercises
+                existingTemplate.exercises.removeAll()
+                for apiExercise in apiTemplate.exercises {
+                    let templateExercise = TemplateExercise(
+                        exerciseName: apiExercise.exercise.name,
+                        targetDistance: apiExercise.targetDistance,
+                        targetRepetitions: apiExercise.targetReps,
+                        order: apiExercise.order
+                    )
+                    existingTemplate.exercises.append(templateExercise)
+                }
+            } else {
+                // Add new template
+                let newTemplate = convertAPITemplateToSwiftData(apiTemplate)
+                modelContext.insert(newTemplate)
+            }
         }
         
         try modelContext.save()
@@ -141,7 +179,7 @@ class TemplateRepository: TemplateRepositoryProtocol {
     }
     
     private func convertAPITemplateToSwiftData(_ apiTemplate: APITemplate) -> WorkoutTemplate {
-        let template = WorkoutTemplate(name: apiTemplate.name, rounds: apiTemplate.rounds)
+        let template = WorkoutTemplate(id: apiTemplate.uuid, name: apiTemplate.name, rounds: apiTemplate.rounds)
         
         // Convert API exercises to SwiftData TemplateExercise
         for apiExercise in apiTemplate.exercises {

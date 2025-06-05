@@ -74,63 +74,27 @@ class ExerciseMapper: ObservableObject {
             return exercise.id
         }
         
-        // Mappages manuels pour les exercices avec des noms différents
-        let manualMappings: [String: String] = [
-            // Course / Running
-            "course 1km": "1km Run",
-            "run 1km": "1km Run",
-            "1km run": "1km Run",
-            "course": "1km Run",
-            "running": "1km Run",
+        // Mappages de base uniquement pour les variations d'écriture
+        let basicMappings: [String: String] = [
+            // Course / Running (base)
+            "course": "Run",
+            "running": "Run",
             
-            // Rowing
-            "rowing 1000m": "1000m Row",
-            "1000m row": "1000m Row",
-            "rowing": "1000m Row",
-            "row": "1000m Row",
+            // Rowing (base)
+            "rowing": "RowErg",
+            "row": "RowErg",
             
-            // SkiErg
-            "skierg 1000m": "1000m SkiErg",
-            "1000m skierg": "1000m SkiErg",
-            "skierg": "1000m SkiErg",
-            "ski erg": "1000m SkiErg",
+            // SkiErg (base)
+            "ski erg": "SkiErg",
             
-            // Wall Balls
-            "wall balls": "75/100 Wall Balls",
-            "wallballs": "75/100 Wall Balls",
-            "wall ball": "75/100 Wall Balls",
-            
-            // Burpees
-            "burpees broad jumps": "80m Burpee Broad Jumps",
-            "burpee broad jumps": "80m Burpee Broad Jumps",
-            "burpees": "80m Burpee Broad Jumps",
-            "burpee": "80m Burpee Broad Jumps",
-            
-            // Farmers Carry
-            "farmers carry": "200m Farmers Carry",
-            "farmer carry": "200m Farmers Carry",
-            "farmers": "200m Farmers Carry",
-            
-            // Sled
-            "sled push": "50m Sled Push",
-            "sledpush": "50m Sled Push",
-            "sled pull": "50m Sled Pull",
-            "sledpull": "50m Sled Pull",
-            "sled": "50m Sled Push", // Default to push
-            
-            // Sandbag
-            "sandbag lunges": "100m Sandbag Lunges",
-            "sandbag": "100m Sandbag Lunges",
-            "lunges": "100m Sandbag Lunges",
-            
-            // Functional exercises
+            // Exercices fonctionnels
             "air squats": "Air Squats",
             "squats": "Air Squats",
             "air squat": "Air Squats",
             "squat": "Air Squats",
             
             "pull-ups": "Pull-ups",
-            "pullups": "Pull-ups",
+            "pullups": "Pull-ups", 
             "pull up": "Pull-ups",
             "pullup": "Pull-ups",
             
@@ -140,8 +104,8 @@ class ExerciseMapper: ObservableObject {
             "pushup": "Push-ups"
         ]
         
-        // Vérifier les mappages manuels
-        if let mappedName = manualMappings[normalizedName] {
+        // Vérifier les mappages de base
+        if let mappedName = basicMappings[normalizedName] {
             return apiExercises.first(where: { $0.name == mappedName })?.id
         }
         
@@ -154,19 +118,6 @@ class ExerciseMapper: ObservableObject {
     func mapTemplateExercises(_ templateExercises: [TemplateExercise]) -> [CreateTemplateExerciseRequest] {
         print("🔄 ExerciseMapper: Début mapping de \(templateExercises.count) exercices iOS")
         print("🔄 ExerciseMapper: Exercices API disponibles : \(apiExercises.count)")
-        
-        // Debug : afficher les exercices iOS à mapper
-        for exercise in templateExercises {
-            print("📝 Exercice iOS à mapper: '\(exercise.exerciseName)' (ordre: \(exercise.order))")
-        }
-        
-        // Debug : afficher quelques exercices API disponibles
-        if apiExercises.count > 0 {
-            print("📋 Premiers exercices API disponibles:")
-            for exercise in apiExercises.prefix(5) {
-                print("   - '\(exercise.name)' (id: \(exercise.id))")
-            }
-        }
         
         let mappedExercises: [CreateTemplateExerciseRequest] = templateExercises.compactMap { templateExercise -> CreateTemplateExerciseRequest? in
             print("🔍 Tentative mapping: '\(templateExercise.exerciseName)'")

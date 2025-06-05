@@ -134,36 +134,82 @@ class DashboardViewModel: ObservableObject {
                 exercises: []
             )
             
+            // 1. D'abord créer via l'API
             _ = try await templateRepository.createTemplate(request)
+            print("✅ Template créé sur l'API: \(name)")
             
-            // Refresh local cache
+            // 2. Synchroniser le cache local
             try await templateRepository.syncTemplatesWithCache()
             loadTemplates()
             
         } catch {
+            print("❌ Erreur lors de la création du template via l'API: \(error)")
             handleError("Erreur lors de la création du template", error)
+            
+            // Fallback: créer localement seulement
+            createTemplateLocally(name: name, rounds: rounds)
         }
         
         isLoading = false
+    }
+    
+    // Méthode privée pour la création locale uniquement (fallback)
+    private func createTemplateLocally(name: String, rounds: Int) {
+        let template = WorkoutTemplate(name: name, rounds: rounds)
+        
+        modelContext.insert(template)
+        do {
+            try modelContext.save()
+            loadTemplates()
+            print("⚠️ Template créé localement uniquement: \(name)")
+        } catch {
+            print("❌ Erreur lors de la création locale du template: \(error)")
+            handleError("Erreur lors de la création du template", error)
+        }
     }
     
     func deleteTemplate(_ template: WorkoutTemplate) async {
         do {
             isLoading = true
             
-            // Convert UUID to String for API
+            // 1. First, delete from API
             let templateId = template.id.uuidString
             try await templateRepository.deleteTemplate(id: templateId)
             
-            // Remove from local cache
+            // 2. Only if API call succeeds, remove from local cache
             modelContext.delete(template)
             try modelContext.save()
             
-            // Refresh templates list
+            // 3. Refresh templates list
             loadTemplates()
             
         } catch {
             handleError("Erreur lors de la suppression du template", error)
+        }
+        
+        isLoading = false
+    }
+    
+    func updateTemplate(_ template: WorkoutTemplate, name: String? = nil, rounds: Int? = nil) async {
+        do {
+            isLoading = true
+            
+            // Prepare update request - utiliser l'initialiseur pour mise à jour basique
+            let updateRequest = UpdateTemplateRequest(
+                id: template.id.uuidString,
+                name: name,
+                rounds: rounds
+            )
+            
+            // 1. First, update via API
+            _ = try await templateRepository.updateTemplate(updateRequest)
+            
+            // 2. Only if API call succeeds, refresh from API
+            try await templateRepository.syncTemplatesWithCache()
+            loadTemplates()
+            
+        } catch {
+            handleError("Erreur lors de la mise à jour du template", error)
         }
         
         isLoading = false

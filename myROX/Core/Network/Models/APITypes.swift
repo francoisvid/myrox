@@ -62,6 +62,11 @@ struct EmptyResponse: Codable {
     // Pour les réponses vides (DELETE, etc.)
 }
 
+struct DeleteResponse: Codable {
+    let success: Bool
+    let message: String
+}
+
 struct HealthResponse: Codable {
     let status: String
     let timestamp: String

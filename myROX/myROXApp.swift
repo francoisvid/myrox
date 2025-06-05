@@ -6,6 +6,7 @@ import FirebaseCore
 struct MyROXApp: App {
     let modelContainer = ModelContainer.shared
     @StateObject private var authViewModel = AuthViewModel()
+    @StateObject private var exerciseSyncService = ExerciseSyncService.shared
     @State private var isInitialized = false
     @State private var showSplash = true
     @State private var splashStartTime: Date?
@@ -40,6 +41,7 @@ struct MyROXApp: App {
                 } else if authViewModel.isLoggedIn {
                     ContentView()
                         .environmentObject(authViewModel)
+                        .environmentObject(exerciseSyncService)
                         .background(Color.adaptiveGradient)
                         .transition(.opacity)
                 } else {
@@ -54,7 +56,15 @@ struct MyROXApp: App {
     
     private func initializeApp() async {
         do {
+            // RESET TEMPORAIRE : Nettoyer les anciens exercices avec distances
+            // À supprimer après la première utilisation
+            try await modelContainer.resetExerciseCatalog()
+            
+            // Initialiser les exercices locaux d'abord (maintenant vide)
             try await modelContainer.initializeExerciseCatalog()
+            
+            // Puis synchroniser avec l'API si possible
+            await exerciseSyncService.syncExercisesIfNeeded(modelContext: modelContainer.mainContext)
             
             // Nettoyer automatiquement les anciens templates au démarrage
             await MainActor.run {

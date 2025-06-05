@@ -103,39 +103,100 @@ struct ExerciseConfigurationView: View {
             // Section pour ajouter des paramètres si aucun n'est configuré
             if !exercise.hasDistance && !exercise.hasRepetitions && !hasCustomDistance && !hasCustomRepetitions {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Cet exercice se base uniquement sur le temps par défaut")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                    
-                    Text("Vous pouvez ajouter des paramètres personnalisés :")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                    
-                    HStack(spacing: 12) {
-                        Button {
-                            hasCustomDistance = true
-                            distance = 100 // Valeur par défaut raisonnable
-                        } label: {
-                            Label("Ajouter distance", systemImage: "ruler")
-                                .font(.caption)
+                    // Afficher les valeurs par défaut existantes s'il y en a
+                    if let effDist = effectiveDistance, effDist > 0 {
+                        HStack {
+                            Image(systemName: "ruler")
                                 .foregroundColor(.blue)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(8)
+                            Text("Distance par défaut :")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            Spacer()
+                            Text("\(Int(effDist)) m")
+                                .font(.title3.bold())
+                                .foregroundColor(.blue)
+                            
+                            Button {
+                                hasCustomDistance = true
+                                distance = effDist
+                            } label: {
+                                Image(systemName: "pencil.circle")
+                                    .foregroundColor(.blue)
+                                    .font(.title3)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    
+                    if let effReps = effectiveRepetitions, effReps > 0 {
+                        HStack {
+                            Image(systemName: "repeat")
+                                .foregroundColor(.green)
+                            Text("Répétitions par défaut :")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            Spacer()
+                            Text("\(effReps) reps")
+                                .font(.title3.bold())
+                                .foregroundColor(.green)
+                            
+                            Button {
+                                hasCustomRepetitions = true
+                                repetitions = effReps
+                            } label: {
+                                Image(systemName: "pencil.circle")
+                                    .foregroundColor(.green)
+                                    .font(.title3)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    
+                    // Message principal
+                    if effectiveDistance == nil && effectiveRepetitions == nil {
+                        Text("Cet exercice se base uniquement sur le temps par défaut")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                        
+                        Text("Vous pouvez ajouter des paramètres personnalisés :")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    } else {
+                        Text("Valeurs par défaut configurées • Tapez ✏️ pour modifier ou ajoutez d'autres paramètres :")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                    
+                    // Boutons pour ajouter des paramètres supplémentaires
+                    HStack(spacing: 12) {
+                        if effectiveDistance == nil {
+                            Button {
+                                hasCustomDistance = true
+                                distance = 100 // Valeur par défaut raisonnable
+                            } label: {
+                                Label("Ajouter distance", systemImage: "ruler")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.blue.opacity(0.1))
+                                    .cornerRadius(8)
+                            }
                         }
                         
-                        Button {
-                            hasCustomRepetitions = true
-                            repetitions = 10 // Valeur par défaut raisonnable
-                        } label: {
-                            Label("Ajouter répétitions", systemImage: "repeat")
-                                .font(.caption)
-                                .foregroundColor(.green)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.green.opacity(0.1))
-                                .cornerRadius(8)
+                        if effectiveRepetitions == nil {
+                            Button {
+                                hasCustomRepetitions = true
+                                repetitions = 10 // Valeur par défaut raisonnable
+                            } label: {
+                                Label("Ajouter répétitions", systemImage: "repeat")
+                                    .font(.caption)
+                                    .foregroundColor(.green)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.green.opacity(0.1))
+                                    .cornerRadius(8)
+                            }
                         }
                     }
                 }
@@ -208,62 +269,68 @@ struct ExerciseConfigurationView: View {
         // Sauvegarder les nouvelles valeurs comme défaut si elles ont été personnalisées
         let wasSaved = saveAsDefaults(distance: finalDistance, repetitions: finalRepetitions)
         
+        // Créer et ajouter l'exercice au template
+        let nextOrder = templateExercises.map(\.order).max().map { $0 + 1 } ?? 0
+        let templateExercise = TemplateExercise(
+            exerciseName: exercise.name,
+            targetDistance: finalDistance,
+            targetRepetitions: finalRepetitions,
+            order: nextOrder
+        )
+        
+        templateExercises.append(templateExercise)
+        
         // Afficher le message de confirmation si des valeurs ont été sauvegardées
         if wasSaved {
             withAnimation(.easeInOut(duration: 0.3)) {
                 showSavedMessage = true
             }
             
-            // Masquer le message après 2 secondes puis fermer
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            // Masquer le message après 1.5 secondes puis fermer
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     showSavedMessage = false
                 }
                 
+                // Fermer après l'animation
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    // Créer et ajouter l'exercice au template
-                    let templateExercise = TemplateExercise(
-                        exerciseName: exercise.name,
-                        targetDistance: finalDistance,
-                        targetRepetitions: finalRepetitions,
-                        order: templateExercises.count + 1
-                    )
-                    
-                    templateExercises.append(templateExercise)
                     dismiss()
                 }
             }
         } else {
-            // Pas de sauvegarde, ajouter directement
-            let templateExercise = TemplateExercise(
-                exerciseName: exercise.name,
-                targetDistance: finalDistance,
-                targetRepetitions: finalRepetitions,
-                order: templateExercises.count + 1
-            )
-            
-            templateExercises.append(templateExercise)
+            // Pas de message, fermer directement
             dismiss()
         }
     }
     
     private func saveAsDefaults(distance: Double?, repetitions: Int?) -> Bool {
-        // Ne sauvegarder que si on a ajouté des valeurs personnalisées
-        let shouldSaveDistance = hasCustomDistance && distance != nil && distance! > 0
-        let shouldSaveRepetitions = hasCustomRepetitions && repetitions != nil && repetitions! > 0
+        // Détecter si on doit sauvegarder (valeurs différentes des standards OU toggles personnalisés activés)
+        let shouldSaveDistance = (hasCustomDistance && distance != nil && distance! > 0) ||
+                                (distance != nil && distance! > 0 && distance != exercise.standardDistance)
         
+        let shouldSaveRepetitions = (hasCustomRepetitions && repetitions != nil && repetitions! > 0) ||
+                                   (repetitions != nil && repetitions! > 0 && repetitions != exercise.standardRepetitions)
+        
+        // Ne sauvegarder que si on a des changements significatifs
         if shouldSaveDistance || shouldSaveRepetitions {
             // Chercher ou créer ExerciseDefaults
             if let existingDefaults = exerciseDefaults.first(where: { $0.exerciseName == exercise.name }) {
                 // Mettre à jour les valeurs existantes
+                var hasChanges = false
+                
                 if shouldSaveDistance {
                     existingDefaults.defaultDistance = distance
+                    hasChanges = true
                 }
                 if shouldSaveRepetitions {
                     existingDefaults.defaultRepetitions = repetitions
+                    hasChanges = true
                 }
-                existingDefaults.isCustomized = true
-                existingDefaults.updatedAt = Date()
+                
+                if hasChanges {
+                    existingDefaults.isCustomized = true
+                    existingDefaults.updatedAt = Date()
+                }
                 
                 print("✅ Mise à jour valeurs par défaut pour \(exercise.name): distance=\(distance ?? 0), reps=\(repetitions ?? 0)")
             } else {

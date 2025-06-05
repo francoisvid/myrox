@@ -22,6 +22,22 @@ struct UpdateTemplateRequest: Codable {
     let name: String?
     let rounds: Int?
     let exercises: [CreateTemplateExerciseRequest]?
+    
+    // Initializer pour mise à jour avec exercices (cas le plus fréquent)
+    init(id: String, name: String, rounds: Int, exercises: [CreateTemplateExerciseRequest]) {
+        self.id = id
+        self.name = name
+        self.rounds = rounds
+        self.exercises = exercises
+    }
+    
+    // Initializer pour mise à jour basique (nom/rounds seulement)
+    init(id: String, name: String? = nil, rounds: Int? = nil) {
+        self.id = id
+        self.name = name
+        self.rounds = rounds
+        self.exercises = nil
+    }
 }
 
 // MARK: - User Requests

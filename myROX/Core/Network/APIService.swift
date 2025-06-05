@@ -25,7 +25,7 @@ class APIService {
     /// Requête avec body
     func request<T: Codable, B: Codable>(
         _ endpoint: APIEndpoints,
-        method: HTTPMethod? = nil,
+        method: HTTPMethod,
         body: B,
         responseType: T.Type
     ) async throws -> T {
@@ -35,25 +35,35 @@ class APIService {
         }
         
         var request = URLRequest(url: url)
-        request.httpMethod = (method ?? endpoint.method).rawValue
+        request.httpMethod = method.rawValue
         request.timeoutInterval = 30
         
-        // Headers communs
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // Authentification Firebase
-        if let firebaseUser = Auth.auth().currentUser {
-            request.setValue(firebaseUser.uid, forHTTPHeaderField: "x-firebase-uid")
-            
-            if let email = firebaseUser.email {
-                request.setValue(email, forHTTPHeaderField: "x-firebase-email")
-            }
+        // Headers communs - Ne pas ajouter Content-Type pour DELETE sans body
+        if method != .DELETE {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
         
-        // Encoder le body
+        // Authentification
+        if let auth = Auth.auth().currentUser {
+            request.setValue(auth.uid, forHTTPHeaderField: "x-firebase-uid")
+            request.setValue(auth.email, forHTTPHeaderField: "x-firebase-email")
+        }
+        
+        // Body
         do {
-            let encoder = JSONEncoder()
-            request.httpBody = try encoder.encode(body)
+            let bodyData = try JSONEncoder().encode(body)
+            request.httpBody = bodyData
+            
+            // Debug: afficher le JSON envoyé pour les méthodes PUT/POST
+            #if DEBUG
+            if method == .PUT || method == .POST {
+                if let bodyString = String(data: bodyData, encoding: .utf8) {
+                    print("📤 APIService - Body JSON envoyé (\(method.rawValue)):")
+                    print(bodyString)
+                }
+            }
+            #endif
+            
         } catch {
             throw APIError.encodingError(error)
         }
@@ -76,8 +86,11 @@ class APIService {
         request.httpMethod = (method ?? endpoint.method).rawValue
         request.timeoutInterval = 30
         
-        // Headers communs
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // Headers communs - Ne pas ajouter Content-Type pour DELETE sans body
+        let requestMethod = method ?? endpoint.method
+        if requestMethod != .DELETE {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
         
         // Authentification Firebase
         if let firebaseUser = Auth.auth().currentUser {
@@ -108,52 +121,67 @@ class APIService {
         #endif
         
         do {
+            print("🚀 performRequest - Début de la requête")
             let (data, response) = try await session.data(for: request)
+            print("📡 performRequest - Données reçues, taille: \(data.count) bytes")
             
             guard let httpResponse = response as? HTTPURLResponse else {
+                print("❌ performRequest - Réponse n'est pas HTTPURLResponse")
                 throw APIError.invalidResponse
             }
             
-            #if DEBUG
-            print("📥 API Response: \(httpResponse.statusCode)")
-            #endif
+            print("📥 performRequest - Code de statut HTTP: \(httpResponse.statusCode)")
             
-            // Gestion des codes d'erreur
-            switch httpResponse.statusCode {
-            case 200...299:
-                break // Succès
-            case 401:
-                throw APIError.unauthorized
-            case 403:
-                throw APIError.forbidden
-            case 404:
-                throw APIError.notFound
-            case 422:
-                throw APIError.validationError
-            case 500...599:
-                throw APIError.serverError(httpResponse.statusCode)
-            default:
-                throw APIError.httpError(httpResponse.statusCode)
-            }
-            
-            // Debug response
+            // Debug response AVANT de vérifier les codes d'erreur
             #if DEBUG
             if let responseString = String(data: data, encoding: .utf8) {
                 print("📥 Response Body: \(responseString)")
             }
             #endif
             
+            // Gestion des codes d'erreur
+            switch httpResponse.statusCode {
+            case 200...299:
+                print("✅ performRequest - Code de succès détecté: \(httpResponse.statusCode)")
+                break // Succès
+            case 401:
+                print("❌ performRequest - Erreur 401")
+                throw APIError.unauthorized
+            case 403:
+                print("❌ performRequest - Erreur 403")
+                throw APIError.forbidden
+            case 404:
+                print("❌ performRequest - Erreur 404")
+                throw APIError.notFound
+            case 422:
+                print("❌ performRequest - Erreur 422")
+                throw APIError.validationError
+            case 500...599:
+                print("❌ performRequest - Erreur serveur: \(httpResponse.statusCode)")
+                throw APIError.serverError(httpResponse.statusCode)
+            default:
+                print("❌ performRequest - Erreur HTTP inconnue: \(httpResponse.statusCode)")
+                throw APIError.httpError(httpResponse.statusCode)
+            }
+            
             // Décoder la réponse
+            print("🔄 performRequest - Début du décodage en tant que \(T.self)")
             do {
                 let decoder = JSONDecoder()
-                return try decoder.decode(T.self, from: data)
+                let result = try decoder.decode(T.self, from: data)
+                print("✅ performRequest - Décodage réussi")
+                return result
             } catch {
+                print("❌ performRequest - Erreur de décodage: \(error)")
+                print("❌ performRequest - Données reçues: \(String(data: data, encoding: .utf8) ?? "Non-UTF8")")
                 throw APIError.decodingError(error)
             }
             
         } catch let error as APIError {
+            print("❌ performRequest - APIError capturée: \(error)")
             throw error
         } catch {
+            print("❌ performRequest - Erreur réseau: \(error)")
             throw APIError.networkError(error)
         }
     }

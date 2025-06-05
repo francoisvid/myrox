@@ -181,12 +181,22 @@ struct SettingsView: View {
     @ObservedObject var viewModel: ProfileViewModel
     @Binding var showingExerciseDefaults: Bool
     @State private var showResetAlert = false
+    @EnvironmentObject var exerciseSyncService: ExerciseSyncService
+    @Environment(\.modelContext) private var modelContext
+    @State private var showAuditResults = false
+    @State private var auditResults: (onlyLocal: [String], onlyAPI: [String], common: [String]) = ([], [], [])
+    @State private var showCleanupConfirmation = false
+    @State private var cleanupResults: (deleted: Int, kept: Int) = (0, 0)
+    @State private var showCleanupResults = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Paramètres")
                 .font(.headline)
                 .foregroundColor(Color(.label))
+            
+            // Synchronisation des exercices
+            exerciseSyncSection
             
             // Monitoring cardiaque
             Toggle("Monitoring cardiaque", isOn: $viewModel.isHeartRateMonitoringEnabled)
@@ -365,6 +375,135 @@ struct SettingsView: View {
         } message: {
             Text("Cette action va réinitialiser le catalogue d'exercices. Vous devrez redémarrer l'application pour voir les changements.")
         }
+        .alert("Nettoyer les exercices", isPresented: $showCleanupConfirmation) {
+            Button("Annuler", role: .cancel) { }
+            Button("Nettoyer", role: .destructive) {
+                Task {
+                    cleanupResults = await exerciseSyncService.cleanupLocalExercises(modelContext: modelContext)
+                    showCleanupResults = true
+                }
+            }
+        } message: {
+            Text("Cette action va supprimer définitivement tous les exercices locaux qui ne sont plus présents dans l'API. Cette opération est irréversible.")
+        }
+        .alert("Résultats du nettoyage", isPresented: $showCleanupResults) {
+            Button("OK") { }
+        } message: {
+            Text("Nettoyage terminé :\n• \(cleanupResults.deleted) exercices supprimés\n• \(cleanupResults.kept) exercices conservés")
+        }
+        .sheet(isPresented: $showAuditResults) {
+            ExerciseAuditResultsView(results: auditResults)
+        }
+    }
+    
+    private var exerciseSyncSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .foregroundColor(.blue)
+                Text("Synchronisation exercices")
+                    .font(.subheadline.bold())
+                    .foregroundColor(Color(.label))
+                
+                Spacer()
+                
+                if exerciseSyncService.isLoading {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                }
+            }
+            
+            // Statut de synchronisation
+            VStack(alignment: .leading, spacing: 6) {
+                if let lastSync = exerciseSyncService.lastSyncDate {
+                    HStack {
+                        Text("Dernière sync:")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Text(lastSync, style: .relative)
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                } else {
+                    Text("Aucune synchronisation effectuée")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+                
+                if exerciseSyncService.newExercisesCount > 0 {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                        Text("\(exerciseSyncService.newExercisesCount) nouveaux exercices")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    }
+                }
+                
+                if let error = exerciseSyncService.error {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                        Text("Erreur: \(error.localizedDescription)")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .lineLimit(2)
+                    }
+                }
+            }
+            
+            // Bouton de synchronisation manuelle
+            Button {
+                Task {
+                    await exerciseSyncService.forceSync(modelContext: modelContext)
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                    Text("Synchroniser maintenant")
+                }
+                .font(.caption)
+                .foregroundColor(.blue)
+            }
+            .disabled(exerciseSyncService.isLoading)
+            
+            // Boutons d'audit et nettoyage
+            HStack(spacing: 12) {
+                // Bouton d'audit
+                Button {
+                    Task {
+                        auditResults = await exerciseSyncService.auditLocalExercises(modelContext: modelContext)
+                        showAuditResults = true
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                        Text("Audit")
+                    }
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                }
+                .disabled(exerciseSyncService.isLoading)
+                
+                // Bouton de nettoyage
+                Button {
+                    showCleanupConfirmation = true
+                } label: {
+                    HStack {
+                        Image(systemName: "trash")
+                        Text("Nettoyer")
+                    }
+                    .font(.caption)
+                    .foregroundColor(.red)
+                }
+                .disabled(exerciseSyncService.isLoading)
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
     }
 }
 
@@ -401,6 +540,153 @@ struct LogoutButton: View {
         } message: {
             Text("Cette action est irréversible. Votre compte et toutes vos données seront définitivement supprimés.")
         }
+    }
+}
+
+// MARK: - Exercise Audit Results View
+
+struct ExerciseAuditResultsView: View {
+    let results: (onlyLocal: [String], onlyAPI: [String], common: [String])
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Résumé
+                    summarySection
+                    
+                    // Exercices seulement locaux (problématiques)
+                    if !results.onlyLocal.isEmpty {
+                        exerciseSection(
+                            title: "⚠️ Seulement en local",
+                            subtitle: "Ces exercices seront supprimés lors du prochain nettoyage",
+                            exercises: results.onlyLocal,
+                            color: .red
+                        )
+                    }
+                    
+                    // Exercices seulement dans l'API
+                    if !results.onlyAPI.isEmpty {
+                        exerciseSection(
+                            title: "📥 Seulement dans l'API",
+                            subtitle: "Ces exercices seront ajoutés lors de la prochaine synchronisation",
+                            exercises: results.onlyAPI,
+                            color: .blue
+                        )
+                    }
+                    
+                    // Exercices communs (ok)
+                    exerciseSection(
+                        title: "✅ Exercices synchronisés",
+                        subtitle: "Ces exercices sont présents localement et dans l'API",
+                        exercises: results.common,
+                        color: .green,
+                        collapsed: true
+                    )
+                }
+                .padding()
+            }
+            .navigationTitle("Audit des exercices")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Fermer") {
+                        dismiss()
+                    }
+                    .foregroundColor(.yellow)
+                }
+            }
+        }
+    }
+    
+    private var summarySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Résumé de l'audit")
+                .font(.headline)
+                .foregroundColor(Color(.label))
+            
+            HStack(spacing: 16) {
+                StatCard(
+                    title: "Local uniquement",
+                    value: "\(results.onlyLocal.count)",
+                    icon: "exclamationmark.triangle.fill",
+                    color: .red
+                )
+                
+                StatCard(
+                    title: "API uniquement", 
+                    value: "\(results.onlyAPI.count)",
+                    icon: "cloud.fill",
+                    color: .blue
+                )
+                
+                StatCard(
+                    title: "Synchronisés",
+                    value: "\(results.common.count)",
+                    icon: "checkmark.circle.fill",
+                    color: .green
+                )
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    private func exerciseSection(
+        title: String,
+        subtitle: String,
+        exercises: [String],
+        color: Color,
+        collapsed: Bool = false
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(color)
+                
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+            
+            if !collapsed || exercises.count <= 5 {
+                LazyVStack(alignment: .leading, spacing: 6) {
+                    ForEach(exercises, id: \.self) { exercise in
+                        HStack {
+                            Circle()
+                                .fill(color)
+                                .frame(width: 6, height: 6)
+                            
+                            Text(exercise)
+                                .font(.caption)
+                                .foregroundColor(Color(.label))
+                            
+                            Spacer()
+                        }
+                    }
+                }
+            } else {
+                Text("+ \(exercises.count) exercices (tap pour développer)")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                    .italic()
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - Stat Card for Audit
+
+extension StatCard {
+    init(title: String, value: String, icon: String, color: Color) {
+        self.init(title: title, value: value, icon: icon)
+        // Note: Il faudrait modifier StatCard pour supporter la couleur custom
     }
 }
 

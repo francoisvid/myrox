@@ -324,8 +324,68 @@ class WorkoutViewModel {
             print("Erreur: Le nombre de rounds doit être supérieur à 0")
             return
         }
+
+        print("🔄 Début mise à jour template: \(template.name) -> \(name)")
         
-        print("Début mise à jour template: \(template.name) -> \(name)")
+        Task {
+            do {
+                // Charger les exercices API d'abord
+                await ExerciseMapper.shared.loadExercises()
+                
+                // Debug des exercices iOS avant mapping
+                print("📋 WorkoutViewModel.updateTemplate - Exercices iOS reçus:")
+                for (index, exercise) in exercises.enumerated() {
+                    print("   [\(index)] '\(exercise.exerciseName)' (ordre: \(exercise.order), distance: \(exercise.targetDistance ?? 0), reps: \(exercise.targetRepetitions ?? 0))")
+                }
+                
+                // D'abord, préparer la liste des exercices pour l'API
+                let mappedExercises = await ExerciseMapper.shared.mapTemplateExercises(exercises)
+                
+                // Debug des exercices mappés
+                print("🔄 WorkoutViewModel.updateTemplate - Exercices mappés pour l'API:")
+                for (index, exercise) in mappedExercises.enumerated() {
+                    print("   [\(index)] exerciseId: \(exercise.exerciseId), ordre: \(exercise.order), distance: \(exercise.targetDistance ?? 0), reps: \(exercise.targetRepetitions ?? 0))")
+                }
+                
+                // Créer la requête de mise à jour
+                let updateRequest = UpdateTemplateRequest(
+                    id: template.id.uuidString,
+                    name: name,
+                    rounds: rounds,
+                    exercises: mappedExercises
+                )
+                
+                print("🌐 WorkoutViewModel.updateTemplate - Envoi requête API avec \(mappedExercises.count) exercices")
+                
+                // 1. Mettre à jour via l'API
+                _ = try await templateRepository.updateTemplate(updateRequest)
+                print("✅ Template mis à jour sur l'API")
+                
+                // 2. Synchroniser avec le cache local
+                try await templateRepository.syncTemplatesWithCache()
+                
+                // 3. Recharger les templates
+                await MainActor.run {
+                    fetchTemplates()
+                    WatchConnectivityService.shared.sendTemplates()
+                    print("✅ Template mis à jour localement")
+                }
+                
+            } catch {
+                print("❌ Erreur lors de la mise à jour du template via l'API: \(error)")
+                
+                // Fallback: mettre à jour localement seulement
+                await MainActor.run {
+                    updateTemplateLocally(template, name: name, exercises: exercises, rounds: rounds)
+                    print("⚠️ Template mis à jour localement uniquement")
+                }
+            }
+        }
+    }
+    
+    // Méthode privée pour la mise à jour locale uniquement (fallback)
+    private func updateTemplateLocally(_ template: WorkoutTemplate, name: String, exercises: [TemplateExercise], rounds: Int) {
+        print("Début mise à jour locale template: \(template.name) -> \(name)")
         print("Exercices existants: \(template.exercises.count)")
         print("Nouveaux exercices: \(exercises.count)")
         
@@ -343,12 +403,12 @@ class WorkoutViewModel {
         for (index, newExercise) in exercises.enumerated() {
             // Chercher un exercice existant correspondant (même nom, même ordre)
             if let existingExercise = existingExercises.first(where: { 
-                $0.exerciseName == newExercise.exerciseName && $0.order == index + 1  // Ordre commence à 1
+                $0.exerciseName == newExercise.exerciseName && $0.order == index  // Ordre commence à 0
             }) {
                 // Mettre à jour l'exercice existant
                 existingExercise.targetDistance = newExercise.targetDistance
                 existingExercise.targetRepetitions = newExercise.targetRepetitions
-                existingExercise.order = index + 1  // Ordre commence à 1
+                existingExercise.order = index  // Ordre commence à 0
                 exercisesToKeep.append(existingExercise)
                 print("Mise à jour exercice existant: \(existingExercise.exerciseName)")
             } else {
@@ -359,7 +419,7 @@ class WorkoutViewModel {
                     // Réutiliser et mettre à jour l'exercice existant
                     existingExercise.targetDistance = newExercise.targetDistance
                     existingExercise.targetRepetitions = newExercise.targetRepetitions
-                    existingExercise.order = index + 1  // Ordre commence à 1
+                    existingExercise.order = index  // Ordre commence à 0
                     exercisesToKeep.append(existingExercise)
                     print("Réutilisation exercice existant: \(existingExercise.exerciseName)")
                 } else {
@@ -368,7 +428,7 @@ class WorkoutViewModel {
                         exerciseName: newExercise.exerciseName,
                         targetDistance: newExercise.targetDistance,
                         targetRepetitions: newExercise.targetRepetitions,
-                        order: index + 1  // Ordre commence à 1
+                        order: index  // Ordre commence à 0
                     )
                     templateExercise.template = template
                     exercisesToAdd.append(templateExercise)
@@ -395,15 +455,47 @@ class WorkoutViewModel {
         
         do {
             try modelContext.save()
-            print("Sauvegarde réussie")
+            print("Sauvegarde locale réussie")
             fetchTemplates()
             WatchConnectivityService.shared.sendTemplates()
         } catch {
-            print("Erreur lors de la mise à jour du template : \(error)")
+            print("Erreur lors de la mise à jour locale du template : \(error)")
         }
     }
     
     func deleteTemplate(_ template: WorkoutTemplate) {
+        print("🗑️ Début suppression template: \(template.name)")
+        
+        Task {
+            do {
+                // 1. D'abord, supprimer via l'API
+                try await templateRepository.deleteTemplate(id: template.id.uuidString)
+                print("✅ Template supprimé de l'API")
+                
+                // 2. Synchroniser avec le cache local
+                try await templateRepository.syncTemplatesWithCache()
+                
+                // 3. Recharger les templates
+                await MainActor.run {
+                    fetchTemplates()
+                    WatchConnectivityService.shared.sendTemplates()
+                    print("✅ Template supprimé et liste mise à jour")
+                }
+                
+            } catch {
+                print("❌ Erreur lors de la suppression du template via l'API: \(error)")
+                
+                // Fallback: supprimer localement seulement
+                await MainActor.run {
+                    deleteTemplateLocally(template)
+                    print("⚠️ Template supprimé localement uniquement")
+                }
+            }
+        }
+    }
+    
+    // Méthode privée pour la suppression locale uniquement (fallback)
+    private func deleteTemplateLocally(_ template: WorkoutTemplate) {
         // Sauvegarder l'ID avant la suppression
         let templateId = template.id
         
@@ -418,7 +510,7 @@ class WorkoutViewModel {
             
             fetchTemplates() // Recharger les templates après la suppression
         } catch {
-            print("Erreur lors de la suppression du template : \(error)")
+            print("Erreur lors de la suppression locale du template : \(error)")
         }
     }
     
