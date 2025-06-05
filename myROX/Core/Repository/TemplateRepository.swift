@@ -181,11 +181,17 @@ class MockTemplateRepository: TemplateRepositoryProtocol {
             id: UUID().uuidString,
             name: template.name,
             rounds: template.rounds,
+            description: nil,
+            difficulty: "BEGINNER",
+            estimatedTime: 30,
+            category: "FUNCTIONAL",
+            isPersonal: true,
+            isActive: true,
             exercises: [],
             userId: "mock-user",
-            isPersonal: true,
-            createdAt: ISO8601DateFormatter().string(from: Date()),
-            updatedAt: ISO8601DateFormatter().string(from: Date())
+            coachId: nil,
+            createdAt: Date().apiString,
+            updatedAt: Date().apiString
         )
     }
     
@@ -195,11 +201,17 @@ class MockTemplateRepository: TemplateRepositoryProtocol {
             id: template.id,
             name: template.name ?? "Mock Template",
             rounds: template.rounds ?? 1,
+            description: nil,
+            difficulty: "BEGINNER",
+            estimatedTime: 30,
+            category: "FUNCTIONAL",
+            isPersonal: true,
+            isActive: true,
             exercises: [],
             userId: "mock-user",
-            isPersonal: true,
-            createdAt: ISO8601DateFormatter().string(from: Date()),
-            updatedAt: ISO8601DateFormatter().string(from: Date())
+            coachId: nil,
+            createdAt: Date().apiString,
+            updatedAt: Date().apiString
         )
     }
     

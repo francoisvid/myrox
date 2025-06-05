@@ -4,8 +4,8 @@ import FirebaseAuth
 protocol UserRepositoryProtocol {
     func fetchUserProfile(firebaseUID: String) async throws -> APIUser?
     func createUserProfile(_ user: APIUser) async throws -> APIUser
-    func updateUserProfile(_ user: UserUpdateRequest) async throws -> APIUser
-    func fetchCoach(coachId: UUID) async throws -> Coach
+    func updateUserProfile(_ user: UpdateUserRequest) async throws -> APIUser
+    func fetchCoach(coachId: UUID) async throws -> APICoach
     func syncCurrentUser() async throws -> APIUser
 }
 
@@ -34,7 +34,7 @@ class UserRepository: UserRepositoryProtocol {
         return try await apiService.post(.createUser, body: user, responseType: APIUser.self)
     }
     
-    func updateUserProfile(_ updateRequest: UserUpdateRequest) async throws -> APIUser {
+    func updateUserProfile(_ updateRequest: UpdateUserRequest) async throws -> APIUser {
         guard let firebaseUID = Auth.auth().currentUser?.uid else {
             throw APIError.unauthorized
         }
@@ -44,8 +44,8 @@ class UserRepository: UserRepositoryProtocol {
     
     // MARK: - Coach Info (Read-only)
     
-    func fetchCoach(coachId: UUID) async throws -> Coach {
-        return try await apiService.get(.coach(id: coachId), responseType: Coach.self)
+    func fetchCoach(coachId: UUID) async throws -> APICoach {
+        return try await apiService.get(.coach(id: coachId), responseType: APICoach.self)
     }
     
     // MARK: - User Synchronization
@@ -81,8 +81,8 @@ extension APIUser {
         self.email = email
         self.displayName = displayName
         self.coachId = nil
-        self.createdAt = ISO8601DateFormatter().string(from: Date())
-        self.updatedAt = ISO8601DateFormatter().string(from: Date())
+        self.createdAt = Date().apiString
+        self.updatedAt = Date().apiString
     }
 }
 
@@ -96,7 +96,7 @@ extension UserRepository {
     }
     
     // Fetch assigned coach if user has one
-    func fetchAssignedCoach() async throws -> Coach? {
+    func fetchAssignedCoach() async throws -> APICoach? {
         guard let firebaseUser = Auth.auth().currentUser else {
             throw APIError.unauthorized
         }
@@ -117,7 +117,7 @@ extension UserRepository {
 class MockUserRepository: UserRepositoryProtocol {
     var shouldFail = false
     var mockUser: APIUser?
-    var mockCoach: Coach?
+    var mockCoach: APICoach?
     
     func fetchUserProfile(firebaseUID: String) async throws -> APIUser? {
         if shouldFail { throw APIError.networkError(NSError(domain: "Mock", code: 0)) }
@@ -129,23 +129,23 @@ class MockUserRepository: UserRepositoryProtocol {
         return user
     }
     
-    func updateUserProfile(_ user: UserUpdateRequest) async throws -> APIUser {
+    func updateUserProfile(_ user: UpdateUserRequest) async throws -> APIUser {
         if shouldFail { throw APIError.networkError(NSError(domain: "Mock", code: 0)) }
         return mockUser ?? APIUser(firebaseUID: "mock", email: "mock@test.com", displayName: "Mock User")
     }
     
-    func fetchCoach(coachId: UUID) async throws -> Coach {
+    func fetchCoach(coachId: UUID) async throws -> APICoach {
         if shouldFail { throw APIError.notFound }
         
-        // Create a mock coach with proper initialization
-        return mockCoach ?? Coach(
-            id: coachId,
+        // Create a mock coach
+        return mockCoach ?? APICoach(
+            id: coachId.uuidString,
             firebaseUID: "coach123",
             displayName: "Coach Test",
             email: "coach@test.com",
             specialization: "HYROX",
             bio: "Coach de test spécialisé HYROX avec plus de 5 ans d'expérience",
-            createdAt: Date(),
+            createdAt: Date().apiString,
             athleteCount: 15,
             totalWorkouts: 250,
             averageWorkoutDuration: 45 * 60 // 45 minutes

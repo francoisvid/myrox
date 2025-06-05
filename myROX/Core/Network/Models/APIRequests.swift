@@ -1,0 +1,62 @@
+import Foundation
+
+// MARK: - Template Requests
+
+struct CreateTemplateRequest: Codable {
+    let name: String
+    let rounds: Int
+    let exercises: [CreateTemplateExerciseRequest]
+}
+
+struct CreateTemplateExerciseRequest: Codable {
+    let exerciseId: String
+    let order: Int
+    let targetRepetitions: Int?
+    let targetDistance: Int?
+    let targetTime: Int? // en secondes
+    let restTime: Int?   // en secondes
+}
+
+struct UpdateTemplateRequest: Codable {
+    let id: String
+    let name: String?
+    let rounds: Int?
+    let exercises: [CreateTemplateExerciseRequest]?
+}
+
+// MARK: - User Requests
+
+struct CreateUserRequest: Codable {
+    let firebaseUID: String
+    let email: String?
+    let displayName: String?
+}
+
+struct UpdateUserRequest: Codable {
+    let displayName: String?
+    let email: String?
+}
+
+// MARK: - Workout Requests
+
+struct CreateWorkoutRequest: Codable {
+    let templateId: String?
+    let name: String
+    let startedAt: String // ISO8601
+    let exercises: [CreateWorkoutExerciseRequest]
+}
+
+struct CreateWorkoutExerciseRequest: Codable {
+    let exerciseId: String
+    let order: Int
+    let targetRepetitions: Int?
+    let targetDistance: Int?
+    let targetTime: Int?
+}
+
+struct UpdateWorkoutRequest: Codable {
+    let completedAt: String? // ISO8601
+    let totalDuration: Int? // en secondes
+    let notes: String?
+    let rating: Int? // 1-5 étoiles
+} 

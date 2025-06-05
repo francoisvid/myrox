@@ -7,7 +7,7 @@ class DashboardViewModel: ObservableObject {
     @Published var lastWorkout: Workout?
     @Published var templates: [WorkoutTemplate] = []
     @Published var userProfile: APIUser?
-    @Published var coachInfo: Coach?
+    @Published var coachInfo: APICoach?
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var upcomingEvents: [HyroxEvent] = []

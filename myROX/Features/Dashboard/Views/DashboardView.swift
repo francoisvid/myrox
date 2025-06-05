@@ -112,7 +112,7 @@ struct DashboardView: View {
     
     // MARK: - Coach Info Section
     
-    private func coachInfoSection(_ coach: Coach) -> some View {
+    private func coachInfoSection(_ coach: APICoach) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Votre Coach")
                 .font(.title3.bold())

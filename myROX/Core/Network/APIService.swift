@@ -1,6 +1,9 @@
 import Foundation
 import FirebaseAuth
 
+// MARK: - API Service
+
+/// Service principal pour les appels API
 class APIService {
     static let shared = APIService()
     
@@ -17,9 +20,9 @@ class APIService {
     
     private init() {}
     
-    // MARK: - Generic Request Method
+    // MARK: - Generic Request Methods
     
-    // Request method with body
+    /// Requête avec body
     func request<T: Codable, B: Codable>(
         _ endpoint: APIEndpoints,
         method: HTTPMethod? = nil,
@@ -27,12 +30,10 @@ class APIService {
         responseType: T.Type
     ) async throws -> T {
         
-        // Construire l'URL
         guard let url = URL(string: baseURL + endpoint.path) else {
             throw APIError.invalidURL
         }
         
-        // Créer la requête
         var request = URLRequest(url: url)
         request.httpMethod = (method ?? endpoint.method).rawValue
         request.timeoutInterval = 30
@@ -40,11 +41,10 @@ class APIService {
         // Headers communs
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // ✅ Authentification simple - Firebase UID
+        // Authentification Firebase
         if let firebaseUser = Auth.auth().currentUser {
             request.setValue(firebaseUser.uid, forHTTPHeaderField: "x-firebase-uid")
             
-            // Optionnel : Email pour debug
             if let email = firebaseUser.email {
                 request.setValue(email, forHTTPHeaderField: "x-firebase-email")
             }
@@ -53,7 +53,6 @@ class APIService {
         // Encoder le body
         do {
             let encoder = JSONEncoder()
-            // Note: Les dates sont gérées manuellement dans les modèles
             request.httpBody = try encoder.encode(body)
         } catch {
             throw APIError.encodingError(error)
@@ -62,19 +61,17 @@ class APIService {
         return try await performRequest(request, responseType: responseType)
     }
     
-    // Request method without body
+    /// Requête sans body
     func request<T: Codable>(
         _ endpoint: APIEndpoints,
         method: HTTPMethod? = nil,
         responseType: T.Type
     ) async throws -> T {
         
-        // Construire l'URL
         guard let url = URL(string: baseURL + endpoint.path) else {
             throw APIError.invalidURL
         }
         
-        // Créer la requête
         var request = URLRequest(url: url)
         request.httpMethod = (method ?? endpoint.method).rawValue
         request.timeoutInterval = 30
@@ -82,11 +79,10 @@ class APIService {
         // Headers communs
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // ✅ Authentification simple - Firebase UID
+        // Authentification Firebase
         if let firebaseUser = Auth.auth().currentUser {
             request.setValue(firebaseUser.uid, forHTTPHeaderField: "x-firebase-uid")
             
-            // Optionnel : Email pour debug
             if let email = firebaseUser.email {
                 request.setValue(email, forHTTPHeaderField: "x-firebase-email")
             }
@@ -95,7 +91,9 @@ class APIService {
         return try await performRequest(request, responseType: responseType)
     }
     
-    // Common request execution
+    // MARK: - Private Methods
+    
+    /// Exécution commune des requêtes
     private func performRequest<T: Codable>(_ request: URLRequest, responseType: T.Type) async throws -> T {
         
         // Debug logging en développement
@@ -109,11 +107,9 @@ class APIService {
         }
         #endif
         
-        // Effectuer la requête
         do {
             let (data, response) = try await session.data(for: request)
             
-            // Vérifier la réponse HTTP
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw APIError.invalidResponse
             }
@@ -125,8 +121,7 @@ class APIService {
             // Gestion des codes d'erreur
             switch httpResponse.statusCode {
             case 200...299:
-                // Succès - décoder la réponse
-                break
+                break // Succès
             case 401:
                 throw APIError.unauthorized
             case 403:
@@ -141,7 +136,7 @@ class APIService {
                 throw APIError.httpError(httpResponse.statusCode)
             }
             
-            // Debug response en développement
+            // Debug response
             #if DEBUG
             if let responseString = String(data: data, encoding: .utf8) {
                 print("📥 Response Body: \(responseString)")
@@ -151,7 +146,6 @@ class APIService {
             // Décoder la réponse
             do {
                 let decoder = JSONDecoder()
-                // Note: Les dates sont gérées manuellement dans les modèles
                 return try decoder.decode(T.self, from: data)
             } catch {
                 throw APIError.decodingError(error)
@@ -169,106 +163,73 @@ class APIService {
 
 extension APIService {
     
-    // GET request
+    /// Requête GET
     func get<T: Codable>(_ endpoint: APIEndpoints, responseType: T.Type) async throws -> T {
         return try await request(endpoint, method: .GET, responseType: responseType)
     }
     
-    // POST request
+    /// Requête POST
     func post<T: Codable, B: Codable>(_ endpoint: APIEndpoints, body: B, responseType: T.Type) async throws -> T {
         return try await request(endpoint, method: .POST, body: body, responseType: responseType)
     }
     
-    // PUT request
+    /// Requête PUT
     func put<T: Codable, B: Codable>(_ endpoint: APIEndpoints, body: B, responseType: T.Type) async throws -> T {
         return try await request(endpoint, method: .PUT, body: body, responseType: responseType)
     }
     
-    // DELETE request
+    /// Requête DELETE
     func delete<T: Codable>(_ endpoint: APIEndpoints, responseType: T.Type) async throws -> T {
         return try await request(endpoint, method: .DELETE, responseType: responseType)
     }
+}
+
+// MARK: - Specific API Methods
+
+extension APIService {
     
-    // Health check
+    /// Vérification de la santé de l'API
     func healthCheck() async throws -> HealthResponse {
         return try await get(.health, responseType: HealthResponse.self)
     }
     
-    // Fetch exercises
+    /// Récupération des exercices
     func fetchExercises() async throws -> [APIExercise] {
         return try await get(.exercises, responseType: [APIExercise].self)
     }
-}
-
-// MARK: - Health Response Model
-
-struct HealthResponse: Codable {
-    let status: String
-    let timestamp: String
-    let version: String
-    let uptime: Int
-    let environment: String
-    let message: String
-    let checks: HealthChecks?
     
-    struct HealthChecks: Codable {
-        let database: String
-        let responseTime: String
+    /// Récupération d'un exercice spécifique
+    func fetchExercise(id: UUID) async throws -> APIExercise {
+        return try await get(.exercise(id: id), responseType: APIExercise.self)
     }
-}
-
-// MARK: - HTTP Methods
-
-enum HTTPMethod: String {
-    case GET = "GET"
-    case POST = "POST"
-    case PUT = "PUT"
-    case DELETE = "DELETE"
-    case PATCH = "PATCH"
-}
-
-// MARK: - API Errors
-
-enum APIError: LocalizedError {
-    case invalidURL
-    case encodingError(Error)
-    case decodingError(Error)
-    case networkError(Error)
-    case invalidResponse
-    case unauthorized
-    case forbidden
-    case notFound
-    case validationError
-    case serverError(Int)
-    case httpError(Int)
-    case custom(String)
     
-    var errorDescription: String? {
-        switch self {
-        case .invalidURL:
-            return "URL invalide"
-        case .encodingError(let error):
-            return "Erreur d'encodage: \(error.localizedDescription)"
-        case .decodingError(let error):
-            return "Erreur de décodage: \(error.localizedDescription)"
-        case .networkError(let error):
-            return "Erreur réseau: \(error.localizedDescription)"
-        case .invalidResponse:
-            return "Réponse invalide du serveur"
-        case .unauthorized:
-            return "Non autorisé - Veuillez vous reconnecter"
-        case .forbidden:
-            return "Accès interdit"
-        case .notFound:
-            return "Ressource non trouvée"
-        case .validationError:
-            return "Données invalides"
-        case .serverError(let code):
-            return "Erreur serveur (\(code))"
-        case .httpError(let code):
-            return "Erreur HTTP (\(code))"
-        case .custom(let message):
-            return message
-        }
+    /// Récupération du profil utilisateur
+    func fetchUserProfile(firebaseUID: String) async throws -> APIUser {
+        return try await get(.userProfile(firebaseUID: firebaseUID), responseType: APIUser.self)
+    }
+    
+    /// Création d'un utilisateur
+    func createUser(_ request: CreateUserRequest) async throws -> APIUser {
+        return try await post(.createUser, body: request, responseType: APIUser.self)
+    }
+    
+    /// Mise à jour d'un utilisateur
+    func updateUser(firebaseUID: String, _ request: UpdateUserRequest) async throws -> APIUser {
+        return try await put(.updateUser(firebaseUID: firebaseUID), body: request, responseType: APIUser.self)
+    }
+    
+    /// Récupération des templates personnels
+    func fetchPersonalTemplates(firebaseUID: String) async throws -> [APITemplate] {
+        return try await get(.personalTemplates(firebaseUID: firebaseUID), responseType: [APITemplate].self)
+    }
+    
+    /// Récupération des templates assignés
+    func fetchAssignedTemplates(firebaseUID: String) async throws -> [APITemplate] {
+        return try await get(.assignedTemplates(firebaseUID: firebaseUID), responseType: [APITemplate].self)
+    }
+    
+    /// Création d'un template personnel
+    func createPersonalTemplate(firebaseUID: String, _ request: CreateTemplateRequest) async throws -> APITemplate {
+        return try await post(.createPersonalTemplate(firebaseUID: firebaseUID), body: request, responseType: APITemplate.self)
     }
 } 
