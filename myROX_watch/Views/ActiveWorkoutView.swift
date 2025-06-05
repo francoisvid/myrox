@@ -32,23 +32,47 @@ struct ActiveWorkoutView: View {
                                 // Afficher les paramètres de l'exercice
                                 ActiveExerciseParametersView(exercise: exercise)
                                 
-                                // Afficher l'objectif de temps
-                                if let targetTime = dataService.goals[exercise.name], targetTime > 0 {
-                                    Text("Objectif: \(targetTime.formatted)")
-                                        .font(.caption)
-                                        .foregroundColor(.yellow)
+                                // Afficher l'objectif et le PR
+                                VStack(spacing: 2) {
+                                    if let targetTime = dataService.goals[exercise.name], targetTime > 0 {
+                                        Text("Obj: \(formatTime(targetTime))")
+                                            .font(.caption)
+                                            .foregroundColor(.blue)
+                                    }
+                                    
+                                    if let personalBest = dataService.personalBests.first(where: { $0.exerciseType == exercise.personalBestExerciseType }) {
+                                        HStack(spacing: 2) {
+                                            Image(systemName: "trophy.fill")
+                                                .font(.caption2)
+                                                .foregroundColor(.yellow)
+                                            Text("PR: \(formatTime(personalBest.value))")
+                                                .font(.caption)
+                                                .foregroundColor(.yellow)
+                                        }
+                                    }
                                 }
                                 
-                                Text(viewModel.exerciseTimer.formatted)
+                                Text(formatTime(viewModel.exerciseTimer))
                                     .font(.system(size: 40, weight: .bold, design: .monospaced))
-                                    .foregroundColor(.yellow)
+                                    .foregroundColor(timerColor(for: exercise))
                                 
-                                // Indicateur visuel si on dépasse l'objectif
-                                if let targetTime = dataService.goals[exercise.name],
-                                   targetTime > 0 && viewModel.exerciseTimer > targetTime {
-                                    Text("Objectif dépassé!")
-                                        .font(.caption)
-                                        .foregroundColor(.red)
+                                // Messages de statut
+                                VStack(spacing: 2) {
+                                    // Nouveau record
+                                    if let personalBest = dataService.personalBests.first(where: { $0.exerciseType == exercise.personalBestExerciseType }),
+                                       viewModel.exerciseTimer > 0 && viewModel.exerciseTimer < personalBest.value {
+                                        Text("Nouveau record!")
+                                            .font(.caption)
+                                            .foregroundColor(.yellow)
+                                    }
+                                    
+                                    // Objectif dépassé
+                                    if let targetTime = dataService.goals[exercise.name],
+                                       targetTime > 0 && viewModel.exerciseTimer > targetTime {
+                                        Text("Objectif dépassé!")
+                                            .font(.caption)
+                                            .foregroundColor(.red)
+                                    }
                                 }
                             }
                             
@@ -145,6 +169,33 @@ struct ActiveWorkoutView: View {
             if dataService.activeWorkout != nil && !viewModel.isTimerRunning {
                 viewModel.startExerciseTimer()
             }
+        }
+    }
+    
+    // Helper pour formater le temps
+    private func formatTime(_ timeInterval: TimeInterval) -> String {
+        let hours = Int(timeInterval) / 3600
+        let minutes = Int(timeInterval) % 3600 / 60
+        let seconds = Int(timeInterval) % 60
+        
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            return String(format: "%d:%02d", minutes, seconds)
+        }
+    }
+    
+    // Helper pour la couleur du timer
+    private func timerColor(for exercise: WatchExercise) -> Color {
+        // Priorité: nouveau record (jaune) > objectif dépassé (orange) > normal
+        if let personalBest = dataService.personalBests.first(where: { $0.exerciseType == exercise.personalBestExerciseType }),
+           viewModel.exerciseTimer > 0 && viewModel.exerciseTimer < personalBest.value {
+            return .yellow  // Nouveau record !
+        } else if let targetTime = dataService.goals[exercise.name],
+                  targetTime > 0 && viewModel.exerciseTimer > targetTime {
+            return .orange  // Objectif dépassé
+        } else {
+            return .white   // Normal (blanc sur Watch)
         }
     }
 }

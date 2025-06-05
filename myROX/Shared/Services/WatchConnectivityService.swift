@@ -161,6 +161,31 @@ class WatchConnectivityService: NSObject, ObservableObject {
         }
     }
     
+    func sendPersonalBests() {
+        guard session.isReachable else { return }
+        
+        let descriptor = FetchDescriptor<PersonalBest>()
+        
+        do {
+            let personalBests = try modelContext.fetch(descriptor)
+            let personalBestsData = personalBests.map { pb in
+                [
+                    "exerciseType": pb.exerciseType,
+                    "value": pb.value,
+                    "achievedAt": pb.achievedAt.timeIntervalSince1970
+                ]
+            }
+            
+            let message = ["personalBests": personalBestsData]
+            
+            session.sendMessage(message, replyHandler: nil) { error in
+                print("Erreur envoi personal bests: \(error)")
+            }
+        } catch {
+            print("Erreur fetch personal bests: \(error)")
+        }
+    }
+    
     // MARK: - Receive from Watch
     
     func handleWorkoutCompleted(_ workoutData: [String: Any]) {
@@ -275,6 +300,7 @@ extension WatchConnectivityService: WCSessionDelegate {
             sendWorkoutCount()
             sendTemplates()
             sendGoals()
+            sendPersonalBests()
         }
     }
     
@@ -299,6 +325,9 @@ extension WatchConnectivityService: WCSessionDelegate {
                     
                 case "requestGoals":
                     self.sendGoals()
+                
+                case "requestPersonalBests":
+                    self.sendPersonalBests()
                     
                 case "requestWorkoutCount":
                     self.sendWorkoutCount()

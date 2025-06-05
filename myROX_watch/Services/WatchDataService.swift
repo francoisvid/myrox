@@ -10,6 +10,7 @@ class WatchDataService: NSObject, ObservableObject {
     @Published var activeWorkout: WatchWorkout?
     @Published var isPhoneReachable = false
     @Published var goals: [String: TimeInterval] = [:]
+    @Published var personalBests: [WatchPersonalBest] = []
     
     private var session: WCSession
     private let healthStore = HKHealthStore()
@@ -22,6 +23,11 @@ class WatchDataService: NSObject, ObservableObject {
         
         if let savedGoals = UserDefaults.standard.object(forKey: "exerciseGoals") as? [String: TimeInterval] {
             self.goals = savedGoals
+        }
+        
+        if let savedPBData = UserDefaults.standard.data(forKey: "personalBests"),
+           let savedPBs = try? JSONDecoder().decode([WatchPersonalBest].self, from: savedPBData) {
+            self.personalBests = savedPBs
         }
         
         if WCSession.isSupported() {
@@ -58,6 +64,15 @@ class WatchDataService: NSObject, ObservableObject {
         let message = ["action": "requestGoals"]
         session.sendMessage(message, replyHandler: nil) { error in
             print("Erreur demande goals: \(error)")
+        }
+    }
+    
+    func requestPersonalBests() {
+        guard session.isReachable else { return }
+        
+        let message = ["action": "requestPersonalBests"]
+        session.sendMessage(message, replyHandler: nil) { error in
+            print("Erreur demande personal bests: \(error)")
         }
     }
     
@@ -325,6 +340,8 @@ extension WatchDataService: WCSessionDelegate {
         if activationState == .activated {
             requestTemplates()
             requestWorkoutCount()
+            requestGoals()
+            requestPersonalBests()
             syncPendingWorkouts()
         }
     }
@@ -337,6 +354,8 @@ extension WatchDataService: WCSessionDelegate {
         if session.isReachable {
             requestTemplates()
             requestWorkoutCount()
+            requestGoals()
+            requestPersonalBests()
             syncPendingWorkouts()
         }
     }
@@ -359,6 +378,26 @@ extension WatchDataService: WCSessionDelegate {
                 
                 // Sauvegarder localement
                 UserDefaults.standard.set(newGoals, forKey: "exerciseGoals")
+            }
+            
+            if let personalBestsData = message["personalBests"] as? [[String: Any]] {
+                let newPersonalBests = personalBestsData.compactMap { pbData -> WatchPersonalBest? in
+                    guard let exerciseType = pbData["exerciseType"] as? String,
+                          let value = pbData["value"] as? Double,
+                          let achievedAtTimestamp = pbData["achievedAt"] as? TimeInterval else {
+                        return nil
+                    }
+                    
+                    let achievedAt = Date(timeIntervalSince1970: achievedAtTimestamp)
+                    return WatchPersonalBest(exerciseType: exerciseType, value: value, achievedAt: achievedAt)
+                }
+                
+                self.personalBests = newPersonalBests
+                
+                // Sauvegarder localement
+                if let encoded = try? JSONEncoder().encode(newPersonalBests) {
+                    UserDefaults.standard.set(encoded, forKey: "personalBests")
+                }
             }
             
             if let templatesData = message["templates"] as? [[String: Any]] {

@@ -7,9 +7,15 @@ struct WorkoutExerciseRow: View {
     let onTap: () -> Void
     
     @Query private var goals: [ExerciseGoal]
+    @Query private var personalBests: [PersonalBest]
     
     private var targetTime: TimeInterval? {
         goals.first(where: { $0.exerciseName == exercise.exerciseName })?.targetTime
+    }
+    
+    private var personalBest: PersonalBest? {
+        let exerciseType = exercise.personalBestExerciseType
+        return personalBests.first { $0.exerciseType == exerciseType }
     }
     
     private var hasAchievedGoal: Bool {
@@ -33,16 +39,63 @@ struct WorkoutExerciseRow: View {
                 
                 // Exercise info
                 VStack(alignment: .leading, spacing: 4) {
-                    // Nom et objectif
-                    HStack(spacing: 8) {
-                        Text(exercise.exerciseName)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color(.label))
+                    // Nom de l'exercice
+                    Text(exercise.exerciseName)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(.label))
+                    
+                    // Distance et répétitions à effectuer + Personal Best
+                    VStack(alignment: .leading, spacing: 2) {
+                        // Paramètres de l'exercice (distance/reps à effectuer)
+                        HStack(spacing: 12) {
+                            if exercise.distance > 0 {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "ruler")
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                    Text("\(Int(exercise.distance))m")
+                                        .font(.caption.bold())
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            
+                            if exercise.repetitions > 0 {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "repeat")
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                    Text("\(exercise.repetitions) reps")
+                                        .font(.caption.bold())
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                        }
                         
-                        if let target = targetTime, target > 0 {
-                            Text("Obj: \(target.formatted)")
-                                .font(.caption)
-                                .foregroundColor(.yellow.opacity(0.7))
+                        // Personal Best et Objectif
+                        HStack(spacing: 12) {
+                            // Personal Best (toujours affiché s'il existe)
+                            if let pb = personalBest {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "trophy.fill")
+                                        .font(.caption)
+                                        .foregroundColor(.yellow)
+                                    Text("PR: \(pb.value.formatted)")
+                                        .font(.caption.bold())
+                                        .foregroundColor(.yellow)
+                                }
+                            }
+                            
+                            // Objectif (affiché en plus du PR)
+                            if let target = targetTime, target > 0 {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "target")
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                    Text("Obj: \(target.formatted)")
+                                        .font(.caption.bold())
+                                        .foregroundColor(.blue)
+                                }
+                            }
                         }
                     }
                     
