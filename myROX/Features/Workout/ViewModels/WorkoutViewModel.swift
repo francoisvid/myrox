@@ -184,6 +184,38 @@ class WorkoutViewModel {
         completedWorkout = nil
     }
     
+    // MARK: - Cancel Workout
+    func cancelWorkout() {
+        guard let workout = activeWorkout else { return }
+        
+        print("🔴 Annulation du workout: \(workout.templateName)")
+        
+        // Arrêter le timer
+        stopTimer()
+        
+        // Supprimer le workout de la base de données (il n'était pas encore terminé)
+        modelContext.delete(workout)
+        do {
+            try modelContext.save()
+            print("✅ Workout annulé et supprimé de la base de données")
+        } catch {
+            print("❌ Erreur lors de la suppression du workout annulé: \(error)")
+        }
+        
+
+        
+        // Réinitialiser tous les états
+        activeWorkout = nil
+        isWorkoutActive = false
+        currentRound = 1
+        elapsedTime = 0
+        workoutProgress = 0
+        workoutStartTime = nil
+        completedWorkout = nil
+        
+        print("✅ Workout annulé et état réinitialisé")
+    }
+    
     // MARK: - Exercise Management
     func isNextExercise(_ exercise: WorkoutExercise) -> Bool {
         guard let nextExercise = getNextExercise() else { return false }

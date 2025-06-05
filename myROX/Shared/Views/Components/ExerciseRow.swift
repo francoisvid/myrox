@@ -63,10 +63,10 @@ struct WorkoutExerciseRow: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: "repeat")
                                         .font(.caption)
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(.green)
                                     Text("\(exercise.repetitions) reps")
                                         .font(.caption.bold())
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(.green)
                                 }
                             }
                         }

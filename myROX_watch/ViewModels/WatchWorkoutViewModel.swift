@@ -202,4 +202,23 @@ class WatchWorkoutViewModel: ObservableObject {
             }
         }
     }
+    
+    func cancelWorkout() {
+        print("🔴 Annulation du workout depuis la Watch")
+        DispatchQueue.main.async {
+            // Arrêter le timer
+            self.timer?.invalidate()
+            self.isTimerRunning = false
+            
+            // Réinitialiser les états
+            self.exerciseTimer = 0
+            self.exerciseStartTime = nil
+            self.workoutStartTime = nil
+            
+            // Supprimer le workout actif
+            WatchDataService.shared.activeWorkout = nil
+            
+            print("✅ Workout annulé depuis la Watch")
+        }
+    }
 }

@@ -126,20 +126,40 @@ struct ActiveWorkoutView: View {
                         Spacer()
                             .frame(height: 10)
                         
-                        // Stop workout
-                        Button(role: .cancel) {
-                            viewModel.finishWorkout()
-                            dismiss()
-                        } label: {
-                            Label("Arrêter", systemImage: "stop.fill")
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 10)
-                                .background(Color.red)
-                                .foregroundColor(.black)
-                                .cornerRadius(10)
-                                .frame(maxWidth: .infinity)
+                        // Workout Actions
+                        VStack(spacing: 8) {
+                            // Terminer le workout
+                            Button {
+                                viewModel.finishWorkout()
+                                dismiss()
+                            } label: {
+                                Label("Terminer", systemImage: "checkmark.circle.fill")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 10)
+                                    .background(Color.green)
+                                    .foregroundColor(.black)
+                                    .cornerRadius(10)
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            // Annuler le workout
+                            Button(role: .destructive) {
+                                viewModel.cancelWorkout()
+                                dismiss()
+                            } label: {
+                                Label("Annuler", systemImage: "xmark.circle.fill")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(Color.red)
+                                    .foregroundColor(.black)
+                                    .cornerRadius(10)
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal, 20)
                 }

@@ -62,6 +62,7 @@ struct WorkoutListView: View {
                     viewModel = WorkoutViewModel(modelContext: modelContext)
                 }
             }
+
         }
     }
     

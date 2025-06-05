@@ -35,6 +35,37 @@ struct ExerciseDetailView: View {
                     .foregroundColor(Color(.label))
                     .padding(.top, 30)
                 
+                // Afficher les paramètres à effectuer
+                if exercise.distance > 0 || exercise.repetitions > 0 {
+                    HStack(spacing: 16) {
+                        if exercise.distance > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "ruler")
+                                    .font(.subheadline)
+                                    .foregroundColor(.blue)
+                                Text("\(Int(exercise.distance))m")
+                                    .font(.title2.bold())
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                        
+                        if exercise.repetitions > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "repeat")
+                                    .font(.subheadline)
+                                    .foregroundColor(.green)
+                                Text("\(exercise.repetitions) reps")
+                                    .font(.title2.bold())
+                                    .foregroundColor(.green)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                }
+                
                 // Afficher l'objectif et le PR
                 VStack(spacing: 8) {
                     if let target = targetTime, target > 0 {

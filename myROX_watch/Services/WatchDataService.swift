@@ -327,6 +327,8 @@ class WatchDataService: NSObject, ObservableObject {
             UserDefaults.standard.removeObject(forKey: "pendingWorkouts")
         }
     }
+    
+
 }
 
 // MARK: - WCSessionDelegate
@@ -464,6 +466,7 @@ extension WatchDataService: WCSessionDelegate {
                         // Supprimer le template de la liste
                         self.templates.removeAll { $0.id == templateId }
                     }
+
                 default:
                     break
                 }

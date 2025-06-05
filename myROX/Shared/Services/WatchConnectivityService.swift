@@ -186,6 +186,8 @@ class WatchConnectivityService: NSObject, ObservableObject {
         }
     }
     
+
+    
     // MARK: - Receive from Watch
     
     func handleWorkoutCompleted(_ workoutData: [String: Any]) {
@@ -336,7 +338,8 @@ extension WatchConnectivityService: WCSessionDelegate {
                     if let workoutData = message["workout"] as? [String: Any] {
                         self.handleWorkoutCompleted(workoutData)
                     }
-                    
+
+
                 default:
                     break
                 }
