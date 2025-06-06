@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import FirebaseAuth
+import WatchConnectivity
 
 @MainActor
 class DashboardViewModel: ObservableObject {
@@ -70,6 +71,10 @@ class DashboardViewModel: ObservableObject {
             // Sync templates with API
             try await templateRepository.syncTemplatesWithCache()
             print("✅ Templates synchronisés avec l'API")
+            
+            // Synchroniser avec Apple Watch après synchronisation API
+            WatchConnectivityService.shared.sendTemplates()
+            print("⌚ Templates synchronisés avec Apple Watch")
         } catch {
             handleError("Erreur de synchronisation API", error)
             // Continue with local data even if API sync fails
@@ -98,6 +103,8 @@ class DashboardViewModel: ObservableObject {
     
     private func loadTemplates() {
         templates = templateRepository.getCachedTemplates()
+        // Synchroniser avec Apple Watch
+        WatchConnectivityService.shared.sendTemplates()
     }
     
     // MARK: - HYROX Events

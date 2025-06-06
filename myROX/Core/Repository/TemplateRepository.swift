@@ -117,14 +117,21 @@ class TemplateRepository: TemplateRepositoryProtocol {
                 existingTemplate.rounds = apiTemplate.rounds
                 
                 // Update exercises
+                print("🔄 Mise à jour template existant: \(existingTemplate.name)")
                 existingTemplate.exercises.removeAll()
                 for apiExercise in apiTemplate.exercises {
+                    print("📋 Mise à jour exercice: \(apiExercise.exercise.name)")
+                    print("   - distance: \(apiExercise.distance ?? 0) -> targetDistance: \(apiExercise.targetDistance ?? 0)")
+                    print("   - reps: \(apiExercise.reps ?? 0) -> targetReps: \(apiExercise.targetReps ?? 0)")
+                    
                     let templateExercise = TemplateExercise(
                         exerciseName: apiExercise.exercise.name,
                         targetDistance: apiExercise.targetDistance,
                         targetRepetitions: apiExercise.targetReps,
                         order: apiExercise.order
                     )
+                    
+                    print("   ✅ TemplateExercise mis à jour: targetDistance=\(templateExercise.targetDistance ?? 0), targetRepetitions=\(templateExercise.targetRepetitions ?? 0)")
                     existingTemplate.exercises.append(templateExercise)
                 }
             } else {
@@ -181,14 +188,22 @@ class TemplateRepository: TemplateRepositoryProtocol {
     private func convertAPITemplateToSwiftData(_ apiTemplate: APITemplate) -> WorkoutTemplate {
         let template = WorkoutTemplate(id: apiTemplate.uuid, name: apiTemplate.name, rounds: apiTemplate.rounds)
         
+        print("🔄 Conversion template API vers SwiftData: \(apiTemplate.name)")
+        
         // Convert API exercises to SwiftData TemplateExercise
         for apiExercise in apiTemplate.exercises {
+            print("📋 Exercice API: \(apiExercise.exercise.name)")
+            print("   - distance: \(apiExercise.distance ?? 0) -> targetDistance: \(apiExercise.targetDistance ?? 0)")
+            print("   - reps: \(apiExercise.reps ?? 0) -> targetReps: \(apiExercise.targetReps ?? 0)")
+            
             let templateExercise = TemplateExercise(
                 exerciseName: apiExercise.exercise.name,
                 targetDistance: apiExercise.targetDistance,
                 targetRepetitions: apiExercise.targetReps,
                 order: apiExercise.order
             )
+            
+            print("   ✅ TemplateExercise créé: targetDistance=\(templateExercise.targetDistance ?? 0), targetRepetitions=\(templateExercise.targetRepetitions ?? 0)")
             
             template.exercises.append(templateExercise)
         }

@@ -18,8 +18,18 @@ fastify.addHook('onClose', async () => {
 
 // Configuration CORS
 fastify.register(require('@fastify/cors'), {
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3001', 
+    'http://localhost:3002',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001', 
+    'http://127.0.0.1:3002',
+    'https://web.myrox.orb.local',
+    'http://web.myrox.orb.local'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true
 })
 
 // Middleware d'authentification Firebase UID
@@ -57,7 +67,7 @@ fastify.register(require('@fastify/swagger-ui'), {
 // Routes
 fastify.register(require('./src/routes/health'), { prefix: '/api/v1' })
 fastify.register(require('./src/routes/users'), { prefix: '/api/v1' })
-fastify.register(require('./src/routes/coaches'), { prefix: '/api/v1' })
+fastify.register(require('./src/routes/coaches'), { prefix: '/api/v1/coaches' })
 fastify.register(require('./src/routes/exercises'), { prefix: '/api/v1' })
 fastify.register(require('./src/routes/workouts'), { prefix: '/api/v1' })
 

@@ -1,0 +1,22 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copier les fichiers de dépendances
+COPY package*.json ./
+
+# Installer toutes les dépendances (dev + prod)
+RUN npm ci
+
+# Copier le code source
+COPY . .
+
+# Exposer le port 3002 (cohérent avec le script dev)
+EXPOSE 3002
+
+# Healthcheck pour le développement
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:3002 || exit 1
+
+# Démarrer en mode développement avec hot reload
+CMD ["npm", "run", "dev"] 

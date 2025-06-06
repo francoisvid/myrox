@@ -49,6 +49,25 @@ class WorkoutViewModel {
     // MARK: - Méthode pour charger les templates
     func fetchTemplates() {
         templates = templateRepository.getCachedTemplates()
+        // Synchroniser avec Apple Watch
+        WatchConnectivityService.shared.sendTemplates()
+    }
+    
+    // MARK: - Méthode pour synchroniser les templates depuis l'API
+    @MainActor
+    func refreshTemplatesFromAPI() async {
+        do {
+            print("🔄 Synchronisation des templates depuis l'API...")
+            try await templateRepository.syncTemplatesWithCache()
+            templates = templateRepository.getCachedTemplates()
+            print("✅ Templates synchronisés avec succès")
+            
+            // Synchroniser avec Apple Watch après mise à jour depuis l'API
+            WatchConnectivityService.shared.sendTemplates()
+            print("⌚ Templates synchronisés avec Apple Watch")
+        } catch {
+            print("❌ Erreur lors de la synchronisation des templates: \(error)")
+        }
     }
     
     // MARK: - Workout Actions

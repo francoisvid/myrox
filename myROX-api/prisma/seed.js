@@ -156,22 +156,22 @@ async function main() {
       creatorId: user.id,
       exercises: {
         create: [
-          { order: 1, exerciseId: exercises.find(e => e.name === '1km Run').id },
-          { order: 2, exerciseId: exercises.find(e => e.name === '1000m SkiErg').id },
-          { order: 3, exerciseId: exercises.find(e => e.name === '1km Run').id },
-          { order: 4, exerciseId: exercises.find(e => e.name === '50m Sled Push').id, weight: 152 },
-          { order: 5, exerciseId: exercises.find(e => e.name === '1km Run').id },
-          { order: 6, exerciseId: exercises.find(e => e.name === '50m Sled Pull').id, weight: 103 },
-          { order: 7, exerciseId: exercises.find(e => e.name === '1km Run').id },
-          { order: 8, exerciseId: exercises.find(e => e.name === '80m Burpee Broad Jumps').id },
-          { order: 9, exerciseId: exercises.find(e => e.name === '1km Run').id },
-          { order: 10, exerciseId: exercises.find(e => e.name === '1000m Row').id },
-          { order: 11, exerciseId: exercises.find(e => e.name === '1km Run').id },
-          { order: 12, exerciseId: exercises.find(e => e.name === '200m Farmers Carry').id, weight: 24 },
-          { order: 13, exerciseId: exercises.find(e => e.name === '1km Run').id },
-          { order: 14, exerciseId: exercises.find(e => e.name === '100m Sandbag Lunges').id, weight: 20 },
-          { order: 15, exerciseId: exercises.find(e => e.name === '1km Run').id },
-          { order: 16, exerciseId: exercises.find(e => e.name === '75/100 Wall Balls').id, reps: 75, weight: 9 }
+          { order: 1, exerciseId: exercises.find(e => e.name === 'Run').id },
+          { order: 2, exerciseId: exercises.find(e => e.name === 'SkiErg').id },
+          { order: 3, exerciseId: exercises.find(e => e.name === 'Run').id },
+          { order: 4, exerciseId: exercises.find(e => e.name === 'Sled Push').id, weight: 152 },
+          { order: 5, exerciseId: exercises.find(e => e.name === 'Run').id },
+          { order: 6, exerciseId: exercises.find(e => e.name === 'Sled Pull').id, weight: 103 },
+          { order: 7, exerciseId: exercises.find(e => e.name === 'Run').id },
+          { order: 8, exerciseId: exercises.find(e => e.name === 'Burpee Broad Jumps').id },
+          { order: 9, exerciseId: exercises.find(e => e.name === 'Run').id },
+          { order: 10, exerciseId: exercises.find(e => e.name === 'Row').id },
+          { order: 11, exerciseId: exercises.find(e => e.name === 'Run').id },
+          { order: 12, exerciseId: exercises.find(e => e.name === 'Farmers Carry').id, weight: 24 },
+          { order: 13, exerciseId: exercises.find(e => e.name === 'Run').id },
+          { order: 14, exerciseId: exercises.find(e => e.name === 'Sandbag Lunges').id, weight: 20 },
+          { order: 15, exerciseId: exercises.find(e => e.name === 'Run').id },
+          { order: 16, exerciseId: exercises.find(e => e.name === 'Wall Balls').id, reps: 75, weight: 9 }
         ]
       }
     }

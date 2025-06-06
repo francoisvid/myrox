@@ -23,6 +23,9 @@ struct WorkoutListView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
+            .refreshable {
+                await refreshTemplates()
+            }
             .background(Color.adaptiveGradient)
             .navigationBarTitleDisplayMode(.large)
             .navigationTitle("Entraînements")
@@ -64,6 +67,16 @@ struct WorkoutListView: View {
             }
 
         }
+    }
+    
+    // MARK: - Methods
+    
+    @MainActor
+    private func refreshTemplates() async {
+        guard let vm = viewModel else { return }
+        
+        // Synchroniser avec l'API au lieu de juste récupérer le cache
+        await vm.refreshTemplatesFromAPI()
     }
     
     // MARK: - Subviews

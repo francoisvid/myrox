@@ -109,26 +109,74 @@ npm test               # Lancer les tests
 
 ## 🔌 Endpoints API
 
-### Health Check
+L'API expose **23 routes** organisées en 5 modules principaux :
+
+### 📊 Résumé des Routes
+
+| Module | Routes | Description |
+|--------|---------|-------------|
+| **Health** | 2 | Monitoring et health checks |
+| **Users** | 8 | Gestion des profils utilisateurs et templates |
+| **Workouts** | 8 | CRUD workouts et records personnels |
+| **Exercises** | 2 | Catalogue des exercices (42 disponibles) |
+| **Coaches** | 5 | Profils et statistiques des coachs |
+
+### 🏥 Health & Monitoring
 ```http
-GET /api/v1/health
+GET /                    # Infos générales API
+GET /api/v1/health      # Health check complet  
+GET /api/v1/ping        # Ping simple
 ```
 
-### Utilisateurs
+### 👤 Users
 ```http
-GET /api/v1/users/firebase/{firebaseUID}
-POST /api/v1/users
+GET    /api/v1/users/firebase/{firebaseUID}                              # Profil utilisateur
+POST   /api/v1/users                                                     # Créer utilisateur
+PUT    /api/v1/users/firebase/{firebaseUID}                             # Modifier profil
+GET    /api/v1/users/firebase/{firebaseUID}/personal-templates          # Templates personnels
+GET    /api/v1/users/firebase/{firebaseUID}/assigned-templates          # Templates assignés
+POST   /api/v1/users/firebase/{firebaseUID}/personal-templates          # Créer template
+PUT    /api/v1/users/firebase/{firebaseUID}/personal-templates/{id}     # Modifier template
+DELETE /api/v1/users/firebase/{firebaseUID}/personal-templates/{id}     # Supprimer template
 ```
 
-### Templates
+### 🏃‍♀️ Workouts & Records
 ```http
-GET /api/v1/users/firebase/{firebaseUID}/personal-templates
-GET /api/v1/users/firebase/{firebaseUID}/assigned-templates
+GET    /api/v1/users/firebase/{firebaseUID}/workouts                    # Liste workouts
+POST   /api/v1/users/firebase/{firebaseUID}/workouts                    # Créer workout
+PUT    /api/v1/users/firebase/{firebaseUID}/workouts/{id}               # Modifier workout
+DELETE /api/v1/users/firebase/{firebaseUID}/workouts/{id}               # Supprimer workout
+GET    /api/v1/users/firebase/{firebaseUID}/personal-bests              # Records personnels
+POST   /api/v1/users/firebase/{firebaseUID}/personal-bests              # Créer record
+PUT    /api/v1/users/firebase/{firebaseUID}/personal-bests/{id}         # Modifier record
+DELETE /api/v1/users/firebase/{firebaseUID}/personal-bests/{id}         # Supprimer record
 ```
 
-### Documentation complète
-- **Swagger UI**: http://localhost:3000/docs
-- **JSON Schema**: http://localhost:3000/docs/json
+### 💪 Exercises (42 exercices disponibles)
+```http
+GET /api/v1/exercises     # Liste complète des exercices
+GET /api/v1/exercises/{id} # Exercice spécifique
+```
+
+**Catégories disponibles :**
+- **HYROX_STATION** (8 exercices) : SkiErg, Sled Push/Pull, Burpees Broad Jump, RowErg, Farmers Carry, Sandbag Lunges, Wall Balls
+- **CARDIO** (8 exercices) : Run, Assault Bike, Jump Rope, Sprint Intervals, etc.
+- **STRENGTH** (12 exercices) : Deadlifts, Thrusters, Snatches, etc.
+- **FUNCTIONAL** (14 exercices) : Squats, Burpees, Box Jumps, etc.
+
+### 👨‍🏫 Coaches
+```http
+GET /api/v1/coaches/{id}                      # Profil public coach
+GET /api/v1/coaches/{id}/athletes             # Athletes du coach (Web only)
+GET /api/v1/coaches/{id}/stats/detailed       # Statistiques détaillées
+GET /api/v1/coaches/{id}/templates            # Templates créés
+GET /api/v1/coaches/{id}/statistics           # Stats générales
+```
+
+### 📚 Documentation Interactive
+- **🔗 API Documentation complète** : [API_ROUTES.md](./API_ROUTES.md)
+- **🖥️ Swagger UI** : http://localhost:3001/docs
+- **📄 JSON Schema** : http://localhost:3001/docs/json
 
 ## 🗄️ Structure de la Base
 
