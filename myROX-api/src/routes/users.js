@@ -385,7 +385,7 @@ async function userRoutes(fastify, options) {
           description: { type: 'string' },
           rounds: { type: 'integer', minimum: 1 },
           difficulty: { type: 'string', enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'] },
-          category: { type: 'string', enum: ['HYROX', 'FUNCTIONAL', 'STRENGTH', 'CARDIO'] },
+          category: { type: 'string', enum: ['HYROX', 'FUNCTIONAL', 'STRENGTH', 'CARDIO', 'FLEXIBILITY', 'MIXED'] },
           estimatedTime: { type: 'integer', minimum: 1 },
           exercises: {
             type: 'array',
@@ -509,7 +509,7 @@ async function userRoutes(fastify, options) {
           description: { type: 'string' },
           rounds: { type: 'integer', minimum: 1 },
           difficulty: { type: 'string', enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'] },
-          category: { type: 'string', enum: ['HYROX', 'FUNCTIONAL', 'STRENGTH', 'CARDIO'] },
+          category: { type: 'string', enum: ['HYROX', 'FUNCTIONAL', 'STRENGTH', 'CARDIO', 'FLEXIBILITY', 'MIXED'] },
           estimatedTime: { type: 'integer', minimum: 1 },
           exercises: {
             type: 'array',

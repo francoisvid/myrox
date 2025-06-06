@@ -70,6 +70,7 @@ fastify.register(require('./src/routes/users'), { prefix: '/api/v1' })
 fastify.register(require('./src/routes/coaches'), { prefix: '/api/v1/coaches' })
 fastify.register(require('./src/routes/exercises'), { prefix: '/api/v1' })
 fastify.register(require('./src/routes/workouts'), { prefix: '/api/v1' })
+fastify.register(require('./src/routes/templates'), { prefix: '/api/v1/templates' })
 
 // Route racine
 fastify.get('/', async (request, reply) => {

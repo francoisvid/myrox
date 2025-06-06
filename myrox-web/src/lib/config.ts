@@ -14,8 +14,8 @@ export const config = {
   
   // Default values
   defaults: {
-    firebaseUID: 'FkCwkLcLLYhH2RCOyOs4J0Rl28G2', // TODO: Get from Firebase Auth context
-    coachId: '888346a9-b2bc-488f-8766-83deea97de8d'
+    firebaseUID: 'coach-master-456', // Coach Master (pour tester en tant que coach)
+    coachId: 'ba031335-1c73-4a3a-b296-f4d19a6a18f7' // Coach Master HYROX (nouveau)
   }
 };
 

@@ -6,12 +6,14 @@ import {
   ChartBarIcon,
   DocumentDuplicateIcon,
   HomeIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 
 const navigation = [
   { name: 'Accueil', href: '/', icon: HomeIcon },
   { name: 'Statistiques', href: '/stats', icon: ChartBarIcon },
   { name: 'Templates', href: '/templates', icon: DocumentDuplicateIcon },
+  { name: 'Mes Athlètes', href: '/coach/athletes', icon: UserGroupIcon },
 ];
 
 export default function Navigation() {

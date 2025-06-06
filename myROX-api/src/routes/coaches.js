@@ -72,7 +72,7 @@ async function coachRoutes(fastify, options) {
     }
   })
 
-  // GET /coaches/:id/athletes - Athletes du coach (pour plus tard, web only)
+  // GET /coaches/:id/athletes - Athletes du coach (web only)
   fastify.get('/:id/athletes', {
     schema: {
       description: 'Liste des athlètes d\'un coach (access web uniquement)',
@@ -84,6 +84,20 @@ async function coachRoutes(fastify, options) {
         }
       },
       response: {
+        200: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              firebaseUID: { type: 'string' },
+              email: { type: 'string' },
+              displayName: { type: 'string' },
+              createdAt: { type: 'string' },
+              lastActiveAt: { type: 'string' }
+            }
+          }
+        },
         403: {
           type: 'object',
           properties: {
@@ -95,14 +109,63 @@ async function coachRoutes(fastify, options) {
       }
     }
   }, async (request, reply) => {
-    // Cette route sera uniquement accessible via l'interface web
-    // L'app iOS ne doit pas y avoir accès
+    const { id } = request.params;
     
-    reply.code(403).send({
-      success: false,
-      error: 'Accès interdit depuis l\'app mobile',
-      message: 'Cette fonctionnalité est réservée à l\'interface web coach'
-    })
+    // Vérifier si l'appel vient de l'interface web
+    const clientType = request.headers['x-client-type'];
+    const isWebInterface = clientType === 'web';
+    
+    // Bloquer l'accès pour l'app mobile
+    if (!isWebInterface) {
+      return reply.code(403).send({
+        success: false,
+        error: 'Accès interdit depuis l\'app mobile',
+        message: 'Cette fonctionnalité est réservée à l\'interface web coach'
+      });
+    }
+    
+    fastify.log.info(`👥 Récupération des athlètes du coach: ${id}`);
+    
+    try {
+      // Récupérer le coach et ses athlètes depuis la base de données
+      const coach = await fastify.prisma.coach.findUnique({
+        where: { id },
+        include: {
+          athletes: {
+            select: {
+              id: true,
+              firebaseUID: true,
+              email: true,
+              displayName: true,
+              createdAt: true,
+              updatedAt: true
+            },
+            orderBy: { createdAt: 'desc' }
+          }
+        }
+      });
+
+      if (!coach) {
+        return reply.code(404).send({
+          success: false,
+          error: 'Coach non trouvé'
+        });
+      }
+
+      // Ajouter une date fictive de dernière activité pour chaque athlète
+      const athletesWithActivity = coach.athletes.map(athlete => ({
+        ...athlete,
+        lastActiveAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+      }));
+
+      return athletesWithActivity;
+    } catch (error) {
+      fastify.log.error(`❌ Erreur récupération athlètes coach ${id}:`, error);
+      return reply.code(500).send({
+        success: false,
+        error: 'Erreur serveur lors de la récupération des athlètes'
+      });
+    }
   })
 
   // GET /coaches/:id/stats/detailed - Statistiques détaillées du coach
@@ -262,10 +325,10 @@ async function coachRoutes(fastify, options) {
     };
   })
 
-  // GET /coaches/:id/templates - Templates créés par le coach
+  // GET /coaches/:id/templates - Templates créés par le coach (accès limité)
   fastify.get('/:id/templates', {
     schema: {
-      description: 'Récupérer tous les templates créés par un coach',
+      description: 'Récupérer tous les templates créés par un coach (access restreint)',
       tags: ['Coaches'],
       params: {
         type: 'object',
@@ -278,6 +341,19 @@ async function coachRoutes(fastify, options) {
   }, async (request, reply) => {
     const { id } = request.params;
     
+    // Vérifier si l'appel vient de l'interface web
+    const clientType = request.headers['x-client-type'];
+    const isWebInterface = clientType === 'web';
+    
+    // Bloquer l'accès pour l'app mobile
+    if (!isWebInterface) {
+      return reply.code(403).send({
+        success: false,
+        error: 'Accès interdit depuis l\'app mobile',
+        message: 'Cette fonctionnalité est réservée à l\'interface web coach'
+      });
+    }
+    
     fastify.log.info(`📋 Récupération templates coach: ${id}`);
     
     try {
@@ -285,6 +361,7 @@ async function coachRoutes(fastify, options) {
       const coach = await fastify.prisma.coach.findUnique({
         where: { id },
         include: {
+          user: true, // Inclure les infos utilisateur pour vérifier les droits
           createdTemplates: {
             include: {
               exercises: {
@@ -307,6 +384,14 @@ async function coachRoutes(fastify, options) {
         return reply.code(404).send({
           success: false,
           error: 'Coach non trouvé'
+        });
+      }
+
+      // Vérifier que l'utilisateur connecté est bien ce coach
+      if (request.user && request.user.firebaseUID !== coach.user.firebaseUID) {
+        return reply.code(403).send({
+          success: false,
+          error: 'Accès interdit - vous ne pouvez voir que vos propres templates'
         });
       }
 
@@ -344,6 +429,120 @@ async function coachRoutes(fastify, options) {
 
     } catch (error) {
       fastify.log.error('Erreur lors de la récupération des templates:', error);
+      return reply.code(500).send({
+        success: false,
+        error: 'Erreur interne du serveur'
+      });
+    }
+  })
+
+  // GET /coaches/:id/templates/for-athlete/:athleteId - Templates assignés à un athlète spécifique
+  fastify.get('/:id/templates/for-athlete/:athleteId', {
+    schema: {
+      description: 'Templates du coach assignés à un athlète spécifique',
+      tags: ['Coaches'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          athleteId: { type: 'string' }
+        },
+        required: ['id', 'athleteId']
+      }
+    }
+  }, async (request, reply) => {
+    const { id: coachId, athleteId } = request.params;
+    
+    fastify.log.info(`📋 Récupération templates coach ${coachId} pour athlète ${athleteId}`);
+    
+    try {
+      // Vérifier que l'utilisateur connecté est bien l'athlète en question
+      const athlete = await fastify.prisma.user.findUnique({
+        where: { id: athleteId }
+      });
+
+      if (!athlete) {
+        return reply.code(404).send({
+          success: false,
+          error: 'Athlète non trouvé'
+        });
+      }
+
+      if (request.user && request.user.firebaseUID !== athlete.firebaseUID) {
+        return reply.code(403).send({
+          success: false,
+          error: 'Accès interdit - vous ne pouvez voir que vos propres templates assignés'
+        });
+      }
+
+      // Vérifier que l'athlète appartient bien à ce coach
+      if (athlete.coachId !== coachId) {
+        return reply.code(403).send({
+          success: false,
+          error: 'Cet athlète n\'appartient pas à ce coach'
+        });
+      }
+
+      // Récupérer uniquement les templates assignés à cet athlète par ce coach
+      const assignedTemplates = await fastify.prisma.template.findMany({
+        where: {
+          coachId: coachId,
+          isPersonal: false, // Templates de coach uniquement
+          assignedUsers: {
+            some: {
+              id: athleteId
+            }
+          }
+        },
+        include: {
+          exercises: {
+            include: {
+              exercise: true
+            },
+            orderBy: {
+              order: 'asc'
+            }
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+
+      // Formater les templates pour l'API
+      const templates = assignedTemplates.map(template => ({
+        id: template.id,
+        name: template.name,
+        description: template.description,
+        rounds: template.rounds,
+        difficulty: template.difficulty,
+        category: template.category,
+        estimatedTime: template.estimatedTime,
+        isPersonal: template.isPersonal,
+        createdAt: template.createdAt.toISOString(),
+        updatedAt: template.updatedAt.toISOString(),
+        exercises: template.exercises.map(ex => ({
+          id: ex.id,
+          order: ex.order,
+          sets: ex.sets,
+          reps: ex.reps,
+          duration: ex.duration,
+          distance: ex.distance,
+          weight: ex.weight,
+          restTime: ex.restTime,
+          exercise: {
+            id: ex.exercise.id,
+            name: ex.exercise.name,
+            category: ex.exercise.category,
+            description: ex.exercise.description
+          }
+        }))
+      }));
+
+      return templates;
+
+    } catch (error) {
+      fastify.log.error('Erreur lors de la récupération des templates assignés:', error);
       return reply.code(500).send({
         success: false,
         error: 'Erreur interne du serveur'

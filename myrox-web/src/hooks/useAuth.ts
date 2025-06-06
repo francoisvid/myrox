@@ -10,7 +10,7 @@ export const useAuth = () => {
   
   // ID de coach réel de Francois
   // TODO: Récupérer depuis Firebase Auth
-  const coachId = '888346a9-b2bc-488f-8766-83deea97de8d';
+  const coachId = 'ba031335-1c73-4a3a-b296-f4d19a6a18f7';
 
   useEffect(() => {
     // Simulation d'une vérification d'auth

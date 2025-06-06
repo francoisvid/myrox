@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Template } from '@/types';
 import { coachesApi, templatesApi } from '@/lib/api';
+import { config } from '@/lib/config';
 
 export const useTemplates = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -8,8 +9,8 @@ export const useTemplates = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Firebase UID réel
-  const FIREBASE_UID = 'FkCwkLcLLYhH2RCOyOs4J0Rl28G2';
+  // Utiliser la configuration dynamique
+  const FIREBASE_UID = config.defaults.firebaseUID;
 
   const fetchTemplates = useCallback(async () => {
     try {

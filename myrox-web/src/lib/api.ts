@@ -9,6 +9,7 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'X-Client-Type': 'web', // Identifier les appels depuis l'interface web
   },
 });
 
