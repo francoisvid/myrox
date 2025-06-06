@@ -126,8 +126,27 @@ export default function TemplatesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {templates.map((template) => (
               <div key={template.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow duration-200">
+                
                 <div className="p-6">
                   {/* En-tête du template */}
+                  {/* Actions */}
+                  <div className="flex justify-end space-x-2 mb-2 ">
+                    <Link
+                      href={`/templates/${template.id}/edit`}
+                      className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
+                      title="Modifier"
+                    >
+                      <PencilIcon className="w-4 h-4" />
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(template.id)}
+                      className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                      title="Supprimer"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+
                   <div className="flex justify-between items-start mb-4">
                     <h3 className="text-lg font-semibold text-gray-900 truncate">
                       {template.name}
@@ -164,12 +183,12 @@ export default function TemplatesPage() {
                   </div>
 
                   {/* Exercices */}
-                  <div className="border-t pt-4">
+                  <div className="border-t pt-4 min-h-[170px]">
                     <h4 className="font-medium text-gray-900 mb-2">
                       Exercices ({template.exercises?.length || 0})
                     </h4>
                     <div className="space-y-2">
-                      {template.exercises?.slice(0, 3).map((exercise, index) => (
+                      {template.exercises?.slice(0, 4).map((exercise, index) => (
                         <div key={exercise.id} className="flex items-center justify-between">
                           <div className="flex-1">
                             <span className="text-sm text-gray-600">
@@ -195,7 +214,7 @@ export default function TemplatesPage() {
                           </div>
                         </div>
                       ))}
-                      {template.exercises && template.exercises.length > 3 && (
+                      {template.exercises && template.exercises.length > 4 && (
                         <div className="text-sm text-gray-500">
                           ... et {template.exercises.length - 3} autre{template.exercises.length - 3 > 1 ? 's' : ''}
                         </div>
@@ -204,26 +223,8 @@ export default function TemplatesPage() {
                   </div>
 
                   {/* Date de création */}
-                  <div className="mt-4 pt-4 border-t text-xs text-gray-400">
+                  <div className="mt-4 pt-4 border-t text-xs text-gray-400 justify-end flex">
                     Créé le {new Date(template.createdAt).toLocaleDateString('fr-FR')}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="mt-4 flex justify-end space-x-2">
-                    <Link
-                      href={`/templates/${template.id}/edit`}
-                      className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
-                      title="Modifier"
-                    >
-                      <PencilIcon className="w-4 h-4" />
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(template.id)}
-                      className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
-                      title="Supprimer"
-                    >
-                      <TrashIcon className="w-4 h-4" />
-                    </button>
                   </div>
                 </div>
               </div>

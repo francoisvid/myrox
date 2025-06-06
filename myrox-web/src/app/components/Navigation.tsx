@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 import {
   ChartBarIcon,
   DocumentDuplicateIcon,
@@ -24,8 +25,9 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">myROX Coach</h1>
+            <div className="flex gap-2 flex-shrink-0 flex items-center">
+              <Image src="/logo_myrox.png" className="rounded-md" alt="myROX Coach" width={42} height={32} />
+              <h1 className="text-xl font-bold text-gray-900">MyROX Coach</h1>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
               {navigation.map((item) => {

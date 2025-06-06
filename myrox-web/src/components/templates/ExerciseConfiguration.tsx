@@ -22,7 +22,7 @@ export default function ExerciseConfiguration({
     reps: existingConfig?.reps || 0,
     duration: existingConfig?.duration || 0,
     weight: existingConfig?.weight || 0,
-    restTime: existingConfig?.restTime || 60,
+    restTime: existingConfig?.restTime || null,
     notes: existingConfig?.notes || '',
   });
 

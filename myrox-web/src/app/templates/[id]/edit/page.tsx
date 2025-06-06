@@ -180,7 +180,7 @@ export default function EditTemplatePage() {
 
           <div className="p-6 space-y-6">
             {/* Informations de base */}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="flex flex-col justify-between items-center gap-4 sm:flex-row">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                   Nom du template *
