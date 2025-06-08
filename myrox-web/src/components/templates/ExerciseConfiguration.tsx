@@ -22,7 +22,7 @@ export default function ExerciseConfiguration({
     reps: existingConfig?.reps || 0,
     duration: existingConfig?.duration || 0,
     weight: existingConfig?.weight || 0,
-    restTime: existingConfig?.restTime || null,
+    restTime: existingConfig?.restTime || null, // Null par défaut
     notes: existingConfig?.notes || '',
   });
 
@@ -117,7 +117,7 @@ export default function ExerciseConfiguration({
       duration: activeParams.hasDuration && config.duration > 0 ? config.duration : undefined,
       distance: activeParams.hasDistance && config.distance > 0 ? config.distance : undefined,
       weight: activeParams.hasWeight && config.weight > 0 ? config.weight : undefined,
-      restTime: config.restTime,
+      restTime: config.restTime || undefined,
       notes: config.notes || undefined,
       exercise: exercise,
     };
@@ -254,10 +254,14 @@ export default function ExerciseConfiguration({
               <label className="block text-sm font-medium text-gray-700 mb-2">Temps de repos (s)</label>
               <input
                 type="number"
-                value={config.restTime}
-                onChange={(e) => setConfig(prev => ({ ...prev, restTime: Number(e.target.value) }))}
+                value={config.restTime || ''}
+                onChange={(e) => setConfig(prev => ({ 
+                  ...prev, 
+                  restTime: e.target.value === '' ? null : Number(e.target.value) 
+                }))}
                 className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 min="0"
+                placeholder="Temps de repos en secondes"
               />
             </div>
 

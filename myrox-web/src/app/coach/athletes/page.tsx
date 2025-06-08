@@ -13,6 +13,8 @@ import { useAthletes } from '@/hooks/useAthletes';
 import { useTemplates } from '@/hooks/useTemplates';
 import { User, Template } from '@/types';
 import TemplateAssignmentModal from '@/components/coach/TemplateAssignmentModal';
+import TemplateAssignmentManager from '@/components/coach/TemplateAssignmentManager';
+import { config } from '@/lib/config';
 
 export default function AthletesPage() {
   const { athletes, loading: athletesLoading, error: athletesError, refetch } = useAthletes();
@@ -21,6 +23,7 @@ export default function AthletesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'athletes' | 'assignments'>('athletes');
 
   // Filtrer les athlètes selon la recherche
   const filteredAthletes = athletes.filter(athlete =>
@@ -81,23 +84,57 @@ export default function AthletesPage() {
                 Gérez vos athlètes et assignez-leur des templates d'entraînement
               </p>
             </div>
-            <div className="mt-4 flex md:mt-0 md:ml-4">
-              <button
-                onClick={openAssignmentModal}
-                disabled={selectedAthletes.length === 0}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <DocumentPlusIcon className="h-4 w-4 mr-2" />
-                Assigner Templates ({selectedAthletes.length})
-              </button>
+            {activeTab === 'athletes' && (
+              <div className="mt-4 flex md:mt-0 md:ml-4">
+                <button
+                  onClick={openAssignmentModal}
+                  disabled={selectedAthletes.length === 0}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <DocumentPlusIcon className="h-4 w-4 mr-2" />
+                  Assigner Templates ({selectedAthletes.length})
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {/* Navigation par onglets */}
+          <div className="mt-6">
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8">
+                <button
+                  onClick={() => setActiveTab('athletes')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'athletes'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <UserGroupIcon className="h-5 w-5 mr-2 inline" />
+                  Athlètes ({athletes.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('assignments')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'assignments'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <DocumentPlusIcon className="h-5 w-5 mr-2 inline" />
+                  Assignations
+                </button>
+              </nav>
             </div>
           </div>
         </div>
       </div>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {/* Statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {activeTab === 'athletes' && (
+          <>
+            {/* Statistiques */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="p-5">
               <div className="flex items-center">
@@ -281,6 +318,17 @@ export default function AthletesPage() {
             </div>
           )}
         </div>
+          </>
+        )}
+
+        {activeTab === 'assignments' && (
+          <TemplateAssignmentManager 
+            coachId={config.defaults.coachId}
+            onUpdate={() => {
+              // Optionnel: recharger les données si nécessaire
+            }}
+          />
+        )}
       </main>
 
       {/* Modal d'assignation */}

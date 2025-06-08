@@ -420,15 +420,24 @@ async function userRoutes(fastify, options) {
     try {
       fastify.log.info(`✨ Création template pour user: ${firebaseUID}`)
       
-      // Vérifier que l'utilisateur existe
+      // Vérifier que l'utilisateur existe et vérifier s'il est coach
       const user = await fastify.prisma.user.findUnique({
-        where: { firebaseUID }
+        where: { firebaseUID },
+        include: {
+          coachProfile: true // Inclure le profil coach s'il existe
+        }
       })
       
       if (!user) {
         reply.code(404).send({ success: false, error: 'Utilisateur non trouvé' })
         return
       }
+      
+      // Déterminer si c'est un template personnel ou de coach
+      const isCoach = !!user.coachProfile
+      const coachId = isCoach ? user.coachProfile.id : null
+      
+      fastify.log.info(`📋 Utilisateur ${user.displayName} - Coach: ${isCoach}, CoachId: ${coachId}`)
       
       // Préparer les données du template
       const templateCreateData = {
@@ -439,7 +448,8 @@ async function userRoutes(fastify, options) {
         category: templateData.category || 'FUNCTIONAL',
         estimatedTime: templateData.estimatedTime || 30,
         creatorId: user.id,
-        isPersonal: true
+        coachId: coachId,
+        isPersonal: !isCoach // Si c'est un coach, ce n'est pas personnel
       }
       
       // Créer le template avec les exercices
@@ -559,9 +569,12 @@ async function userRoutes(fastify, options) {
         })
       }
       
-      // Vérifier que l'utilisateur existe et que le template lui appartient
+      // Vérifier que l'utilisateur existe et vérifier s'il est coach
       const user = await fastify.prisma.user.findUnique({
-        where: { firebaseUID }
+        where: { firebaseUID },
+        include: {
+          coachProfile: true // Inclure le profil coach s'il existe
+        }
       })
       
       if (!user) {
@@ -569,12 +582,16 @@ async function userRoutes(fastify, options) {
         return
       }
       
+      const isCoach = !!user.coachProfile
+      
       // Vérifier que le template appartient à l'utilisateur
       const existingTemplate = await fastify.prisma.template.findFirst({
         where: {
           id: normalizedTemplateId,
           creatorId: user.id,
-          isPersonal: true
+          // Pour un coach, on peut modifier tous ses templates (personnels ou non)
+          // Pour un utilisateur normal, seulement les templates personnels
+          ...(isCoach ? {} : { isPersonal: true })
         },
         include: {
           exercises: true
@@ -728,9 +745,12 @@ async function userRoutes(fastify, options) {
       
       fastify.log.info(`🗑️ Suppression template: ${normalizedTemplateId} pour user: ${firebaseUID}`)
       
-      // Vérifier que l'utilisateur existe
+      // Vérifier que l'utilisateur existe et vérifier s'il est coach
       const user = await fastify.prisma.user.findUnique({
-        where: { firebaseUID }
+        where: { firebaseUID },
+        include: {
+          coachProfile: true // Inclure le profil coach s'il existe
+        }
       })
       
       if (!user) {
@@ -739,14 +759,18 @@ async function userRoutes(fastify, options) {
         return
       }
       
-      fastify.log.info(`✅ Utilisateur trouvé: ${user.id}`)
+      const isCoach = !!user.coachProfile
+      
+      fastify.log.info(`✅ Utilisateur trouvé: ${user.id} - Coach: ${isCoach}`)
       
       // Vérifier que le template appartient à l'utilisateur
       const existingTemplate = await fastify.prisma.template.findFirst({
         where: {
           id: normalizedTemplateId,
           creatorId: user.id,
-          isPersonal: true
+          // Pour un coach, on peut supprimer tous ses templates (personnels ou non)
+          // Pour un utilisateur normal, seulement les templates personnels
+          ...(isCoach ? {} : { isPersonal: true })
         }
       })
       
