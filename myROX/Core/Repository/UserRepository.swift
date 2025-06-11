@@ -140,15 +140,17 @@ class MockUserRepository: UserRepositoryProtocol {
         // Create a mock coach
         return mockCoach ?? APICoach(
             id: coachId.uuidString,
-            firebaseUID: "coach123",
-            displayName: "Coach Test",
+            name: "Coach Test",
             email: "coach@test.com",
-            specialization: "HYROX",
             bio: "Coach de test spécialisé HYROX avec plus de 5 ans d'expérience",
+            certifications: ["HYROX Master Trainer", "CrossFit Level 2"],
+            profilePicture: nil,
             createdAt: Date().apiString,
+            isActive: true,
             athleteCount: 15,
             totalWorkouts: 250,
-            averageWorkoutDuration: 45 * 60 // 45 minutes
+            averageWorkoutDuration: 45 * 60, // 45 minutes
+            specialization: "HYROX"
         )
     }
     

@@ -135,7 +135,7 @@ class APIService {
             // Debug response AVANT de vérifier les codes d'erreur
             #if DEBUG
             if let responseString = String(data: data, encoding: .utf8) {
-                print("📥 Response Body: \(responseString)")
+                //print("📥 Response Body: \(responseString)")
             }
             #endif
             

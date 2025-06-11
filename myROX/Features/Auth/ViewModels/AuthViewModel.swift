@@ -9,6 +9,8 @@ class AuthViewModel: NSObject, ObservableObject {
     @Published var showAlert = false
     @Published var alertMessage = ""
     @Published var isLoggedIn = false
+    @Published var needsOnboarding = false
+    @Published var onboardingCompleted = false
     
     // Propriété pour stocker le nonce sécurisé
     private var currentNonce: String?
@@ -43,7 +45,67 @@ class AuthViewModel: NSObject, ObservableObject {
         // Vérifier si un utilisateur est déjà connecté
         if Auth.auth().currentUser != nil {
             isLoggedIn = true
+            checkOnboardingStatus()
         }
+    }
+    
+    // Vérifier le statut d'onboarding
+    private func checkOnboardingStatus() {
+        guard let currentUser = Auth.auth().currentUser else { return }
+        
+        Task {
+            do {
+                let hasCompleted = try await checkOnboardingCompleted(firebaseUID: currentUser.uid)
+                
+                await MainActor.run {
+                    if hasCompleted {
+                        self.onboardingCompleted = true
+                        self.needsOnboarding = false
+                    } else {
+                        self.needsOnboarding = true
+                        self.onboardingCompleted = false
+                    }
+                }
+            } catch {
+                // Si erreur (pas d'informations), on suppose qu'il faut faire l'onboarding
+                await MainActor.run {
+                    self.needsOnboarding = true
+                    self.onboardingCompleted = false
+                }
+            }
+        }
+    }
+    
+    private func checkOnboardingCompleted(firebaseUID: String) async throws -> Bool {
+        guard let url = URL(string: "http://localhost:3001/api/v1/users/firebase/\(firebaseUID)/informations") else {
+            throw URLError(.badURL)
+        }
+        
+        var request = URLRequest(url: url)
+        request.setValue(firebaseUID, forHTTPHeaderField: "x-firebase-uid")
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        
+        if httpResponse.statusCode == 404 {
+            return false // Pas d'informations = onboarding requis
+        }
+        
+        if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
+            throw URLError(.badServerResponse)
+        }
+        
+        let userInfo = try JSONDecoder().decode(UserInformationsResponse.self, from: data)
+        return userInfo.hasCompletedOnboarding
+    }
+    
+    // Marquer l'onboarding comme complété
+    func markOnboardingCompleted() {
+        onboardingCompleted = true
+        needsOnboarding = false
     }
     
     func signOut() {
@@ -234,6 +296,7 @@ extension AuthViewModel: ASAuthorizationControllerDelegate {
                         print("Connexion Firebase avec Apple réussie ! User: \(authResult.user.uid)")
                         self.isLoggedIn = true
                         self.handleAppleUserInfo(credential: appleIDCredential, firebaseUser: authResult.user)
+                        self.checkOnboardingStatus()
                     }
                 }
             }
@@ -323,4 +386,9 @@ extension AuthViewModel: ASAuthorizationControllerPresentationContextProviding {
         }
         return window
     }
+}
+
+// MARK: - Response Models
+struct UserInformationsResponse: Codable {
+    let hasCompletedOnboarding: Bool
 }

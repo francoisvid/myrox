@@ -62,23 +62,30 @@ struct APIUser: Codable, Identifiable {
 /// Modèle représentant un coach (lecture seule pour iOS)
 struct APICoach: Codable, Identifiable {
     let id: String
-    let firebaseUID: String
-    let displayName: String
+    let name: String // L'API retourne "name" au lieu de "displayName"
     let email: String?
-    let specialization: String?
     let bio: String?
+    let certifications: [String]?
+    let profilePicture: String?
     let createdAt: String
+    let isActive: Bool?
     
-    // Statistiques du coach (calculées côté serveur)
+    // Statistiques du coach (calculées côté serveur, optionnelles)
     let athleteCount: Int?
     let totalWorkouts: Int?
     let averageWorkoutDuration: Int? // en secondes
+    let specialization: String?
     
     // MARK: - Computed Properties
     
     /// UUID généré depuis l'ID string
     var uuid: UUID {
         return UUID(uuidString: id) ?? UUID()
+    }
+    
+    /// Nom d'affichage (pour compatibilité avec l'interface)
+    var displayName: String {
+        return name
     }
     
     /// Date de création parsée

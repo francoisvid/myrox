@@ -34,6 +34,8 @@ class WorkoutViewModel {
     
     // MARK: - Templates
     var templates: [WorkoutTemplate] = []
+    var apiTemplates: [APITemplate] = [] // Pour accéder aux infos API
+    var apiTemplatesLoaded: Bool = false // Pour déclencher le rafraîchissement de la vue
     
     init(
         modelContext: ModelContext, 
@@ -51,6 +53,31 @@ class WorkoutViewModel {
         templates = templateRepository.getCachedTemplates()
         // Synchroniser avec Apple Watch
         WatchConnectivityService.shared.sendTemplates()
+        
+        // Charger les templates API au démarrage pour avoir les métadonnées
+        Task {
+            await loadAPITemplates()
+        }
+    }
+    
+    // MARK: - Méthode pour charger les templates API
+    @MainActor
+    private func loadAPITemplates() async {
+        do {
+            let personalTemplates = try await templateRepository.fetchPersonalTemplates()
+            let assignedTemplates = try await templateRepository.fetchAssignedTemplates()
+            
+            apiTemplates = personalTemplates + assignedTemplates
+            apiTemplatesLoaded = true // Déclenche le rafraîchissement de la vue
+            print("📋 Templates API chargés au démarrage: \(personalTemplates.count) personnels, \(assignedTemplates.count) assignés")
+        } catch {
+            print("⚠️ Erreur lors du chargement des templates API au démarrage: \(error)")
+        }
+    }
+    
+    // MARK: - Méthode pour récupérer l'APITemplate correspondant à un WorkoutTemplate
+    func getAPITemplate(for workoutTemplate: WorkoutTemplate) -> APITemplate? {
+        return apiTemplates.first { $0.uuid == workoutTemplate.id }
     }
     
     // MARK: - Méthode pour synchroniser les templates depuis l'API
@@ -58,6 +85,16 @@ class WorkoutViewModel {
     func refreshTemplatesFromAPI() async {
         do {
             print("🔄 Synchronisation des templates depuis l'API...")
+            
+            // Récupérer les templates API
+            let personalTemplates = try await templateRepository.fetchPersonalTemplates()
+            let assignedTemplates = try await templateRepository.fetchAssignedTemplates()
+            
+            // Stocker les templates API pour accéder aux métadonnées
+            apiTemplates = personalTemplates + assignedTemplates
+            print("📋 Templates API chargés: \(personalTemplates.count) personnels, \(assignedTemplates.count) assignés")
+            
+            // Synchroniser avec le cache local
             try await templateRepository.syncTemplatesWithCache()
             templates = templateRepository.getCachedTemplates()
             print("✅ Templates synchronisés avec succès")

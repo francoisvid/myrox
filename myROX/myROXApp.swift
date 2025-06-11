@@ -38,11 +38,15 @@ struct MyROXApp: App {
                                 }
                             }
                         }
-                } else if authViewModel.isLoggedIn {
+                } else if authViewModel.isLoggedIn && authViewModel.onboardingCompleted {
                     ContentView()
                         .environmentObject(authViewModel)
                         .environmentObject(exerciseSyncService)
                         .background(Color.adaptiveGradient)
+                        .transition(.opacity)
+                } else if authViewModel.isLoggedIn && authViewModel.needsOnboarding {
+                    OnboardingCoordinatorView()
+                        .environmentObject(authViewModel)
                         .transition(.opacity)
                 } else {
                     LoginView()
@@ -113,5 +117,33 @@ extension Color {
             startPoint: .top,
             endPoint: .bottom
         )
+    }()
+    
+    // Couleurs spécifiques pour l'onboarding
+    static let adaptiveOnboardingBackground: LinearGradient = {
+        LinearGradient(
+            gradient: Gradient(colors: [
+                Color(.systemBackground),
+                Color(.systemBackground).opacity(0.8)
+            ]),
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }()
+    
+    static let adaptiveCardBackground: Color = {
+        Color(.secondarySystemBackground)
+    }()
+    
+    static let adaptiveBorderColor: Color = {
+        Color(.separator)
+    }()
+    
+    static let adaptiveTextPrimary: Color = {
+        Color(.label)
+    }()
+    
+    static let adaptiveTextSecondary: Color = {
+        Color(.secondaryLabel)
     }()
 }

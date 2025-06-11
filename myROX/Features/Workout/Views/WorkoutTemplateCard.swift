@@ -4,6 +4,7 @@ import SwiftUI
 
 struct WorkoutTemplateCard: View {
     let template: WorkoutTemplate
+    let apiTemplate: APITemplate?
     let isActive: Bool
     let onStart: () -> Void
     let onDelete: () -> Void
@@ -13,6 +14,10 @@ struct WorkoutTemplateCard: View {
     @State private var exercises: [Exercise] = []
     @State private var showDeleteAlert = false
     @Query private var goals: [ExerciseGoal]
+    
+    private var isAssignedByCoach: Bool {
+        return apiTemplate?.isAssignedByCoach ?? false
+    }
     
     private var sortedTemplateExercises: [TemplateExercise] {
         template.exercises.sorted(by: { $0.order < $1.order })
@@ -74,11 +79,22 @@ struct WorkoutTemplateCard: View {
                             .clipShape(Capsule())
                     }
                 }
+                
+                if isAssignedByCoach {
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.blue)
+                            .font(.caption2)
+                        
+                        Text("Assigné par votre coach")
+                            .font(.caption2)
+                            .foregroundColor(.blue)
+                    }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.top, 16)
             
-            // Exercise list preview with parameters
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(Array(sortedTemplateExercises.prefix(4).enumerated()), id: \.element.id) { index, templateExercise in
                     TemplateExercisePreviewRow(
@@ -137,12 +153,6 @@ struct WorkoutTemplateCard: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(isActive ? Color.yellow : Color.clear, lineWidth: 2)
         )
-//        .shadow(
-//            color: isActive ? .yellow.opacity(0.4) : .black.opacity(0.15),
-//            radius: isActive ? 12 : 6,
-//            x: 0,
-//            y: isActive ? 6 : 3
-//        )
         .onAppear {
             loadExercises()
         }

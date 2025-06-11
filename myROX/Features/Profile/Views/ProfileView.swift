@@ -60,6 +60,9 @@ struct ProfileHeaderView: View {
     @ObservedObject var viewModel: ProfileViewModel
     @State private var isEditing = false
     @State private var draftName = ""
+    @State private var userProfile: APIUser?
+    @State private var isCoached = false
+    @State private var coachInfo: APICoach?
     
     var body: some View {
         VStack(spacing: 16) {
@@ -113,10 +116,61 @@ struct ProfileHeaderView: View {
                         Text(viewModel.email)
                             .font(.caption)
                             .foregroundColor(.gray)
+                        
+                        // Informations supplémentaires
+                        HStack(spacing: 16) {
+                            // Date de création
+                            if let profile = userProfile {
+                                Text("Membre depuis \(formatDateFrench(profile.createdAt))")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                        }
                     }
                 }
                 
                 Spacer()
+            }
+            
+            // Section coach (si présent)
+            if let coach = coachInfo {
+                Divider()
+                    .background(Color.gray.opacity(0.3))
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 12) {
+                        // Avatar coach
+                        Circle()
+                            .fill(Color.blue.opacity(0.2))
+                            .frame(width: 40, height: 40)
+                            .overlay {
+                                Text(coachInitial(from: coach.displayName))
+                                    .font(.headline.bold())
+                                    .foregroundColor(.blue)
+                            }
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(coach.displayName)
+                                .font(.subheadline.bold())
+                                .foregroundColor(Color(.label))
+                            
+                            if let specialization = coach.specialization {
+                                Text("Spécialité: \(specialization)")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                            
+                            if let bio = coach.bio, !bio.isEmpty {
+                                Text(bio)
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                                    .lineLimit(2)
+                            }
+                        }
+                        
+                        Spacer()
+                    }
+                }
             }
             
             // Info si nom par défaut
@@ -135,6 +189,49 @@ struct ProfileHeaderView: View {
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
+        .onAppear {
+            loadUserProfile()
+        }
+    }
+    
+    private func loadUserProfile() {
+        Task {
+            do {
+                let userRepository = UserRepository()
+                userProfile = try await userRepository.syncCurrentUser()
+                isCoached = userProfile?.hasAssignedCoach ?? false
+                
+                // Charger les infos du coach si disponible
+                if let coachUUID = userProfile?.coachUUID {
+                    coachInfo = try await userRepository.fetchCoach(coachId: coachUUID)
+                }
+            } catch {
+                print("Erreur chargement profil: \(error)")
+            }
+        }
+    }
+    
+    private func formatDateFrench(_ dateString: String) -> String {
+        // L'API retourne probablement une date ISO8601, on va la parser et la reformater
+        let isoFormatter = ISO8601DateFormatter()
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "dd/MM/yyyy"
+        dateFormatter.locale = Locale(identifier: "fr_FR")
+        
+        if let date = isoFormatter.date(from: dateString) {
+            return dateFormatter.string(from: date)
+        }
+        
+        // Fallback si le parsing échoue
+        return dateString
+    }
+    
+    // Helper function for coach initial
+    private func coachInitial(from name: String?) -> String {
+        guard let name = name, let firstChar = name.first else {
+            return "C"
+        }
+        return String(firstChar).uppercased()
     }
 }
 

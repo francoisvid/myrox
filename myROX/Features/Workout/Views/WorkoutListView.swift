@@ -116,6 +116,7 @@ struct WorkoutListView: View {
                 ForEach(templates) { template in
                     WorkoutTemplateCard(
                         template: template,
+                        apiTemplate: viewModel?.getAPITemplate(for: template),
                         isActive: viewModel?.activeWorkout?.templateID == template.id,
                         onStart: {
                             selectedTemplate = template

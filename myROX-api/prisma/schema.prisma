@@ -31,6 +31,7 @@ model User {
   workouts               Workout[]
   personalBests          PersonalBest[]
   coachProfile           Coach?     @relation("CoachUser")
+  userInformations       UserInformations?
 
   @@map("users")
 }
@@ -215,4 +216,92 @@ enum ExerciseCategory {
   CARDIO
   FLEXIBILITY
   HYROX_STATION
+}
+
+// MARK: - Onboarding Enums
+
+enum HyroxExperience {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum HyroxGoal {
+  FIRST_PARTICIPATION
+  IMPROVE_TIME
+  PROFESSIONAL_COMPETITION
+}
+
+enum TrainingFrequency {
+  ONCE_WEEK      // 1x/semaine
+  TWICE_WEEK     // 2x/semaine
+  THREE_WEEK     // 3x/semaine
+  FOUR_WEEK      // 4x/semaine
+  FIVE_PLUS_WEEK // 5x+/semaine
+}
+
+enum SessionDuration {
+  THIRTY_MIN    // 30 minutes
+  FORTY_FIVE_MIN // 45 minutes
+  ONE_HOUR      // 1 heure
+  ONE_HOUR_PLUS // 1h+
+}
+
+enum TrainingTime {
+  MORNING   // Matin
+  MIDDAY    // Midi
+  EVENING   // Soir
+  FLEXIBLE  // Flexible
+}
+
+enum TrainingIntensity {
+  SHORT_INTENSE    // Courtes et intenses
+  LONG_MODERATE    // Longues et modérées
+  MIXED           // Mixte
+}
+
+model UserInformations {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Indicateur de completion
+  hasCompletedOnboarding Boolean @default(false) @map("has_completed_onboarding")
+  
+  // Étape 1: Profil HYROX
+  hyroxExperience       HyroxExperience? @map("hyrox_experience")
+  hasCompetedHyrox      Boolean?         @map("has_competed_hyrox")
+  primaryGoal           HyroxGoal?       @map("primary_goal")
+  
+  // Étape 2: Condition physique
+  currentTrainingFrequency TrainingFrequency? @map("current_training_frequency")
+  trainingTypes           String[]           @map("training_types") // ["RUNNING", "STRENGTH", "CROSSFIT", "SWIMMING", "CYCLING"]
+  fitnessLevel            Int?               @map("fitness_level") // 1-10
+  injuriesLimitations     String?            @map("injuries_limitations")
+  
+  // Étape 3: Équipements & Salle
+  familiarWithHyroxStations Boolean?         @map("familiar_hyrox_stations")
+  difficultExercises        String[]         @map("difficult_exercises") // IDs des exercices difficiles
+  hasGymAccess             Boolean?          @map("has_gym_access")
+  gymName                  String?           @map("gym_name")
+  gymLocation              String?           @map("gym_location") // Adresse ou coordonnées
+  availableEquipment       String[]          @map("available_equipment") // ["SKIERG", "SLED", "ROWERG", "WALL_BALLS", etc.]
+  
+  // Étape 4: Planning
+  preferredTrainingFrequency TrainingFrequency? @map("preferred_training_frequency")
+  preferredSessionDuration   SessionDuration?   @map("preferred_session_duration")
+  targetCompetitionDate      DateTime?          @map("target_competition_date")
+  preferredTrainingTime      TrainingTime?      @map("preferred_training_time")
+  
+  // Étape 5: Préférences
+  preferredIntensity      TrainingIntensity? @map("preferred_intensity")
+  prefersStructuredProgram Boolean?          @map("prefers_structured_program")
+  wantsNotifications      Boolean?           @map("wants_notifications")
+  
+  // Timestamps
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  completedAt          DateTime? @map("completed_at")
+
+  @@map("user_informations")
 }

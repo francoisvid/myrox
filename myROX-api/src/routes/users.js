@@ -815,6 +815,351 @@ async function userRoutes(fastify, options) {
       })
     }
   })
+
+  // GET /users/firebase/:firebaseUID/informations - Récupérer les informations utilisateur
+  fastify.get('/users/firebase/:firebaseUID/informations', {
+    schema: {
+      description: 'Récupérer les informations d\'onboarding utilisateur',
+      tags: ['Users'],
+      params: {
+        type: 'object',
+        properties: {
+          firebaseUID: { type: 'string' }
+        },
+        required: ['firebaseUID']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            userId: { type: 'string' },
+            hasCompletedOnboarding: { type: 'boolean' },
+            hyroxExperience: { type: 'string' },
+            hasCompetedHyrox: { type: 'boolean' },
+            primaryGoal: { type: 'string' },
+            currentTrainingFrequency: { type: 'string' },
+            trainingTypes: { type: 'array', items: { type: 'string' } },
+            fitnessLevel: { type: 'number' },
+            injuriesLimitations: { type: 'string' },
+            familiarWithHyroxStations: { type: 'boolean' },
+            difficultExercises: { type: 'array', items: { type: 'string' } },
+            hasGymAccess: { type: 'boolean' },
+            gymName: { type: 'string' },
+            gymLocation: { type: 'string' },
+            availableEquipment: { type: 'array', items: { type: 'string' } },
+            preferredTrainingFrequency: { type: 'string' },
+            preferredSessionDuration: { type: 'string' },
+            targetCompetitionDate: { type: 'string' },
+            preferredTrainingTime: { type: 'string' },
+            preferredIntensity: { type: 'string' },
+            prefersStructuredProgram: { type: 'boolean' },
+            wantsNotifications: { type: 'boolean' },
+            createdAt: { type: 'string' },
+            updatedAt: { type: 'string' },
+            completedAt: { type: 'string' }
+          }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            error: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { firebaseUID } = request.params
+    
+    // Vérifier que l'utilisateur demande ses propres informations
+    if (!request.user || request.user.firebaseUID !== firebaseUID) {
+      reply.code(403).send({
+        success: false,
+        error: 'Accès interdit - Vous ne pouvez consulter que vos propres informations'
+      })
+      return
+    }
+    
+    try {
+      const user = await fastify.prisma.user.findUnique({
+        where: { firebaseUID },
+        include: {
+          userInformations: true
+        }
+      })
+      
+      if (!user) {
+        reply.code(404).send({
+          success: false,
+          error: 'Utilisateur non trouvé'
+        })
+        return
+      }
+      
+      if (!user.userInformations) {
+        reply.code(404).send({
+          success: false,
+          error: 'Informations d\'onboarding non trouvées'
+        })
+        return
+      }
+      
+      const info = user.userInformations
+      return {
+        id: info.id,
+        userId: info.userId,
+        hasCompletedOnboarding: info.hasCompletedOnboarding,
+        hyroxExperience: info.hyroxExperience,
+        hasCompetedHyrox: info.hasCompetedHyrox,
+        primaryGoal: info.primaryGoal,
+        currentTrainingFrequency: info.currentTrainingFrequency,
+        trainingTypes: info.trainingTypes,
+        fitnessLevel: info.fitnessLevel,
+        injuriesLimitations: info.injuriesLimitations,
+        familiarWithHyroxStations: info.familiarWithHyroxStations,
+        difficultExercises: info.difficultExercises,
+        hasGymAccess: info.hasGymAccess,
+        gymName: info.gymName,
+        gymLocation: info.gymLocation,
+        availableEquipment: info.availableEquipment,
+        preferredTrainingFrequency: info.preferredTrainingFrequency,
+        preferredSessionDuration: info.preferredSessionDuration,
+        targetCompetitionDate: info.targetCompetitionDate?.toISOString(),
+        preferredTrainingTime: info.preferredTrainingTime,
+        preferredIntensity: info.preferredIntensity,
+        prefersStructuredProgram: info.prefersStructuredProgram,
+        wantsNotifications: info.wantsNotifications,
+        createdAt: info.createdAt.toISOString(),
+        updatedAt: info.updatedAt.toISOString(),
+        completedAt: info.completedAt?.toISOString()
+      }
+      
+    } catch (error) {
+      fastify.log.error('Erreur lors de la récupération des informations utilisateur:', error)
+      reply.code(500).send({
+        success: false,
+        error: 'Erreur interne du serveur'
+      })
+    }
+  })
+
+  // POST /users/firebase/:firebaseUID/informations - Créer/Compléter onboarding
+  fastify.post('/users/firebase/:firebaseUID/informations', {
+    schema: {
+      description: 'Créer ou mettre à jour les informations d\'onboarding',
+      tags: ['Users'],
+      params: {
+        type: 'object',
+        properties: {
+          firebaseUID: { type: 'string' }
+        },
+        required: ['firebaseUID']
+      },
+      body: {
+        type: 'object',
+        properties: {
+          // Étape 1
+          hyroxExperience: { type: 'string', enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'] },
+          hasCompetedHyrox: { type: 'boolean' },
+          primaryGoal: { type: 'string', enum: ['FIRST_PARTICIPATION', 'IMPROVE_TIME', 'PROFESSIONAL_COMPETITION'] },
+          
+          // Étape 2
+          currentTrainingFrequency: { type: 'string', enum: ['ONCE_WEEK', 'TWICE_WEEK', 'THREE_WEEK', 'FOUR_WEEK', 'FIVE_PLUS_WEEK'] },
+          trainingTypes: { type: 'array', items: { type: 'string' } },
+          fitnessLevel: { type: 'number', minimum: 1, maximum: 10 },
+          injuriesLimitations: { type: 'string' },
+          
+          // Étape 3
+          familiarWithHyroxStations: { type: 'boolean' },
+          difficultExercises: { type: 'array', items: { type: 'string' } },
+          hasGymAccess: { type: 'boolean' },
+          gymName: { type: 'string' },
+          gymLocation: { type: 'string' },
+          availableEquipment: { type: 'array', items: { type: 'string' } },
+          
+          // Étape 4
+          preferredTrainingFrequency: { type: 'string', enum: ['ONCE_WEEK', 'TWICE_WEEK', 'THREE_WEEK', 'FOUR_WEEK', 'FIVE_PLUS_WEEK'] },
+          preferredSessionDuration: { type: 'string', enum: ['THIRTY_MIN', 'FORTY_FIVE_MIN', 'ONE_HOUR', 'ONE_HOUR_PLUS'] },
+          targetCompetitionDate: { type: 'string', format: 'date-time' },
+          preferredTrainingTime: { type: 'string', enum: ['MORNING', 'MIDDAY', 'EVENING', 'FLEXIBLE'] },
+          
+          // Étape 5
+          preferredIntensity: { type: 'string', enum: ['SHORT_INTENSE', 'LONG_MODERATE', 'MIXED'] },
+          prefersStructuredProgram: { type: 'boolean' },
+          wantsNotifications: { type: 'boolean' },
+          
+          // Completion
+          hasCompletedOnboarding: { type: 'boolean' }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { firebaseUID } = request.params
+    const data = request.body
+    
+    // Vérifier que l'utilisateur modifie ses propres informations
+    if (!request.user || request.user.firebaseUID !== firebaseUID) {
+      reply.code(403).send({
+        success: false,
+        error: 'Accès interdit - Vous ne pouvez modifier que vos propres informations'
+      })
+      return
+    }
+    
+    try {
+      const user = await fastify.prisma.user.findUnique({
+        where: { firebaseUID },
+        include: { userInformations: true }
+      })
+      
+      if (!user) {
+        reply.code(404).send({
+          success: false,
+          error: 'Utilisateur non trouvé'
+        })
+        return
+      }
+      
+      // Préparer les données à sauvegarder
+      const saveData = {
+        ...data,
+        targetCompetitionDate: data.targetCompetitionDate ? new Date(data.targetCompetitionDate) : undefined,
+        completedAt: data.hasCompletedOnboarding ? new Date() : undefined
+      }
+      
+      let userInformations
+      
+      if (user.userInformations) {
+        // Mettre à jour les informations existantes
+        userInformations = await fastify.prisma.userInformations.update({
+          where: { userId: user.id },
+          data: saveData
+        })
+      } else {
+        // Créer de nouvelles informations
+        userInformations = await fastify.prisma.userInformations.create({
+          data: {
+            userId: user.id,
+            ...saveData
+          }
+        })
+      }
+      
+      reply.code(user.userInformations ? 200 : 201)
+      return {
+        id: userInformations.id,
+        userId: userInformations.userId,
+        hasCompletedOnboarding: userInformations.hasCompletedOnboarding,
+        message: user.userInformations ? 'Informations mises à jour avec succès' : 'Onboarding complété avec succès'
+      }
+      
+    } catch (error) {
+      fastify.log.error('Erreur lors de la sauvegarde des informations utilisateur:', {
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        meta: error.meta,
+        firebaseUID,
+        requestData: data
+      })
+      reply.code(500).send({
+        success: false,
+        error: 'Erreur interne du serveur'
+      })
+    }
+  })
+
+  // PUT /users/firebase/:firebaseUID/informations - Mettre à jour informations
+  fastify.put('/users/firebase/:firebaseUID/informations', {
+    schema: {
+      description: 'Mettre à jour partiellement les informations utilisateur',
+      tags: ['Users'],
+      params: {
+        type: 'object',
+        properties: {
+          firebaseUID: { type: 'string' }
+        },
+        required: ['firebaseUID']
+      },
+      body: {
+        type: 'object',
+        properties: {
+          // Même schéma que POST mais tous les champs optionnels
+          hyroxExperience: { type: 'string', enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'] },
+          hasCompetedHyrox: { type: 'boolean' },
+          primaryGoal: { type: 'string', enum: ['FIRST_PARTICIPATION', 'IMPROVE_TIME', 'PROFESSIONAL_COMPETITION'] },
+          currentTrainingFrequency: { type: 'string', enum: ['ONCE_WEEK', 'TWICE_WEEK', 'THREE_WEEK', 'FOUR_WEEK', 'FIVE_PLUS_WEEK'] },
+          trainingTypes: { type: 'array', items: { type: 'string' } },
+          fitnessLevel: { type: 'number', minimum: 1, maximum: 10 },
+          injuriesLimitations: { type: 'string' },
+          familiarWithHyroxStations: { type: 'boolean' },
+          difficultExercises: { type: 'array', items: { type: 'string' } },
+          hasGymAccess: { type: 'boolean' },
+          gymName: { type: 'string' },
+          gymLocation: { type: 'string' },
+          availableEquipment: { type: 'array', items: { type: 'string' } },
+          preferredTrainingFrequency: { type: 'string', enum: ['ONCE_WEEK', 'TWICE_WEEK', 'THREE_WEEK', 'FOUR_WEEK', 'FIVE_PLUS_WEEK'] },
+          preferredSessionDuration: { type: 'string', enum: ['THIRTY_MIN', 'FORTY_FIVE_MIN', 'ONE_HOUR', 'ONE_HOUR_PLUS'] },
+          targetCompetitionDate: { type: 'string', format: 'date-time' },
+          preferredTrainingTime: { type: 'string', enum: ['MORNING', 'MIDDAY', 'EVENING', 'FLEXIBLE'] },
+          preferredIntensity: { type: 'string', enum: ['SHORT_INTENSE', 'LONG_MODERATE', 'MIXED'] },
+          prefersStructuredProgram: { type: 'boolean' },
+          wantsNotifications: { type: 'boolean' }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { firebaseUID } = request.params
+    const updates = request.body
+    
+    // Vérifier que l'utilisateur modifie ses propres informations
+    if (!request.user || request.user.firebaseUID !== firebaseUID) {
+      reply.code(403).send({
+        success: false,
+        error: 'Accès interdit - Vous ne pouvez modifier que vos propres informations'
+      })
+      return
+    }
+    
+    try {
+      const user = await fastify.prisma.user.findUnique({
+        where: { firebaseUID },
+        include: { userInformations: true }
+      })
+      
+      if (!user || !user.userInformations) {
+        reply.code(404).send({
+          success: false,
+          error: 'Informations d\'onboarding non trouvées'
+        })
+        return
+      }
+      
+      // Préparer les données à mettre à jour
+      const updateData = {
+        ...updates,
+        targetCompetitionDate: updates.targetCompetitionDate ? new Date(updates.targetCompetitionDate) : undefined
+      }
+      
+      const userInformations = await fastify.prisma.userInformations.update({
+        where: { userId: user.id },
+        data: updateData
+      })
+      
+      return {
+        id: userInformations.id,
+        message: 'Informations mises à jour avec succès'
+      }
+      
+    } catch (error) {
+      fastify.log.error('Erreur lors de la mise à jour des informations utilisateur:', error)
+      reply.code(500).send({
+        success: false,
+        error: 'Erreur interne du serveur'
+      })
+    }
+  })
 }
 
 module.exports = userRoutes 
