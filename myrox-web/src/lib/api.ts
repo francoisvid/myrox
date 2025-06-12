@@ -13,11 +13,26 @@ const api = axios.create({
   },
 });
 
-// Intercepteur pour ajouter automatiquement le Firebase UID
+// Fonction pour créer une instance API avec l'authentification
+export const createAuthenticatedApi = (firebaseUID?: string) => {
+  const authenticatedApi = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Client-Type': 'web',
+      'x-firebase-uid': firebaseUID || config.defaults.firebaseUID
+    },
+  });
+  
+  return authenticatedApi;
+};
+
+// API par défaut pour la compatibilité
 api.interceptors.request.use((requestConfig) => {
-  // Pour l'instant, on utilise l'UID hardcodé. 
-  // TODO: Récupérer depuis le context Firebase Auth
-  requestConfig.headers['x-firebase-uid'] = config.defaults.firebaseUID;
+  // Fallback sur la valeur par défaut si pas d'UID fourni
+  if (!requestConfig.headers['x-firebase-uid']) {
+    requestConfig.headers['x-firebase-uid'] = config.defaults.firebaseUID;
+  }
   return requestConfig;
 });
 
@@ -30,31 +45,35 @@ export const templatesApi = {
   },
 
   // Créer un nouveau template personnel
-  createTemplate: async (template: Omit<Template, 'id' | 'createdAt' | 'updatedAt'>): Promise<Template> => {
-    const firebaseUID = config.defaults.firebaseUID;
-    const response = await api.post(`/users/firebase/${firebaseUID}/personal-templates`, template);
+  createTemplate: async (template: Omit<Template, 'id' | 'createdAt' | 'updatedAt'>, firebaseUID?: string): Promise<Template> => {
+    const uid = firebaseUID || config.defaults.firebaseUID;
+    const authenticatedApi = createAuthenticatedApi(uid);
+    const response = await authenticatedApi.post(`/users/firebase/${uid}/personal-templates`, template);
     return response.data;
   },
 
   // Mettre à jour un template personnel
-  updateTemplate: async (id: string, template: Partial<Template>): Promise<Template> => {
-    const firebaseUID = config.defaults.firebaseUID;
-    const response = await api.put(`/users/firebase/${firebaseUID}/personal-templates/${id}`, template);
+  updateTemplate: async (id: string, template: Partial<Template>, firebaseUID?: string): Promise<Template> => {
+    const uid = firebaseUID || config.defaults.firebaseUID;
+    const authenticatedApi = createAuthenticatedApi(uid);
+    const response = await authenticatedApi.put(`/users/firebase/${uid}/personal-templates/${id}`, template);
     return response.data;
   },
 
   // Supprimer un template personnel
-  deleteTemplate: async (id: string): Promise<void> => {
-    const firebaseUID = config.defaults.firebaseUID;
-    await api.delete(`/users/firebase/${firebaseUID}/personal-templates/${id}`);
+  deleteTemplate: async (id: string, firebaseUID?: string): Promise<void> => {
+    const uid = firebaseUID || config.defaults.firebaseUID;
+    const authenticatedApi = createAuthenticatedApi(uid);
+    await authenticatedApi.delete(`/users/firebase/${uid}/personal-templates/${id}`);
   },
 
   // Récupérer un template par ID
-  getTemplate: async (id: string): Promise<Template | undefined> => {
+  getTemplate: async (id: string, firebaseUID?: string): Promise<Template | undefined> => {
     // Pour l'instant, on récupère tous les templates et on filtre
     // TODO: Implémenter une route GET spécifique pour un template
-    const firebaseUID = config.defaults.firebaseUID;
-    const response = await api.get(`/users/firebase/${firebaseUID}/personal-templates`);
+    const uid = firebaseUID || config.defaults.firebaseUID;
+    const authenticatedApi = createAuthenticatedApi(uid);
+    const response = await authenticatedApi.get(`/users/firebase/${uid}/personal-templates`);
     return response.data.find((t: Template) => t.id === id);
   },
 
@@ -142,7 +161,8 @@ export const coachesApi = {
 
   // Récupérer les templates personnels d'un utilisateur (pour la vue coach)
   getUserPersonalTemplates: async (firebaseUID: string): Promise<Template[]> => {
-    const response = await api.get(`/users/firebase/${firebaseUID}/personal-templates`);
+    const authenticatedApi = createAuthenticatedApi(firebaseUID);
+    const response = await authenticatedApi.get(`/users/firebase/${firebaseUID}/personal-templates`);
     return response.data;
   },
 };

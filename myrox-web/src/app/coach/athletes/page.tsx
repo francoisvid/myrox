@@ -13,7 +13,7 @@ import { useAthletes } from '@/hooks/useAthletes';
 import { useTemplates } from '@/hooks/useTemplates';
 import { User, Template } from '@/types';
 import TemplateAssignmentModal from '@/components/coach/TemplateAssignmentModal';
-import TemplateAssignmentManager from '@/components/coach/TemplateAssignmentManager';
+import TemplateAssignmentManagerWrapper from '@/components/coach/TemplateAssignmentManagerWrapper';
 import { config } from '@/lib/config';
 
 export default function AthletesPage() {
@@ -322,8 +322,7 @@ export default function AthletesPage() {
         )}
 
         {activeTab === 'assignments' && (
-          <TemplateAssignmentManager 
-            coachId={config.defaults.coachId}
+          <TemplateAssignmentManagerWrapper 
             onUpdate={() => {
               // Optionnel: recharger les données si nécessaire
             }}

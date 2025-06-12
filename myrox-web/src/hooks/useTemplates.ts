@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Template } from '@/types';
 import { coachesApi, templatesApi } from '@/lib/api';
-import { config } from '@/lib/config';
+import { useCoachId } from './useCoachId';
 
 export const useTemplates = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -9,16 +9,20 @@ export const useTemplates = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Utiliser la configuration dynamique
-  const FIREBASE_UID = config.defaults.firebaseUID;
+  // Utiliser l'utilisateur connecté
+  const { firebaseUID, loading: authLoading } = useCoachId();
 
   const fetchTemplates = useCallback(async () => {
+    if (authLoading || !firebaseUID) {
+      return; // Attendre que l'auth soit disponible
+    }
+    
     try {
       setLoading(true);
       setError(null);
       
       // Récupérer les templates personnels
-      const personalTemplates = await coachesApi.getUserPersonalTemplates(FIREBASE_UID);
+      const personalTemplates = await coachesApi.getUserPersonalTemplates(firebaseUID);
       setTemplates(personalTemplates);
     } catch (err) {
       console.error('Erreur lors du chargement des templates:', err);
@@ -29,7 +33,7 @@ export const useTemplates = () => {
     } finally {
       setLoading(false);
     }
-  }, [FIREBASE_UID]);
+  }, [firebaseUID, authLoading]);
 
   useEffect(() => {
     fetchTemplates();
@@ -37,6 +41,8 @@ export const useTemplates = () => {
 
   // CRUD Functions
   const createTemplate = useCallback(async (templateData: Partial<Template> & { name: string; exercises: any[] }) => {
+    if (!firebaseUID) return;
+    
     try {
       setIsCreating(true);
       setError(null);
@@ -71,7 +77,7 @@ export const useTemplates = () => {
         creatorId: templateData.creatorId || 'demo-user-id',
       };
       
-      const newTemplate = await templatesApi.createTemplate(completeTemplateData as any);
+      const newTemplate = await templatesApi.createTemplate(completeTemplateData as any, firebaseUID);
       setTemplates(prev => [newTemplate, ...prev]);
       return newTemplate;
     } catch (err) {
@@ -81,9 +87,11 @@ export const useTemplates = () => {
     } finally {
       setIsCreating(false);
     }
-  }, []);
+  }, [firebaseUID]);
 
   const updateTemplate = useCallback(async (id: string, templateData: Partial<Template>) => {
+    if (!firebaseUID) return;
+    
     try {
       setError(null);
       
@@ -107,7 +115,7 @@ export const useTemplates = () => {
         transformedData = { ...templateData, exercises: transformedExercises as any };
       }
       
-      const updatedTemplate = await templatesApi.updateTemplate(id, transformedData);
+      const updatedTemplate = await templatesApi.updateTemplate(id, transformedData, firebaseUID);
       setTemplates(prev => prev.map(t => t.id === id ? updatedTemplate : t));
       return updatedTemplate;
     } catch (err) {
@@ -115,19 +123,21 @@ export const useTemplates = () => {
       setError('Impossible de mettre à jour le template');
       throw err;
     }
-  }, []);
+  }, [firebaseUID]);
 
   const deleteTemplate = useCallback(async (id: string) => {
+    if (!firebaseUID) return;
+    
     try {
       setError(null);
-      await templatesApi.deleteTemplate(id);
+      await templatesApi.deleteTemplate(id, firebaseUID);
       setTemplates(prev => prev.filter(t => t.id !== id));
     } catch (err) {
       console.error('Erreur lors de la suppression du template:', err);
       setError('Impossible de supprimer le template');
       throw err;
     }
-  }, []);
+  }, [firebaseUID]);
 
   const getTemplate = useCallback((id: string) => {
     return templates.find(t => t.id === id);

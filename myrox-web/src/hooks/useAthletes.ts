@@ -3,20 +3,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import { User } from '@/types';
 import { usersApi } from '@/lib/api';
-import { config } from '@/lib/config';
+import { useCoachId } from './useCoachId';
 
 export const useAthletes = () => {
   const [athletes, setAthletes] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const { coachId, loading: coachLoading } = useCoachId();
 
   const fetchAthletes = useCallback(async () => {
+    if (coachLoading || !coachId) {
+      return; // Attendre que le coachId soit disponible
+    }
+    
     try {
       setLoading(true);
       setError(null);
       
-      // Récupérer les athlètes du coach actuel
-      const coachId = config.defaults.coachId;
+      // Récupérer les athlètes du coach connecté
       const data = await usersApi.getAthletes(coachId);
       setAthletes(data);
       
@@ -34,7 +39,7 @@ export const useAthletes = () => {
           email: 'jean.dupont@example.com',
           createdAt: '2024-01-15T00:00:00.000Z',
           updatedAt: '2024-01-15T00:00:00.000Z',
-          coachId: config.defaults.coachId
+          coachId: coachId
         },
         {
           id: '2',
@@ -43,7 +48,7 @@ export const useAthletes = () => {
           email: 'marie.martin@example.com',
           createdAt: '2024-01-20T00:00:00.000Z',
           updatedAt: '2024-01-20T00:00:00.000Z',
-          coachId: config.defaults.coachId
+          coachId: coachId
         },
         {
           id: '3',
@@ -52,7 +57,7 @@ export const useAthletes = () => {
           email: 'pierre.durand@example.com',
           createdAt: '2024-01-25T00:00:00.000Z',
           updatedAt: '2024-01-25T00:00:00.000Z',
-          coachId: config.defaults.coachId
+          coachId: coachId
         }
       ];
       
@@ -61,7 +66,7 @@ export const useAthletes = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [coachId, coachLoading]);
 
   useEffect(() => {
     fetchAthletes();

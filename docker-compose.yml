@@ -24,7 +24,7 @@ services:
     networks:
       - myrox-network
 
-  # API myROX Fastify
+  # API myROX
   api:
     build:
       context: ./myROX-api
@@ -35,7 +35,7 @@ services:
       NODE_ENV: development
       DATABASE_URL: "postgresql://myrox_user:myrox_password@postgres:5432/myrox_db"
     ports:
-      - "3001:3000"  # Port cohérent avec la config web
+      - "3001:3000"
     volumes:
       - ./myROX-api:/app
       - /app/node_modules
@@ -46,7 +46,7 @@ services:
     networks:
       - myrox-network
 
-  # Application Web Frontend avec hot reload
+  # Application Web Frontend
   web:
     build:
       context: ./myrox-web
@@ -55,10 +55,9 @@ services:
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: http://localhost:3001
-      # Pour accès depuis le navigateur, on utilise localhost
-      # Pour accès depuis le container, Next.js va utiliser les routes internes
+      API_INTERNAL_URL: http://api:3000
     ports:
-      - "3002:3002"  # Port cohérent avec le script dev
+      - "3000:3002"
     volumes:
       - ./myrox-web:/app
       - /app/node_modules

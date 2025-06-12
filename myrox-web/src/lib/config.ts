@@ -12,10 +12,11 @@ export const config = {
   isDevelopment: process.env.NODE_ENV === 'development',
   isProduction: process.env.NODE_ENV === 'production',
   
-  // Default values
+  // Default values - ATTENTION: À utiliser uniquement comme fallback
+  // L'application doit maintenant utiliser l'utilisateur connecté via useCoachId()
   defaults: {
-    firebaseUID: 'coach-master-456', // Coach Master (pour tester en tant que coach)
-    coachId: 'ba031335-1c73-4a3a-b296-f4d19a6a18f7' // Coach Master HYROX (nouveau)
+    firebaseUID: 'coach-master-456', // ⚠️ Fallback uniquement - utiliser useCoachId()
+    coachId: 'ba031335-1c73-4a3a-b296-f4d19a6a18f7' // ⚠️ Fallback uniquement - utiliser useCoachId()
   }
 };
 

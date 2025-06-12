@@ -1,135 +1,119 @@
-# Configuration Docker myROX
+# Configuration Docker - myROX
 
-## Vue d'ensemble
+## Structure unifiée
 
-La configuration Docker a été réorganisée pour être plus cohérente et pratique. Tous les fichiers docker-compose sont maintenant à la racine du projet pour une orchestration centralisée.
+La configuration Docker a été simplifiée et unifiée :
 
-## Structure des fichiers
+### Fichiers principaux :
+- `docker-compose.yml` : Configuration pour le développement
+- `docker-compose.prod.yml` : Configuration pour la production
 
+### Services disponibles :
+- **postgres** : Base de données PostgreSQL 15
+- **api** : API Backend (Fastify)
+- **web** : Frontend Web (Next.js)
+- **pgadmin** : Interface d'administration PostgreSQL (optionnel)
+
+## Utilisation
+
+### Développement
+```bash
+# Démarrer tous les services
+docker-compose up -d
+
+# Démarrer avec les logs
+docker-compose up
+
+# Démarrer avec pgAdmin
+docker-compose --profile admin up -d
 ```
-myROX/
-├── docker-compose.yml          # Configuration par défaut (développement)
-├── docker-compose.dev.yml      # Configuration développement explicite
-├── docker-compose.prod.yml     # Configuration production
-├── myROX-api/
-│   ├── Dockerfile             # Production API
-│   └── Dockerfile.dev         # Développement API
-└── myrox-web/
-    ├── Dockerfile             # Production Web
-    └── Dockerfile.dev         # Développement Web (avec hot reload)
+
+### Production
+```bash
+# Démarrer en production
+docker-compose -f docker-compose.prod.yml up -d
+
+# Construire et démarrer
+docker-compose -f docker-compose.prod.yml up -d --build
+```
+
+### Commandes utiles
+```bash
+# Arrêter tous les services
+docker-compose down
+
+# Supprimer les volumes (⚠️ supprime les données)
+docker-compose down -v
+
+# Voir les logs
+docker-compose logs -f [service_name]
+
+# Reconstruire un service
+docker-compose build [service_name]
 ```
 
 ## Ports utilisés
 
-| Service    | Port de développement | Port de production | Description |
-|------------|----------------------|-------------------|-------------|
-| PostgreSQL | 5432                 | 5432              | Base de données |
-| API        | 3001                 | 3001              | Backend Fastify |
-| Web        | 3002                 | 3002              | Frontend Next.js |
-| **pgAdmin** | **8080**            | -                 | **Interface d'admin DB** |
-
-## Utilisation
-
-### Développement (avec hot reload)
-
-```bash
-# Démarrer tous les services en mode développement
-docker-compose up
-
-# Ou explicitement avec le fichier dev
-docker-compose -f docker-compose.dev.yml up
-
-# Démarrer avec pgAdmin pour l'administration de la DB
-docker-compose --profile admin up
-
-# Ou ajouter pgAdmin à un setup existant
-docker-compose --profile admin up pgadmin -d
-```
+### Développement
+- **3000** : Application Web (Next.js)
+- **3001** : API Backend (exposé depuis le port 3000 du container)
+- **5432** : PostgreSQL
+- **8080** : pgAdmin (avec --profile admin)
 
 ### Production
+- **3000** : Application Web
+- **3001** : API Backend
+- **5432** : PostgreSQL
 
+## Configuration
+
+### Variables d'environnement
+- **POSTGRES_DB** : `myrox_db`
+- **POSTGRES_USER** : `myrox_user`
+- **POSTGRES_PASSWORD** : `myrox_password`
+
+### Volumes
+- `postgres_data` : Données PostgreSQL (développement)
+- `postgres_data_prod` : Données PostgreSQL (production)
+
+## Résolution de problèmes
+
+### Port déjà utilisé
 ```bash
-# Démarrer en mode production
-docker-compose -f docker-compose.prod.yml up
+# Vérifier les ports utilisés
+lsof -i :3000
+lsof -i :3001
+lsof -i :5432
+
+# Tuer un processus
+kill -9 <PID>
 ```
 
-### Services individuels
-
+### Problèmes de build
 ```bash
-# Démarrer seulement la base de données
-docker-compose up postgres
-
-# Démarrer API + DB
-docker-compose up postgres api
-
-# Démarrer tout sauf pgAdmin
-docker-compose up postgres api web
+# Nettoyer et reconstruire
+docker-compose down
+docker system prune -f
+docker-compose build --no-cache
+docker-compose up -d
 ```
 
-## Fonctionnalités
+### Problèmes de base de données
+```bash
+# Réinitialiser la base de données
+docker-compose down -v
+docker-compose up -d postgres
+# Attendre que postgres soit prêt
+docker-compose up -d
+```
 
-### Hot Reload
+## Accès aux services
 
-- **API** : Utilise des volumes montés avec `Dockerfile.dev` et `nodemon`
-- **Web** : Utilise des volumes montés avec `Dockerfile.dev` et Next.js dev server
+- **Application Web** : http://localhost:3000
+- **API Backend** : http://localhost:3001
+- **pgAdmin** : http://localhost:8080 (admin@myrox.dev / admin123)
 
-### Healthchecks
-
-Tous les services ont des healthchecks configurés :
-- PostgreSQL : Vérifie la connexion à la DB
-- API : Vérifie l'endpoint `/api/v1/health`
-- Web : Vérifie l'accès à la page d'accueil
-
-### Réseau
+## Architecture réseau
 
 Tous les services utilisent le réseau `myrox-network` pour communiquer entre eux.
-
-## Variables d'environnement
-
-### API
-- `PORT=3000` (interne au container)
-- `NODE_ENV=development|production`
-- `DATABASE_URL=postgresql://myrox_user:myrox_password@postgres:5432/myrox_db`
-
-### Web
-- `NODE_ENV=development|production`
-- `NEXT_PUBLIC_API_URL=http://localhost:3001` (accessible depuis le navigateur)
-
-### PostgreSQL
-- `POSTGRES_DB=myrox_db`
-- `POSTGRES_USER=myrox_user`
-- `POSTGRES_PASSWORD=myrox_password`
-
-### pgAdmin
-- **URL** : http://localhost:8080
-- **Email** : admin@myrox.dev
-- **Mot de passe** : admin123
-- **Guide complet** : [PGADMIN_SETUP.md](./PGADMIN_SETUP.md)
-
-## Commandes utiles
-
-```bash
-# Voir les logs d'un service spécifique
-docker-compose logs -f web
-
-# Reconstruire les images
-docker-compose build
-
-# Arrêter et supprimer tous les containers
-docker-compose down
-
-# Arrêter et supprimer + volumes
-docker-compose down -v
-
-# Entrer dans un container
-docker-compose exec web sh
-docker-compose exec api sh
-```
-
-## Changements apportés
-
-1. **Centralisation** : Docker-compose déplacé à la racine
-2. **Ports cohérents** : API accessible sur 3001, Web sur 3002
-3. **Hot reload** : Nouveau `Dockerfile.dev` pour le web avec volumes montés
-4. **Séparation dev/prod** : Configurations distinctes pour chaque environnement
-5. **Réseaux** : Communication inter-services simplifiée 
+Les services peuvent se référencer par leur nom de service (ex: `postgres`, `api`, `web`). 

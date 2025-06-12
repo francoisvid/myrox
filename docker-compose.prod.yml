@@ -17,14 +17,14 @@ services:
       - ./myROX-api/database/init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U myrox_user -d myrox_db"]
-      interval: 10s
-      timeout: 5s
+      interval: 30s
+      timeout: 10s
       retries: 5
     restart: unless-stopped
     networks:
       - myrox-network
 
-  # API myROX Fastify
+  # API myROX
   api:
     build:
       context: ./myROX-api
@@ -42,6 +42,11 @@ services:
     restart: unless-stopped
     networks:
       - myrox-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Application Web Frontend
   web:
@@ -53,9 +58,10 @@ services:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: http://localhost:3001
     ports:
-      - "3002:3000"  # Next.js en prod tourne sur le port 3000
+      - "3000:3000"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - myrox-network

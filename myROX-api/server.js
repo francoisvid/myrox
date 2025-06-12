@@ -66,6 +66,7 @@ fastify.register(require('@fastify/swagger-ui'), {
 
 // Routes
 fastify.register(require('./src/routes/health'), { prefix: '/api/v1' })
+fastify.register(require('./src/routes/auth'), { prefix: '/api/v1/auth' })
 fastify.register(require('./src/routes/users'), { prefix: '/api/v1' })
 fastify.register(require('./src/routes/coaches'), { prefix: '/api/v1/coaches' })
 fastify.register(require('./src/routes/exercises'), { prefix: '/api/v1' })

@@ -40,7 +40,7 @@ export default function TemplateAssignmentManager({ coachId, onUpdate }: Templat
         try {
           const response = await fetch(`${config.api.baseUrl}/api/v1/templates/${template.id}/assignments`, {
             headers: {
-              'x-firebase-uid': config.defaults.firebaseUID,
+              'x-firebase-uid': config.defaults.firebaseUID, // TODO: passer via props
               'X-Client-Type': 'web'
             }
           });
