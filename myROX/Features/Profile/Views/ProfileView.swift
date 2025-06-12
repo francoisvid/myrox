@@ -71,17 +71,14 @@ struct ProfileHeaderView: View {
                 // Avatar
                 ZStack {
                     Circle()
-                        .fill(Color(.systemGray6))
-                        .frame(width: 80, height: 80)
-                    
-                    Text(viewModel.username.prefix(1).uppercased())
-                        .font(.system(size: 36, weight: .bold))
-                        .foregroundColor(.yellow)
+                       .fill(Color.yellow.opacity(0.2))
+                       .frame(width: 50, height: 50)
+                       .overlay {
+                           Text(viewModel.username.prefix(1).uppercased())
+                               .font(.title2.bold())
+                               .foregroundColor(.yellow)
+                       }
                 }
-                .overlay(
-                    Circle()
-                        .stroke(Color.yellow, lineWidth: 3)
-                )
                 
                 // Infos
                 VStack(alignment: .leading, spacing: 8) {
@@ -755,15 +752,9 @@ struct CoachManagementView: View {
                 Spacer()
                 
                 if coachInfo != nil {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.subheadline)
-                            .foregroundColor(.green)
-                        
-                        Text("Lié")
-                            .font(.caption)
-                            .foregroundColor(.green)
-                    }
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.subheadline)
+                        .foregroundColor(.green)
                 }
             }
             
@@ -790,6 +781,8 @@ struct CoachManagementView: View {
                     showingInvitationInput = false
                 }
             )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
         }
     }
     
@@ -1028,10 +1021,9 @@ struct InvitationCodeInputView: View {
                 
                 // Input du code
                 VStack(spacing: 16) {
-                    TextField("Code d'invitation", text: $code)
+                    TextField("MYROX1", text: $code)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .font(.title2.monospaced())
-                        .textCase(.uppercase)
                         .autocorrectionDisabled()
                         .textContentType(.oneTimeCode)
                         .keyboardType(.asciiCapable)
