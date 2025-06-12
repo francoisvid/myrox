@@ -22,7 +22,7 @@ struct DashboardView: View {
                     lastWorkoutSection
                     
                     // Templates Summary
-                    templatesSummarySection
+                    // templatesSummarySection
                     
                     // Événements à venir
                     upcomingEventsSection
@@ -72,7 +72,7 @@ struct DashboardView: View {
     
     private var templatesSummarySection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Templates")
+            Text("Entrainements")
                 .font(.title3.bold())
                 .foregroundColor(Color(.label))
             

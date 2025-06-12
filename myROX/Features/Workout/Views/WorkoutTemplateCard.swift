@@ -35,19 +35,21 @@ struct WorkoutTemplateCard: View {
                     
                     Spacer()
                     
-                    HStack(spacing: 12) {
-                        Button {
-                            onEdit()
-                        } label: {
-                            Image(systemName: "pencil")
-                                .foregroundColor(.yellow)
-                        }
-                        
-                        Button {
-                            showDeleteAlert = true
-                        } label: {
-                            Image(systemName: "trash")
-                                .foregroundColor(.red)
+                    if !isAssignedByCoach {
+                        HStack(spacing: 12) {
+                            Button {
+                                onEdit()
+                            } label: {
+                                Image(systemName: "pencil")
+                                    .foregroundColor(.yellow)
+                            }
+                            
+                            Button {
+                                showDeleteAlert = true
+                            } label: {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
                         }
                     }
                 }

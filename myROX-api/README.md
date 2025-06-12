@@ -130,8 +130,8 @@ GET /api/v1/ping        # Ping simple
 
 ### 👤 Users
 ```http
-GET    /api/v1/users/firebase/{firebaseUID}                              # Profil utilisateur
-POST   /api/v1/users                                                     # Créer utilisateur
+GET    /api/v1/users/firebase/{firebaseUID}                             # Profil utilisateur
+POST   /api/v1/users                                                    # Créer utilisateur
 PUT    /api/v1/users/firebase/{firebaseUID}                             # Modifier profil
 GET    /api/v1/users/firebase/{firebaseUID}/personal-templates          # Templates personnels
 GET    /api/v1/users/firebase/{firebaseUID}/assigned-templates          # Templates assignés
