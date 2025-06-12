@@ -20,6 +20,9 @@ struct ProfileView: View {
                     // Header profil
                     ProfileHeaderView(viewModel: viewModel)
                     
+                    // Gestion du coach
+                    CoachManagementView()
+                    
                     // Résumé d'activité
                     ActivitySummaryView(viewModel: viewModel)
                     
@@ -61,8 +64,6 @@ struct ProfileHeaderView: View {
     @State private var isEditing = false
     @State private var draftName = ""
     @State private var userProfile: APIUser?
-    @State private var isCoached = false
-    @State private var coachInfo: APICoach?
     
     var body: some View {
         VStack(spacing: 16) {
@@ -132,47 +133,6 @@ struct ProfileHeaderView: View {
                 Spacer()
             }
             
-            // Section coach (si présent)
-            if let coach = coachInfo {
-                Divider()
-                    .background(Color.gray.opacity(0.3))
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 12) {
-                        // Avatar coach
-                        Circle()
-                            .fill(Color.blue.opacity(0.2))
-                            .frame(width: 40, height: 40)
-                            .overlay {
-                                Text(coachInitial(from: coach.displayName))
-                                    .font(.headline.bold())
-                                    .foregroundColor(.blue)
-                            }
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(coach.displayName)
-                                .font(.subheadline.bold())
-                                .foregroundColor(Color(.label))
-                            
-                            if let specialization = coach.specialization {
-                                Text("Spécialité: \(specialization)")
-                                    .font(.caption)
-                                    .foregroundColor(.blue)
-                            }
-                            
-                            if let bio = coach.bio, !bio.isEmpty {
-                                Text(bio)
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                                    .lineLimit(2)
-                            }
-                        }
-                        
-                        Spacer()
-                    }
-                }
-            }
-            
             // Info si nom par défaut
             if viewModel.username == "Athlète Hyrox" {
                 HStack {
@@ -199,12 +159,6 @@ struct ProfileHeaderView: View {
             do {
                 let userRepository = UserRepository()
                 userProfile = try await userRepository.syncCurrentUser()
-                isCoached = userProfile?.hasAssignedCoach ?? false
-                
-                // Charger les infos du coach si disponible
-                if let coachUUID = userProfile?.coachUUID {
-                    coachInfo = try await userRepository.fetchCoach(coachId: coachUUID)
-                }
             } catch {
                 print("Erreur chargement profil: \(error)")
             }
@@ -224,14 +178,6 @@ struct ProfileHeaderView: View {
         
         // Fallback si le parsing échoue
         return dateString
-    }
-    
-    // Helper function for coach initial
-    private func coachInitial(from name: String?) -> String {
-        guard let name = name, let firstChar = name.first else {
-            return "C"
-        }
-        return String(firstChar).uppercased()
     }
 }
 
@@ -784,6 +730,380 @@ extension StatCard {
     init(title: String, value: String, icon: String, color: Color) {
         self.init(title: title, value: value, icon: icon)
         // Note: Il faudrait modifier StatCard pour supporter la couleur custom
+    }
+}
+
+// MARK: - Coach Management
+
+struct CoachManagementView: View {
+    @State private var userProfile: APIUser?
+    @State private var coachInfo: APICoach?
+    @State private var isLoading = false
+    @State private var showingInvitationInput = false
+    @State private var invitationCode = ""
+    @State private var errorMessage = ""
+    @State private var successMessage = ""
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header avec titre et icône check
+            HStack {
+                Text("Mon Coach")
+                    .font(.headline)
+                    .foregroundColor(Color(.label))
+                
+                Spacer()
+                
+                if coachInfo != nil {
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.subheadline)
+                            .foregroundColor(.green)
+                        
+                        Text("Lié")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    }
+                }
+            }
+            
+            if let coach = coachInfo {
+                // Affichage du coach actuel
+                coachInfoSection(coach: coach)
+            } else {
+                // Interface pour se lier à un coach
+                invitationSection
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+        .onAppear {
+            loadUserProfile()
+        }
+        .sheet(isPresented: $showingInvitationInput) {
+            InvitationCodeInputView(
+                onCodeSubmitted: { code in
+                    submitInvitationCode(code)
+                },
+                onCancel: {
+                    showingInvitationInput = false
+                }
+            )
+        }
+    }
+    
+    private func coachInfoSection(coach: APICoach) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                // Avatar coach
+                Circle()
+                    .fill(Color.blue.opacity(0.2))
+                    .frame(width: 50, height: 50)
+                    .overlay {
+                        Text(coachInitial(from: coach.displayName))
+                            .font(.title2.bold())
+                            .foregroundColor(.blue)
+                    }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(coach.displayName)
+                        .font(.headline)
+                        .foregroundColor(Color(.label))
+                    
+                    if let specialization = coach.specialization {
+                        Text("Spécialité: \(specialization)")
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                    }
+                    
+                    if let bio = coach.bio, !bio.isEmpty {
+                        Text(bio)
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .lineLimit(3)
+                    }
+                }
+                
+                Spacer()
+            }
+            
+            // Certifications
+            if let certifications = coach.certifications, !certifications.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Certifications")
+                        .font(.caption.bold())
+                        .foregroundColor(.gray)
+                    
+                    LazyVGrid(columns: [
+                        GridItem(.flexible(), alignment: .leading),
+                        GridItem(.flexible(), alignment: .leading)
+                    ], alignment: .leading, spacing: 6) {
+                        ForEach(certifications, id: \.self) { certification in
+                            Text(certification)
+                                .font(.caption)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.blue.opacity(0.1))
+                                .foregroundColor(.blue)
+                                .cornerRadius(6)
+                        }
+                    }
+                }
+            }
+            
+            // Statistiques du coach
+            HStack(spacing: 20) {
+                StatItem(title: "Athlètes", value: "\(coach.athleteCount ?? 0)")
+                StatItem(title: "Workouts", value: "\(coach.totalWorkouts ?? 0)")
+                if let avgDuration = coach.averageWorkoutDuration, avgDuration > 0 {
+                    StatItem(title: "Durée moy.", value: "\(avgDuration / 60)min")
+                }
+            }
+        }
+    }
+    
+    private var invitationSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "person.badge.plus")
+                    .font(.title2)
+                    .foregroundColor(.blue)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Aucun coach assigné")
+                        .font(.subheadline.bold())
+                        .foregroundColor(Color(.label))
+                    
+                    Text("Demandez un code d'invitation à votre coach pour vous lier à lui")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                
+                Spacer()
+            }
+            
+            // Messages d'erreur/succès
+            if !errorMessage.isEmpty {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.red)
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.red.opacity(0.1))
+                .cornerRadius(8)
+            }
+            
+            if !successMessage.isEmpty {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    Text(successMessage)
+                        .font(.caption)
+                        .foregroundColor(.green)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.green.opacity(0.1))
+                .cornerRadius(8)
+            }
+            
+            // Bouton pour saisir le code
+            Button {
+                showingInvitationInput = true
+                errorMessage = ""
+                successMessage = ""
+            } label: {
+                HStack {
+                    Image(systemName: "ticket")
+                    Text("Saisir un code d'invitation")
+                }
+                .font(.subheadline.bold())
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.blue)
+                .cornerRadius(10)
+            }
+            .disabled(isLoading)
+        }
+    }
+    
+    private func loadUserProfile() {
+        Task {
+            do {
+                let userRepository = UserRepository()
+                userProfile = try await userRepository.syncCurrentUser()
+                
+                // Charger les infos du coach si disponible
+                if let coachUUID = userProfile?.coachUUID {
+                    coachInfo = try await userRepository.fetchCoach(coachId: coachUUID)
+                }
+            } catch {
+                print("Erreur chargement profil: \(error)")
+            }
+        }
+    }
+    
+    private func submitInvitationCode(_ code: String) {
+        Task {
+            await MainActor.run {
+                isLoading = true
+                errorMessage = ""
+                successMessage = ""
+                showingInvitationInput = false
+            }
+            
+            do {
+                let result = try await AuthRepository().useInvitationCode(code: code)
+                
+                await MainActor.run {
+                    successMessage = result.message
+                    isLoading = false
+                    
+                    // Recharger le profil pour afficher le nouveau coach
+                    loadUserProfile()
+                }
+            } catch {
+                await MainActor.run {
+                    if let apiError = error as? APIError {
+                        switch apiError {
+                        case .badRequest(let message):
+                            errorMessage = message ?? "Requête invalide"
+                        case .notFound:
+                            errorMessage = "Code d'invitation invalide"
+                        case .forbidden(let message):
+                            errorMessage = message ?? "Accès interdit"
+                        default:
+                            errorMessage = "Erreur lors de la liaison avec le coach"
+                        }
+                    } else {
+                        errorMessage = "Erreur de connexion"
+                    }
+                    isLoading = false
+                }
+            }
+        }
+    }
+    
+    private func coachInitial(from name: String?) -> String {
+        guard let name = name, let firstChar = name.first else {
+            return "C"
+        }
+        return String(firstChar).uppercased()
+    }
+}
+
+// MARK: - Invitation Code Input View
+
+struct InvitationCodeInputView: View {
+    @State private var code = ""
+    @State private var isValidCode = false
+    let onCodeSubmitted: (String) -> Void
+    let onCancel: () -> Void
+    
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                // Header
+                VStack(spacing: 12) {
+                    Image(systemName: "ticket.fill")
+                        .font(.system(size: 60))
+                        .foregroundColor(.blue)
+                    
+                    Text("Code d'invitation")
+                        .font(.title.bold())
+                        .foregroundColor(Color(.label))
+                    
+                    Text("Saisissez le code à 6 caractères fourni par votre coach")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+                
+                // Input du code
+                VStack(spacing: 16) {
+                    TextField("Code d'invitation", text: $code)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .font(.title2.monospaced())
+                        .textCase(.uppercase)
+                        .autocorrectionDisabled()
+                        .textContentType(.oneTimeCode)
+                        .keyboardType(.asciiCapable)
+                        .onChange(of: code) { newValue in
+                            // Limiter à 6 caractères et convertir en majuscules
+                            let filtered = newValue.uppercased().filter { $0.isLetter || $0.isNumber }
+                            if filtered.count <= 6 {
+                                code = filtered
+                                isValidCode = filtered.count == 6
+                            } else {
+                                code = String(filtered.prefix(6))
+                                isValidCode = true
+                            }
+                        }
+                    
+                    // Indicateur visuel de validation
+                    HStack {
+                        ForEach(0..<6, id: \.self) { index in
+                            Circle()
+                                .fill(index < code.count ? Color.blue : Color.gray.opacity(0.3))
+                                .frame(width: 12, height: 12)
+                        }
+                    }
+                }
+                
+                // Bouton de validation
+                Button {
+                    onCodeSubmitted(code)
+                } label: {
+                    Text("Valider le code")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(isValidCode ? Color.blue : Color.gray)
+                        .cornerRadius(12)
+                }
+                .disabled(!isValidCode)
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Liaison Coach")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Annuler") {
+                        onCancel()
+                    }
+                    .foregroundColor(.blue)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Stat Item Helper
+
+struct StatItem: View {
+    let title: String
+    let value: String
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.headline.bold())
+                .foregroundColor(Color(.label))
+            
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.gray)
+        }
     }
 }
 

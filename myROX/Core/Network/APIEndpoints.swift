@@ -10,6 +10,9 @@ enum APIEndpoints {
     case createUser
     case updateUser(firebaseUID: String)
     
+    // MARK: - Auth & Invitations
+    case useInvitation
+    
     // MARK: - Coach Info (Read-only - relation créée côté web)
     case coach(id: UUID)
     
@@ -50,6 +53,10 @@ enum APIEndpoints {
             return "/users"
         case .updateUser(let firebaseUID):
             return "/users/firebase/\(firebaseUID)"
+            
+        // Auth & Invitations
+        case .useInvitation:
+            return "/auth/use-invitation"
             
         // Coach Info (Read-only)
         case .coach(let id):
@@ -99,7 +106,7 @@ enum APIEndpoints {
     
     var method: HTTPMethod {
         switch self {
-        case .createUser, .createPersonalTemplate, .createWorkout, .createPersonalBest:
+        case .createUser, .createPersonalTemplate, .createWorkout, .createPersonalBest, .useInvitation:
             return .POST
         case .updateUser, .updatePersonalTemplate, .updateWorkout, .updatePersonalBest:
             return .PUT

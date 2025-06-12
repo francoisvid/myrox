@@ -62,9 +62,10 @@ struct APIUser: Codable, Identifiable {
 /// Modèle représentant un coach (lecture seule pour iOS)
 struct APICoach: Codable, Identifiable {
     let id: String
-    let name: String // L'API retourne "name" au lieu de "displayName"
+    let name: String // L'API retourne "name" 
     let email: String?
     let bio: String?
+    let specialization: String?
     let certifications: [String]?
     let profilePicture: String?
     let createdAt: String
@@ -74,7 +75,6 @@ struct APICoach: Codable, Identifiable {
     let athleteCount: Int?
     let totalWorkouts: Int?
     let averageWorkoutDuration: Int? // en secondes
-    let specialization: String?
     
     // MARK: - Computed Properties
     

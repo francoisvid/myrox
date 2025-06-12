@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { useTemplates } from '@/hooks/useTemplates';
 import { useExercises } from '@/hooks/useExercises';
+import { useCoachId } from '@/hooks/useCoachId';
 import { templatesApi } from '@/lib/api';
 import { PlusIcon, MinusIcon } from '@heroicons/react/24/outline';
 import { Exercise, TemplateExercise } from '@/types';
@@ -19,6 +20,7 @@ export default function EditTemplatePage() {
   
   const { updateTemplate, isCreating } = useTemplates();
   const { exercises, loading: exercisesLoading } = useExercises();
+  const { firebaseUID, loading: authLoading } = useCoachId();
   
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
@@ -32,12 +34,17 @@ export default function EditTemplatePage() {
 
   useEffect(() => {
     const loadTemplate = async () => {
+      // Attendre que l'authentification soit disponible
+      if (authLoading || !firebaseUID) {
+        return;
+      }
+      
       try {
         setLoading(true);
         console.log('🔍 Chargement du template:', templateId);
         
-        // Utiliser l'API directement pour récupérer le template
-        const template = await templatesApi.getTemplate(templateId);
+        // Utiliser l'API avec le firebaseUID de l'utilisateur connecté
+        const template = await templatesApi.getTemplate(templateId, firebaseUID);
         
         if (!template) {
           console.error('❌ Template non trouvé:', templateId);
@@ -61,7 +68,7 @@ export default function EditTemplatePage() {
     };
 
     loadTemplate();
-  }, [templateId, router]);
+  }, [templateId, router, firebaseUID, authLoading]);
 
   const handleUpdateTemplate = async () => {
     if (!name.trim() || selectedExercises.length === 0) {

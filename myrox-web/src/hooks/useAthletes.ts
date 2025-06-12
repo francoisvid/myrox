@@ -10,11 +10,11 @@ export const useAthletes = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const { coachId, loading: coachLoading } = useCoachId();
+  const { firebaseUID, loading: coachLoading } = useCoachId();
 
   const fetchAthletes = useCallback(async () => {
-    if (coachLoading || !coachId) {
-      return; // Attendre que le coachId soit disponible
+    if (coachLoading || !firebaseUID) {
+      return; // Attendre que le firebaseUID soit disponible
     }
     
     try {
@@ -22,7 +22,7 @@ export const useAthletes = () => {
       setError(null);
       
       // Récupérer les athlètes du coach connecté
-      const data = await usersApi.getAthletes(coachId);
+      const data = await usersApi.getAthletes(firebaseUID);
       setAthletes(data);
       
       console.log('✅ Athlètes récupérés:', data.length);
@@ -39,7 +39,7 @@ export const useAthletes = () => {
           email: 'jean.dupont@example.com',
           createdAt: '2024-01-15T00:00:00.000Z',
           updatedAt: '2024-01-15T00:00:00.000Z',
-          coachId: coachId
+          coachId: firebaseUID
         },
         {
           id: '2',
@@ -48,7 +48,7 @@ export const useAthletes = () => {
           email: 'marie.martin@example.com',
           createdAt: '2024-01-20T00:00:00.000Z',
           updatedAt: '2024-01-20T00:00:00.000Z',
-          coachId: coachId
+          coachId: firebaseUID
         },
         {
           id: '3',
@@ -57,7 +57,7 @@ export const useAthletes = () => {
           email: 'pierre.durand@example.com',
           createdAt: '2024-01-25T00:00:00.000Z',
           updatedAt: '2024-01-25T00:00:00.000Z',
-          coachId: coachId
+          coachId: firebaseUID
         }
       ];
       
@@ -66,7 +66,7 @@ export const useAthletes = () => {
     } finally {
       setLoading(false);
     }
-  }, [coachId, coachLoading]);
+  }, [firebaseUID, coachLoading]);
 
   useEffect(() => {
     fetchAthletes();

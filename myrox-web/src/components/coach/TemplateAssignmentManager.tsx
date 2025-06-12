@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { User, Template } from '@/types';
 import { useTemplateAssignment } from '@/hooks/useTemplateAssignment';
-import { coachesApi, templatesApi } from '@/lib/api';
+import { useCoachId } from '@/hooks/useCoachId';
+import { templatesApi } from '@/lib/api';
 import { config } from '@/lib/config';
 import { TrashIcon, UserGroupIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 
@@ -22,14 +23,22 @@ export default function TemplateAssignmentManager({ coachId, onUpdate }: Templat
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { unassignTemplate, isAssigning } = useTemplateAssignment();
+  const { firebaseUID } = useCoachId();
 
   const loadAssignments = async () => {
+    if (!firebaseUID) {
+      console.log('⏳ En attente de l\'authentification...');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
+      console.log('🔍 Chargement des templates pour:', firebaseUID);
+
       // Récupérer tous les templates du coach
-      const templates = await templatesApi.getTemplates(coachId);
+      const templates = await templatesApi.getTemplates(firebaseUID);
       
       console.log('🔍 Templates récupérés:', templates.length);
       
@@ -40,7 +49,7 @@ export default function TemplateAssignmentManager({ coachId, onUpdate }: Templat
         try {
           const response = await fetch(`${config.api.baseUrl}/api/v1/templates/${template.id}/assignments`, {
             headers: {
-              'x-firebase-uid': config.defaults.firebaseUID, // TODO: passer via props
+              'x-firebase-uid': firebaseUID,
               'X-Client-Type': 'web'
             }
           });
@@ -52,7 +61,7 @@ export default function TemplateAssignmentManager({ coachId, onUpdate }: Templat
             if (assignedUsers.length > 0) {
               assignedTemplatesData.push({
                 template,
-                assignedUsers: assignedUsers.map((user: any) => ({
+                assignedUsers: assignedUsers.map((user: { userId: string; email: string; displayName: string; assignedAt: string }) => ({
                   id: user.userId,
                   email: user.email,
                   displayName: user.displayName,
@@ -76,8 +85,10 @@ export default function TemplateAssignmentManager({ coachId, onUpdate }: Templat
   };
 
   useEffect(() => {
-    loadAssignments();
-  }, [coachId]);
+    if (firebaseUID) {
+      loadAssignments();
+    }
+  }, [coachId, firebaseUID]);
 
   const handleUnassign = async (templateId: string, userId: string, userName: string, templateName: string) => {
     if (!confirm(`Êtes-vous sûr de vouloir désassigner le template "${templateName}" de ${userName} ?`)) {
@@ -140,7 +151,7 @@ export default function TemplateAssignmentManager({ coachId, onUpdate }: Templat
         <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
         <h3 className="mt-2 text-sm font-medium text-gray-900">Aucune assignation</h3>
         <p className="mt-1 text-sm text-gray-500">
-          Vous n'avez encore assigné aucun template à vos athlètes.
+          Vous n&apos;avez encore assigné aucun template à vos athlètes.
         </p>
       </div>
     );

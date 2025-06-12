@@ -18,6 +18,15 @@ export interface Coach {
   profilePicture?: string;
   certifications: string[];
   isActive: boolean;
+  
+  // Système d'abonnement
+  subscriptionPlan: 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE';
+  maxAthletes: number;
+  maxInvitations: number;
+  isSubscriptionActive: boolean;
+  subscriptionExpiresAt?: string;
+  trialEndsAt?: string;
+  
   createdAt: string;
   updatedAt: string;
   userId: string;
@@ -152,5 +161,48 @@ export interface StatsResponse {
     avgRating: number;
     avgCompletionRate: number;
     activeAthletes: number;
+  };
+}
+
+// Types pour le système d'invitation
+export interface CoachInvitation {
+  id: string;
+  code: string;
+  coachId: string;
+  description?: string;
+  isActive: boolean;
+  usedByUserId?: string;
+  usedBy?: User;
+  usedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubscriptionStatus {
+  plan: 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE';
+  maxAthletes: number;
+  maxInvitations: number;
+  currentAthletes: number;
+  activeInvitations: number;
+  isActive: boolean;
+  expiresAt?: string;
+  canCreateInvitation: boolean;
+  canAddAthlete: boolean;
+}
+
+export interface InvitationResponse {
+  id: string;
+  code: string;
+  description: string;
+  createdAt: string;
+}
+
+export interface UseInvitationResponse {
+  success: boolean;
+  message: string;
+  coach: {
+    id: string;
+    displayName: string;
+    specialization?: string;
   };
 } 

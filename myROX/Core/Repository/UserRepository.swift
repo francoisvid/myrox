@@ -143,14 +143,14 @@ class MockUserRepository: UserRepositoryProtocol {
             name: "Coach Test",
             email: "coach@test.com",
             bio: "Coach de test spécialisé HYROX avec plus de 5 ans d'expérience",
+            specialization: "HYROX",
             certifications: ["HYROX Master Trainer", "CrossFit Level 2"],
             profilePicture: nil,
             createdAt: Date().apiString,
             isActive: true,
             athleteCount: 15,
             totalWorkouts: 250,
-            averageWorkoutDuration: 45 * 60, // 45 minutes
-            specialization: "HYROX"
+            averageWorkoutDuration: 45 * 60 // 45 minutes
         )
     }
     

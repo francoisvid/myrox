@@ -144,12 +144,17 @@ class APIService {
             case 200...299:
                 print("✅ performRequest - Code de succès détecté: \(httpResponse.statusCode)")
                 break // Succès
+            case 400:
+                print("❌ performRequest - Erreur 400")
+                let errorMessage = extractErrorMessage(from: data)
+                throw APIError.badRequest(errorMessage)
             case 401:
                 print("❌ performRequest - Erreur 401")
                 throw APIError.unauthorized
             case 403:
                 print("❌ performRequest - Erreur 403")
-                throw APIError.forbidden
+                let errorMessage = extractErrorMessage(from: data)
+                throw APIError.forbidden(errorMessage)
             case 404:
                 print("❌ performRequest - Erreur 404")
                 throw APIError.notFound
@@ -184,6 +189,43 @@ class APIService {
             print("❌ performRequest - Erreur réseau: \(error)")
             throw APIError.networkError(error)
         }
+    }
+    
+    private func extractErrorMessage(from data: Data) -> String? {
+        // Essayer de décoder la réponse d'erreur standard de l'API
+        do {
+            // Structure d'erreur standard de l'API Fastify
+            struct APIErrorResponse: Codable {
+                let success: Bool?
+                let error: String?
+                let message: String?
+                let details: ErrorDetails?
+                
+                struct ErrorDetails: Codable {
+                    let message: String?
+                }
+            }
+            
+            let errorResponse = try JSONDecoder().decode(APIErrorResponse.self, from: data)
+            
+            // Priorité : details.message > message > error
+            if let detailMessage = errorResponse.details?.message {
+                return detailMessage
+            } else if let message = errorResponse.message {
+                return message
+            } else if let error = errorResponse.error {
+                return error
+            }
+            
+        } catch {
+            // Si le décodage échoue, essayer d'extraire le texte brut
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("⚠️ Impossible de décoder l'erreur API, réponse brute: \(responseString)")
+                return responseString
+            }
+        }
+        
+        return nil
     }
 }
 

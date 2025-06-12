@@ -32,6 +32,7 @@ model User {
   personalBests          PersonalBest[]
   coachProfile           Coach?     @relation("CoachUser")
   userInformations       UserInformations?
+  usedInvitation         CoachInvitation? @relation("InvitationUser")
 
   @@map("users")
 }
@@ -46,6 +47,15 @@ model Coach {
   profilePicture    String?  @map("profile_picture")
   certifications    String[] // Array of certifications
   isActive          Boolean  @default(true) @map("is_active")
+  
+  // 💰 Système de paiement et limites
+  subscriptionPlan  SubscriptionPlan @default(FREE) @map("subscription_plan")
+  maxAthletes       Int      @default(3) @map("max_athletes") // Limite d'athlètes selon le plan
+  maxInvitations    Int      @default(5) @map("max_invitations") // Limite de codes d'invitation actifs simultanément
+  isSubscriptionActive Boolean @default(true) @map("is_subscription_active")
+  subscriptionExpiresAt DateTime? @map("subscription_expires_at")
+  trialEndsAt       DateTime? @map("trial_ends_at") // Fin de période d'essai
+  
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
@@ -54,6 +64,7 @@ model Coach {
   user              User     @relation("CoachUser", fields: [userId], references: [id])
   athletes          User[]   @relation("CoachAthletes")
   createdTemplates  Template[] @relation("CoachTemplates")
+  invitations       CoachInvitation[] // Codes créés par ce coach
 
   @@map("coaches")
 }
@@ -260,6 +271,15 @@ enum TrainingIntensity {
   MIXED           // Mixte
 }
 
+// MARK: - Subscription Plans
+
+enum SubscriptionPlan {
+  FREE          // Plan gratuit : 3 athlètes max
+  STARTER       // Plan débutant : 10 athlètes max
+  PROFESSIONAL  // Plan professionnel : 50 athlètes max
+  ENTERPRISE    // Plan entreprise : illimité
+}
+
 model UserInformations {
   id        String   @id @default(uuid())
   userId    String   @unique @map("user_id")
@@ -304,4 +324,28 @@ model UserInformations {
   completedAt          DateTime? @map("completed_at")
 
   @@map("user_informations")
+}
+
+// MARK: - Coach Invitations
+
+model CoachInvitation {
+  id          String   @id @default(uuid())
+  code        String   @unique // Code à 6 caractères
+  coachId     String   @map("coach_id")
+  coach       Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  
+  // Usage tracking
+  usedByUserId String?  @unique @map("used_by_user_id")
+  usedBy       User?    @relation("InvitationUser", fields: [usedByUserId], references: [id])
+  usedAt       DateTime? @map("used_at")
+  
+  // État du code
+  isActive     Boolean  @default(true) @map("is_active")
+  description  String?  // Note du coach
+  
+  // Timestamps
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("coach_invitations")
 }

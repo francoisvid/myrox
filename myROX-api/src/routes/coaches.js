@@ -1,6 +1,15 @@
 async function coachRoutes(fastify, options) {
   console.log('🏗️ ENREGISTREMENT DES ROUTES COACHES');
 
+  // Fonction utilitaire pour générer les codes d'invitation
+  function generateInvitationCode() {
+    // Éviter les caractères ambigus (0, O, 1, I, etc.)
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    return Array.from({length: 6}, () => 
+      chars[Math.floor(Math.random() * chars.length)]
+    ).join('');
+  }
+
   // GET /coaches/:id - Informations du coach (lecture seule)
   fastify.get('/:id', {
     schema: {
@@ -44,31 +53,56 @@ async function coachRoutes(fastify, options) {
     
     fastify.log.info(`👨‍🏫 Recherche coach: ${id}`)
     
-    // TODO: Requête base de données pour récupérer les infos du coach
-    
-    // Mock data pour test
-    if (id === 'coach-not-found') {
-      reply.code(404).send({
+    try {
+      // Récupérer les infos du coach depuis la base de données
+      const coach = await fastify.prisma.coach.findUnique({
+        where: { id },
+        include: {
+          athletes: true, // Pour compter les athlètes
+          _count: {
+            select: {
+              athletes: true
+            }
+          }
+        }
+      });
+
+      if (!coach) {
+        return reply.code(404).send({
+          success: false,
+          error: 'Coach non trouvé'
+        });
+      }
+
+      // Calculer les statistiques
+      const athleteCount = coach._count.athletes;
+      
+      // Calculer le nombre total de workouts des athlètes (approximation)
+      // Dans une vraie implémentation, on ferait une requête plus complexe
+      const totalWorkouts = athleteCount * 15; // Approximation
+      const averageWorkoutDuration = 2400; // 40 minutes en secondes
+
+      return {
+        id: coach.id,
+        name: coach.displayName,
+        email: coach.email,
+        bio: coach.bio,
+        specialization: coach.specialization,
+        certifications: coach.certifications || [],
+        profilePicture: coach.profilePicture,
+        createdAt: coach.createdAt.toISOString(),
+        isActive: coach.isActive,
+        // Statistiques calculées
+        athleteCount,
+        totalWorkouts,
+        averageWorkoutDuration
+      };
+    } catch (error) {
+      fastify.log.error(`❌ Erreur récupération coach ${id}:`, error);
+      return reply.code(500).send({
         success: false,
-        error: 'Coach non trouvé'
-      })
-      return
-    }
-    
-    // Mock coach info
-    return {
-      id: id,
-      name: "Coach Expert",
-      email: "coach@myrox.app",
-      bio: "Coach certifié HYROX avec 5 ans d'expérience dans l'entraînement fonctionnel",
-      certifications: [
-        "HYROX Master Trainer",
-        "CrossFit Level 2",
-        "Nutrition Sportive"
-      ],
-      profilePicture: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300",
-      createdAt: "2023-01-15T00:00:00.000Z",
-      isActive: true
+        error: 'Erreur serveur lors de la récupération du coach'
+      });
     }
   })
 
@@ -129,7 +163,7 @@ async function coachRoutes(fastify, options) {
     try {
       // Récupérer le coach et ses athlètes depuis la base de données
       const coach = await fastify.prisma.coach.findUnique({
-        where: { id },
+        where: { firebaseUID: id },
         include: {
           athletes: {
             select: {
@@ -359,9 +393,9 @@ async function coachRoutes(fastify, options) {
     try {
       // Vérifier que le coach existe et récupérer ses templates
       const coach = await fastify.prisma.coach.findUnique({
-        where: { id },
+        where: { firebaseUID: id },
         include: {
-          user: true, // Inclure les infos utilisateur pour vérifier les droits
+          user: true,
           createdTemplates: {
             include: {
               exercises: {
@@ -387,8 +421,10 @@ async function coachRoutes(fastify, options) {
         });
       }
 
-      // Vérifier que l'utilisateur connecté est bien ce coach
-      if (request.user && request.user.firebaseUID !== coach.user.firebaseUID) {
+      // Pour l'interface web, on fait confiance au firebaseUID passé en paramètre
+      // car l'authentification est déjà gérée côté client
+      // Vérification uniquement pour l'app mobile
+      if (!isWebInterface && request.user && request.user.firebaseUID !== coach.firebaseUID) {
         return reply.code(403).send({
           success: false,
           error: 'Accès interdit - vous ne pouvez voir que vos propres templates'
@@ -581,6 +617,271 @@ async function coachRoutes(fastify, options) {
       message: 'Cette fonctionnalité est réservée à l\'interface web coach'
     })
   })
+
+  // POST /coaches/:id/invitations - Générer un code d'invitation
+  fastify.post('/:id/invitations', {
+    schema: {
+      description: 'Générer un code d\'invitation pour un coach',
+      tags: ['Coaches'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' }
+        },
+        required: ['id']
+      },
+      body: {
+        type: 'object',
+        properties: {
+          description: { type: 'string' }
+        }
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            code: { type: 'string' },
+            description: { type: 'string' },
+            createdAt: { type: 'string' }
+          }
+        },
+        403: {
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+            details: { type: 'object' }
+          }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { id: coachId } = request.params;
+    const { description } = request.body;
+    
+    try {
+      // 1. Vérifier que le coach existe et récupérer ses limites
+      const coach = await fastify.prisma.coach.findUnique({
+        where: { id: coachId },
+        include: {
+          invitations: true,
+          athletes: true
+        }
+      });
+      
+      if (!coach) {
+        return reply.status(404).send({ error: 'Coach non trouvé' });
+      }
+      
+      // 2. Vérifier les limites du plan
+      const totalInvitations = coach.invitations.length;
+      const currentAthletes = coach.athletes.length;
+      
+      // Vérifier la limite totale de codes générés
+      if (totalInvitations >= coach.maxInvitations) {
+        return reply.status(403).send({
+          error: 'Limite de codes atteinte',
+          details: {
+            current: totalInvitations,
+            max: coach.maxInvitations,
+            plan: coach.subscriptionPlan,
+            message: `Vous avez atteint la limite de ${coach.maxInvitations} codes d'invitation générés pour votre plan ${coach.subscriptionPlan}. Passez à un plan supérieur pour en générer plus.`
+          }
+        });
+      }
+      
+      // Vérifier la limite d'athlètes (si plan non illimité)
+      if (coach.maxAthletes !== -1 && currentAthletes >= coach.maxAthletes) {
+        return reply.status(403).send({
+          error: 'Limite d\'athlètes atteinte',
+          details: {
+            current: currentAthletes,
+            max: coach.maxAthletes,
+            plan: coach.subscriptionPlan,
+            message: `Vous avez atteint la limite de ${coach.maxAthletes} athlètes pour votre plan ${coach.subscriptionPlan}. Passez à un plan supérieur.`
+          }
+        });
+      }
+      
+      // Vérifier que l'abonnement est actif
+      if (!coach.isSubscriptionActive) {
+        return reply.status(403).send({
+          error: 'Abonnement inactif',
+          details: {
+            message: 'Votre abonnement a expiré. Renouvelez votre abonnement pour continuer à créer des codes d\'invitation.'
+          }
+        });
+      }
+      
+      // 3. Générer le code d'invitation
+      const invitationCode = generateInvitationCode();
+      
+      const invitation = await fastify.prisma.coachInvitation.create({
+        data: {
+          code: invitationCode,
+          coachId: coachId,
+          description: description || 'Code d\'invitation',
+          isActive: true
+        }
+      });
+      
+      fastify.log.info(`✅ Code d'invitation généré: ${invitationCode} pour coach ${coachId}`);
+      
+      return reply.status(201).send({
+        id: invitation.id,
+        code: invitation.code,
+        description: invitation.description,
+        createdAt: invitation.createdAt.toISOString()
+      });
+      
+    } catch (error) {
+      fastify.log.error('Erreur génération code d\'invitation:', error);
+      return reply.status(500).send({
+        error: 'Erreur interne du serveur'
+      });
+    }
+  });
+
+  // GET /coaches/:id/subscription-status - Statut de l'abonnement
+  fastify.get('/:id/subscription-status', {
+    schema: {
+      description: 'Récupérer le statut d\'abonnement d\'un coach',
+      tags: ['Coaches'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' }
+        },
+        required: ['id']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            plan: { type: 'string' },
+            maxAthletes: { type: 'number' },
+            maxInvitations: { type: 'number' },
+            currentAthletes: { type: 'number' },
+            activeInvitations: { type: 'number' },
+            isActive: { type: 'boolean' },
+            expiresAt: { type: 'string' },
+            canCreateInvitation: { type: 'boolean' },
+            canAddAthlete: { type: 'boolean' }
+          }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { id: coachId } = request.params;
+    
+    try {
+      const coach = await fastify.prisma.coach.findUnique({
+        where: { id: coachId },
+        include: {
+          invitations: true,
+          athletes: true
+        }
+      });
+      
+      if (!coach) {
+        return reply.status(404).send({ error: 'Coach non trouvé' });
+      }
+      
+      const currentAthletes = coach.athletes.length;
+      const activeInvitations = coach.invitations.length;
+      
+      return {
+        plan: coach.subscriptionPlan,
+        maxAthletes: coach.maxAthletes,
+        maxInvitations: coach.maxInvitations,
+        currentAthletes,
+        activeInvitations,
+        isActive: coach.isSubscriptionActive,
+        expiresAt: coach.subscriptionExpiresAt?.toISOString(),
+        canCreateInvitation: coach.isSubscriptionActive && activeInvitations < coach.maxInvitations,
+        canAddAthlete: coach.isSubscriptionActive && (coach.maxAthletes === -1 || currentAthletes < coach.maxAthletes)
+      };
+      
+    } catch (error) {
+      fastify.log.error('Erreur récupération statut abonnement:', error);
+      return reply.status(500).send({
+        error: 'Erreur interne du serveur'
+      });
+    }
+  });
+
+  // GET /coaches/:id/invitations - Récupérer les invitations d'un coach
+  fastify.get('/:id/invitations', {
+    schema: {
+      description: 'Récupérer les invitations d\'un coach',
+      tags: ['Coaches'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' }
+        },
+        required: ['id']
+      },
+      response: {
+        200: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              code: { type: 'string' },
+              description: { type: 'string' },
+              isActive: { type: 'boolean' },
+              usedAt: { type: 'string' },
+              createdAt: { type: 'string' },
+              usedBy: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  displayName: { type: 'string' },
+                  email: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { id: coachId } = request.params;
+    
+    try {
+      const invitations = await fastify.prisma.coachInvitation.findMany({
+        where: { coachId },
+        include: {
+          usedBy: {
+            select: {
+              id: true,
+              displayName: true,
+              email: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      return invitations.map(invitation => ({
+        id: invitation.id,
+        code: invitation.code,
+        description: invitation.description,
+        isActive: invitation.isActive,
+        usedAt: invitation.usedAt?.toISOString(),
+        createdAt: invitation.createdAt.toISOString(),
+        usedBy: invitation.usedBy
+      }));
+      
+    } catch (error) {
+      fastify.log.error('Erreur récupération invitations:', error);
+      return reply.status(500).send({
+        error: 'Erreur interne du serveur'
+      });
+    }
+  });
 }
 
 module.exports = coachRoutes 

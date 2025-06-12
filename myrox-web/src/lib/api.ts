@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Template, Exercise, User, Workout, DashboardStats, Coach, StatsResponse } from '@/types';
+import { Template, Exercise, User, Workout, DashboardStats, Coach, StatsResponse, CoachInvitation, SubscriptionStatus, InvitationResponse, UseInvitationResponse } from '@/types';
 import { config } from '@/lib/config';
 
 // Construire l'URL de base en utilisant la configuration centralisée
@@ -165,6 +165,24 @@ export const coachesApi = {
     const response = await authenticatedApi.get(`/users/firebase/${firebaseUID}/personal-templates`);
     return response.data;
   },
+
+  // Récupérer le statut d'abonnement
+  getSubscriptionStatus: async (coachId: string): Promise<SubscriptionStatus> => {
+    const response = await api.get(`/coaches/${coachId}/subscription-status`);
+    return response.data;
+  },
+
+  // Générer un code d'invitation
+  generateInvitation: async (coachId: string, description?: string): Promise<InvitationResponse> => {
+    const response = await api.post(`/coaches/${coachId}/invitations`, { description });
+    return response.data;
+  },
+
+  // Récupérer les invitations d'un coach
+  getInvitations: async (coachId: string): Promise<CoachInvitation[]> => {
+    const response = await api.get(`/coaches/${coachId}/invitations`);
+    return response.data;
+  },
 };
 
 // Workouts API
@@ -178,6 +196,16 @@ export const workoutsApi = {
   // Récupérer un workout par ID
   getWorkout: async (id: string): Promise<Workout> => {
     const response = await api.get(`/workouts/${id}`);
+    return response.data;
+  },
+};
+
+// Auth API
+export const authApi = {
+  // Utiliser un code d'invitation
+  useInvitation: async (code: string, firebaseUID: string): Promise<UseInvitationResponse> => {
+    const authenticatedApi = createAuthenticatedApi(firebaseUID);
+    const response = await authenticatedApi.post('/auth/use-invitation', { code, firebaseUID });
     return response.data;
   },
 };

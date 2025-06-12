@@ -17,7 +17,8 @@ enum APIError: Error, LocalizedError {
     case noData
     case invalidResponse
     case unauthorized
-    case forbidden
+    case forbidden(String? = nil)
+    case badRequest(String? = nil)
     case notFound
     case validationError
     case serverError(Int)
@@ -36,8 +37,10 @@ enum APIError: Error, LocalizedError {
             return "Réponse invalide"
         case .unauthorized:
             return "Non autorisé - vérifiez votre authentification"
-        case .forbidden:
-            return "Accès interdit"
+        case .forbidden(let message):
+            return message ?? "Accès interdit"
+        case .badRequest(let message):
+            return message ?? "Requête invalide"
         case .notFound:
             return "Ressource non trouvée"
         case .validationError:

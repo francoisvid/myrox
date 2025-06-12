@@ -250,6 +250,176 @@ async function authRoutes(fastify, options) {
       });
     }
   });
+
+  // POST /auth/use-invitation - Utiliser un code d'invitation
+  fastify.post('/use-invitation', {
+    schema: {
+      description: 'Utiliser un code d\'invitation pour se lier à un coach',
+      tags: ['Auth'],
+      body: {
+        type: 'object',
+        properties: {
+          code: { type: 'string' },
+          firebaseUID: { type: 'string' }
+        },
+        required: ['code', 'firebaseUID']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            coach: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                displayName: { type: 'string' },
+                specialization: { type: 'string' }
+              }
+            }
+          }
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            error: { type: 'string' }
+          }
+        },
+        403: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            error: { type: 'string' },
+            details: { type: 'object' }
+          }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { code, firebaseUID } = request.body;
+    
+    // Vérifier que l'utilisateur utilise son propre UID
+    if (!request.user || request.user.firebaseUID !== firebaseUID) {
+      return reply.code(403).send({
+        success: false,
+        error: 'Accès interdit - Vous ne pouvez utiliser que votre propre code'
+      });
+    }
+    
+    try {
+      fastify.log.info(`🎫 Utilisation code d'invitation: ${code} par ${firebaseUID}`);
+      
+      // 1. Vérifier que l'utilisateur existe
+      const user = await fastify.prisma.user.findUnique({
+        where: { firebaseUID },
+        include: { coach: true } // Coach actuel s'il en a un
+      });
+      
+      if (!user) {
+        return reply.code(404).send({
+          success: false,
+          error: 'Utilisateur non trouvé'
+        });
+      }
+      
+      // 2. Trouver le code d'invitation
+      const invitation = await fastify.prisma.coachInvitation.findUnique({
+        where: { code },
+        include: {
+          coach: {
+            include: {
+              athletes: true // Pour vérifier les limites
+            }
+          }
+        }
+      });
+      
+      if (!invitation) {
+        return reply.code(404).send({
+          success: false,
+          error: 'Code d\'invitation non trouvé ou invalide'
+        });
+      }
+      
+      // 3. Vérifications du code
+      if (!invitation.isActive) {
+        return reply.code(403).send({
+          success: false,
+          error: 'Code d\'invitation désactivé'
+        });
+      }
+      
+      if (invitation.usedAt) {
+        return reply.code(403).send({
+          success: false,
+          error: 'Code d\'invitation déjà utilisé'
+        });
+      }
+      
+      // 4. Vérifier les limites du coach
+      const coach = invitation.coach;
+      const currentAthletes = coach.athletes.length;
+      
+      if (coach.maxAthletes !== -1 && currentAthletes >= coach.maxAthletes) {
+        return reply.code(403).send({
+          success: false,
+          error: 'Limite d\'athlètes atteinte pour ce coach',
+          details: {
+            current: currentAthletes,
+            max: coach.maxAthletes,
+            plan: coach.subscriptionPlan
+          }
+        });
+      }
+      
+      if (!coach.isSubscriptionActive) {
+        return reply.code(403).send({
+          success: false,
+          error: 'Abonnement du coach inactif'
+        });
+      }
+      
+      // 5. Effectuer la liaison (transaction)
+      await fastify.prisma.$transaction(async (prisma) => {
+        // Lier l'utilisateur au coach
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { coachId: coach.id }
+        });
+        
+        // Marquer le code comme utilisé
+        await prisma.coachInvitation.update({
+          where: { id: invitation.id },
+          data: {
+            usedByUserId: user.id,
+            usedAt: new Date(),
+            isActive: false // Désactiver le code après utilisation
+          }
+        });
+      });
+      
+      fastify.log.info(`✅ Liaison réussie: User ${user.id} -> Coach ${coach.id}`);
+      
+      return {
+        success: true,
+        message: `Vous êtes maintenant lié au coach ${coach.displayName}`,
+        coach: {
+          id: coach.id,
+          displayName: coach.displayName,
+          specialization: coach.specialization
+        }
+      };
+      
+    } catch (error) {
+      fastify.log.error('Erreur utilisation code d\'invitation:', error);
+      return reply.code(500).send({
+        success: false,
+        error: 'Erreur interne du serveur'
+      });
+    }
+  });
 }
 
 module.exports = authRoutes; 
