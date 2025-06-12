@@ -55,6 +55,11 @@ class AuthViewModel: NSObject, ObservableObject {
         
         Task {
             do {
+                let userRepository = UserRepository()
+                // S'assurer que l'utilisateur existe
+                _ = try await userRepository.syncCurrentUser()
+                
+                // Vérifier le statut d'onboarding
                 let hasCompleted = try await checkOnboardingCompleted(firebaseUID: currentUser.uid)
                 
                 await MainActor.run {
@@ -67,9 +72,12 @@ class AuthViewModel: NSObject, ObservableObject {
                     }
                 }
             } catch {
-                // Si erreur (pas d'informations), on suppose qu'il faut faire l'onboarding
+                print("❌ Erreur synchronisation utilisateur: \(error)")
+                // En cas d'erreur, on déconnecte
+                try? Auth.auth().signOut()
                 await MainActor.run {
-                    self.needsOnboarding = true
+                    self.isLoggedIn = false
+                    self.needsOnboarding = false
                     self.onboardingCompleted = false
                 }
             }
@@ -366,6 +374,7 @@ extension AuthViewModel: ASAuthorizationControllerDelegate {
             if let savedName = UserDefaults.standard.string(forKey: "username"),
                savedName != "Athlète Hyrox" {
                 print("✅ Nom existant trouvé: \(savedName)")
+                displayName = savedName
             }
         }
         
@@ -373,6 +382,22 @@ extension AuthViewModel: ASAuthorizationControllerDelegate {
         if let email = credential.email {
             UserDefaults.standard.set(email, forKey: "email")
             print("✅ Email Apple: \(email)")
+        }
+        
+        // Créer l'utilisateur dans notre API
+        Task {
+            do {
+                print("🚀 Début de sauvegarde pour l'utilisateur: \(firebaseUser.uid)")
+                let userRepository = UserRepository()
+                let newUser = APIUser(
+                    firebaseUID: firebaseUser.uid,
+                    email: credential.email ?? firebaseUser.email,
+                    displayName: displayName
+                )
+                _ = try await userRepository.createUserProfile(newUser)
+            } catch {
+                print("❌ Erreur création utilisateur API: \(error)")
+            }
         }
     }
 }
