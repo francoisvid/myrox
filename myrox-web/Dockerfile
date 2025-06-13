@@ -14,9 +14,8 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-COPY .env.production
 
-# Build args pour les variables Firebase
+# Build args pour les variables Firebase et API
 ARG NEXT_PUBLIC_FIREBASE_API_KEY
 ARG NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
 ARG NEXT_PUBLIC_FIREBASE_PROJECT_ID
@@ -44,13 +43,15 @@ ENV NODE_ENV production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Copier les fichiers du build standalone
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
 
 USER nextjs
 
 EXPOSE 3000
 ENV PORT 3000
-CMD ["npm", "start"]
+
+# Utiliser le serveur standalone
+CMD ["node", "server.js"]
