@@ -1,4 +1,5 @@
-import { initializeApp } from 'firebase/app';
+// src/lib/firebase.ts
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -10,16 +11,20 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-// Initialiser Firebase
-const app = initializeApp(firebaseConfig);
+// Initialiser Firebase seulement si nous sommes côté client et si la config est valide
+let app;
+let auth;
 
-// Initialiser Firebase Auth
-export const auth = getAuth(app);
-
-// Configuration pour le développement (optionnel)
-if (process.env.NODE_ENV === 'development') {
-  // Optionnel: connecter à l'émulateur Firebase Auth en développement
-  // connectAuthEmulator(auth, 'http://localhost:9099');
+// Vérifier que nous ne sommes pas côté serveur et que les variables sont définies
+if (typeof window !== 'undefined' && firebaseConfig.apiKey) {
+  // Éviter la double initialisation
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+  auth = getAuth(app);
+} else {
+  // Côté serveur, créer des objets mock pour éviter les erreurs
+  app = null;
+  auth = null;
 }
 
-export default app; 
+export { auth };
+export default app;
