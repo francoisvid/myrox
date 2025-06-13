@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # Base de données PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: myrox-postgres-prod
+    environment:
+      POSTGRES_DB: myrox_db
+      POSTGRES_USER: myrox_user
+      POSTGRES_PASSWORD: myrox_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+      - ./myROX-api/database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myrox_user -d myrox_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - myrox-network
+
+  # API myROX
+  api:
+    build:
+      context: ./myROX-api
+      dockerfile: Dockerfile
+    container_name: myrox-api-prod
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://myrox_user:myrox_password@postgres:5432/myrox_db"
+    ports:
+      - "3001:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - myrox-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Application Web Frontend
+  web:
+    build:
+      context: ./myrox-web
+      dockerfile: Dockerfile
+    container_name: myrox-web-prod
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - myrox-network
+
+volumes:
+  postgres_data_prod:
+    driver: local
+
+networks:
+  myrox-network:
+    driver: bridge 

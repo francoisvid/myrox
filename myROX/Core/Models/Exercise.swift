@@ -18,4 +18,13 @@ final class Exercise {
         self.hasDistance = false
         self.hasRepetitions = false
     }
+    
+    // Nouveau constructeur qui préserve l'ID API
+    init(id: UUID, name: String, category: String) {
+        self.id = id
+        self.name = name
+        self.category = category
+        self.hasDistance = false
+        self.hasRepetitions = false
+    }
 }

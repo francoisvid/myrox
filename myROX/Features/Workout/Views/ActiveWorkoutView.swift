@@ -9,6 +9,7 @@ struct ActiveWorkoutView: View {
     @State private var showingExerciseDetail = false
     @State private var selectedExercise: WorkoutExercise?
     @State private var showEndWorkoutAlert = false
+    @State private var showCancelWorkoutAlert = false
     
     var body: some View {
         NavigationStack {
@@ -26,6 +27,16 @@ struct ActiveWorkoutView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        showCancelWorkoutAlert = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.red)
+                    }
+                }
+                
+                ToolbarItem(placement: .principal) {
                     Text(template.name)
                         .font(.headline)
                         .foregroundColor(Color(.label))
@@ -37,7 +48,7 @@ struct ActiveWorkoutView: View {
                     } label: {
                         Image(systemName: "stop.circle.fill")
                             .font(.title2)
-                            .foregroundColor(.red)
+                            .foregroundColor(.green)
                     }
                 }
             }
@@ -67,6 +78,15 @@ struct ActiveWorkoutView: View {
                 }
             } message: {
                 Text("Êtes-vous sûr de vouloir terminer cette séance ?")
+            }
+            .alert("Annuler la séance", isPresented: $showCancelWorkoutAlert) {
+                Button("Continuer", role: .cancel) { }
+                Button("Annuler", role: .destructive) {
+                    viewModel.cancelWorkout()
+                    dismiss()
+                }
+            } message: {
+                Text("Cette action annulera définitivement votre séance en cours. Aucune donnée ne sera sauvegardée.")
             }
         }
     }

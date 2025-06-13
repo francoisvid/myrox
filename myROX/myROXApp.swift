@@ -6,6 +6,7 @@ import FirebaseCore
 struct MyROXApp: App {
     let modelContainer = ModelContainer.shared
     @StateObject private var authViewModel = AuthViewModel()
+    @StateObject private var exerciseSyncService = ExerciseSyncService.shared
     @State private var isInitialized = false
     @State private var showSplash = true
     @State private var splashStartTime: Date?
@@ -37,10 +38,15 @@ struct MyROXApp: App {
                                 }
                             }
                         }
-                } else if authViewModel.isLoggedIn {
+                } else if authViewModel.isLoggedIn && authViewModel.onboardingCompleted {
                     ContentView()
                         .environmentObject(authViewModel)
+                        .environmentObject(exerciseSyncService)
                         .background(Color.adaptiveGradient)
+                        .transition(.opacity)
+                } else if authViewModel.isLoggedIn && authViewModel.needsOnboarding {
+                    OnboardingCoordinatorView()
+                        .environmentObject(authViewModel)
                         .transition(.opacity)
                 } else {
                     LoginView()
@@ -54,7 +60,22 @@ struct MyROXApp: App {
     
     private func initializeApp() async {
         do {
+            // RESET TEMPORAIRE : Nettoyer les anciens exercices avec distances
+            // À supprimer après la première utilisation
+            try await modelContainer.resetExerciseCatalog()
+            
+            // Initialiser les exercices locaux d'abord (maintenant vide)
             try await modelContainer.initializeExerciseCatalog()
+            
+            // Puis synchroniser avec l'API si possible
+            await exerciseSyncService.syncExercisesIfNeeded(modelContext: modelContainer.mainContext)
+            
+            // 🚀 NOUVEAU : Synchroniser les workouts non synchronisés au démarrage
+            let workoutRepository = WorkoutRepository(modelContext: modelContainer.mainContext)
+            await WorkoutSyncService.shared.syncUnsyncedWorkouts(with: workoutRepository)
+            
+            // 🏆 NOUVEAU : Synchroniser les personal bests
+            await PersonalBestSyncService.shared.syncPersonalBestsIfNeeded()
             
             // Nettoyer automatiquement les anciens templates au démarrage
             await MainActor.run {
@@ -96,5 +117,33 @@ extension Color {
             startPoint: .top,
             endPoint: .bottom
         )
+    }()
+    
+    // Couleurs spécifiques pour l'onboarding
+    static let adaptiveOnboardingBackground: LinearGradient = {
+        LinearGradient(
+            gradient: Gradient(colors: [
+                Color(.systemBackground),
+                Color(.systemBackground).opacity(0.8)
+            ]),
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }()
+    
+    static let adaptiveCardBackground: Color = {
+        Color(.secondarySystemBackground)
+    }()
+    
+    static let adaptiveBorderColor: Color = {
+        Color(.separator)
+    }()
+    
+    static let adaptiveTextPrimary: Color = {
+        Color(.label)
+    }()
+    
+    static let adaptiveTextSecondary: Color = {
+        Color(.secondaryLabel)
     }()
 }

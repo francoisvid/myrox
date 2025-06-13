@@ -23,6 +23,9 @@ struct WorkoutListView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
+            .refreshable {
+                await refreshTemplates()
+            }
             .background(Color.adaptiveGradient)
             .navigationBarTitleDisplayMode(.large)
             .navigationTitle("Entraînements")
@@ -62,7 +65,18 @@ struct WorkoutListView: View {
                     viewModel = WorkoutViewModel(modelContext: modelContext)
                 }
             }
+
         }
+    }
+    
+    // MARK: - Methods
+    
+    @MainActor
+    private func refreshTemplates() async {
+        guard let vm = viewModel else { return }
+        
+        // Synchroniser avec l'API au lieu de juste récupérer le cache
+        await vm.refreshTemplatesFromAPI()
     }
     
     // MARK: - Subviews
@@ -102,6 +116,7 @@ struct WorkoutListView: View {
                 ForEach(templates) { template in
                     WorkoutTemplateCard(
                         template: template,
+                        apiTemplate: viewModel?.getAPITemplate(for: template),
                         isActive: viewModel?.activeWorkout?.templateID == template.id,
                         onStart: {
                             selectedTemplate = template
@@ -132,7 +147,7 @@ struct WorkoutListView: View {
                 Button {
                     viewModel?.cleanupLegacyTemplates()
                 } label: {
-                    Label("Nettoyer les anciens templates", systemImage: "arrow.clockwise.circle")
+                    Label("Nettoyer les anciens entraînements", systemImage: "arrow.clockwise.circle")
                 }
                 
                 Divider()

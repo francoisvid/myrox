@@ -166,19 +166,18 @@ struct CreateTemplateView: View {
             .padding(.top, 20)
             
             List {
-                ForEach(templateExercises.sorted(by: { $0.order < $1.order }), id: \.id) { templateExercise in
+                ForEach(Array(templateExercises.sorted(by: { $0.order < $1.order }).enumerated()), id: \.element.id) { index, templateExercise in
                     TemplateExerciseRow(
                         templateExercise: templateExercise,
-                        position: templateExercise.order + 1,
+                        position: index + 1,
                         onRemove: {
                             removeTemplateExercise(templateExercise)
                         }
                     )
                     .listRowBackground(Color.clear)
                 }
-                .onMove { from, to in
-                    moveExercises(from: from, to: to)
-                }
+                .onMove(perform: moveExercises)
+                .onDelete(perform: deleteExercises)
             }
             .listStyle(.plain)
             .environment(\.editMode, .constant(.active))
@@ -217,7 +216,7 @@ struct CreateTemplateView: View {
         withAnimation {
             if let index = templateExercises.firstIndex(where: { $0.id == templateExercise.id }) {
                 templateExercises.remove(at: index)
-                // Réorganiser les ordres
+                // Réorganiser les ordres (commencer à 0)
                 for i in 0..<templateExercises.count {
                     templateExercises[i].order = i
                 }
@@ -226,15 +225,45 @@ struct CreateTemplateView: View {
     }
     
     private func moveExercises(from source: IndexSet, to destination: Int) {
+        print("🔄 Début réorganisation: de \(source) vers \(destination)")
+        
+        // Créer une copie triée par ordre pour que les index correspondent à l'affichage
         var sortedExercises = templateExercises.sorted(by: { $0.order < $1.order })
+        
+        // Debug: état avant déplacement
+        print("📋 Exercices avant déplacement:")
+        for (index, exercise) in sortedExercises.enumerated() {
+            print("   [\(index)] \(exercise.exerciseName) (ordre: \(exercise.order))")
+        }
+        
+        // Effectuer le déplacement sur la liste triée
         sortedExercises.move(fromOffsets: source, toOffset: destination)
         
-        // Mettre à jour les ordres
+        // Mettre à jour les ordres (commencer à 0)
         for (index, exercise) in sortedExercises.enumerated() {
             exercise.order = index
         }
         
+        // Remplacer la liste originale
         templateExercises = sortedExercises
+        
+        // Debug: état après déplacement
+        print("📋 Exercices après déplacement:")
+        for (index, exercise) in templateExercises.enumerated() {
+            print("   [\(index)] \(exercise.exerciseName) (ordre: \(exercise.order))")
+        }
+        print("✅ Réorganisation terminée")
+    }
+    
+    private func deleteExercises(offsets: IndexSet) {
+        withAnimation {
+            let sortedExercises = templateExercises.sorted(by: { $0.order < $1.order })
+            for index in offsets {
+                if index < sortedExercises.count {
+                    removeTemplateExercise(sortedExercises[index])
+                }
+            }
+        }
     }
     
     private func saveTemplate() {

@@ -7,12 +7,12 @@ final class TemplateExercise {
     var exerciseName: String
     var targetDistance: Double?
     var targetRepetitions: Int?
-    var order: Int = 0
+    var order: Int = 1
     
     @Relationship(inverse: \WorkoutTemplate.exercises)
     var template: WorkoutTemplate?
     
-    init(exerciseName: String, targetDistance: Double? = nil, targetRepetitions: Int? = nil, order: Int = 0) {
+    init(exerciseName: String, targetDistance: Double? = nil, targetRepetitions: Int? = nil, order: Int = 1) {
         self.id = UUID()
         self.exerciseName = exerciseName
         self.targetDistance = targetDistance

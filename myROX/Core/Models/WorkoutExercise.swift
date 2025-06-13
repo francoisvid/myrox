@@ -105,4 +105,20 @@ extension WorkoutExercise {
         
         return sameDistance && sameReps
     }
+    
+    /// Génère la clé d'exercice pour personal best (compatible avec le backend)
+    var personalBestExerciseType: String {
+        // Nettoyer le nom de l'exercice (enlever espaces, mettre en minuscules)
+        let cleanName = exerciseName.lowercased().replacingOccurrences(of: " ", with: "")
+        
+        // Priorité: distance > reps > timeOnly
+        if distance > 0 {
+            let roundedDistance = Int(distance)
+            return "\(cleanName)_\(roundedDistance)m"
+        } else if repetitions > 0 {
+            return "\(cleanName)_\(repetitions)reps"
+        } else {
+            return "\(cleanName)_timeonly"
+        }
+    }
 }

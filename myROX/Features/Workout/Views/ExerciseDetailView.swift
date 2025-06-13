@@ -6,6 +6,7 @@ struct ExerciseDetailView: View {
     @Bindable var viewModel: WorkoutViewModel
     @Environment(\.dismiss) private var dismiss
     @Query private var goals: [ExerciseGoal]
+    @Query private var personalBests: [PersonalBest]
     
     @State private var duration: TimeInterval = 0
     @State private var distance: Double = 0
@@ -20,6 +21,11 @@ struct ExerciseDetailView: View {
     private var targetTime: TimeInterval? {
         goals.first(where: { $0.exerciseName == exercise.exerciseName })?.targetTime
     }
+    
+    private var personalBest: PersonalBest? {
+        let exerciseType = exercise.personalBestExerciseType
+        return personalBests.first { $0.exerciseType == exerciseType }
+    }
 
     var body: some View {
         NavigationStack {
@@ -29,15 +35,58 @@ struct ExerciseDetailView: View {
                     .foregroundColor(Color(.label))
                     .padding(.top, 30)
                 
-                // Afficher l'objectif
-                if let target = targetTime, target > 0 {
-                    HStack {
-                        Image(systemName: "target")
-                            .foregroundColor(.yellow)
-                        Text("Objectif: \(target.formatted)")
-                            .foregroundColor(.yellow)
+                // Afficher les paramètres à effectuer
+                if exercise.distance > 0 || exercise.repetitions > 0 {
+                    HStack(spacing: 16) {
+                        if exercise.distance > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "ruler")
+                                    .font(.subheadline)
+                                    .foregroundColor(.blue)
+                                Text("\(Int(exercise.distance))m")
+                                    .font(.title2.bold())
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                        
+                        if exercise.repetitions > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "repeat")
+                                    .font(.subheadline)
+                                    .foregroundColor(.green)
+                                Text("\(exercise.repetitions) reps")
+                                    .font(.title2.bold())
+                                    .foregroundColor(.green)
+                            }
+                        }
                     }
-                    .font(.headline)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                }
+                
+                // Afficher l'objectif et le PR
+                VStack(spacing: 8) {
+                    if let target = targetTime, target > 0 {
+                        HStack {
+                            Image(systemName: "target")
+                                .foregroundColor(.blue)
+                            Text("Objectif: \(target.formatted)")
+                                .foregroundColor(.blue)
+                        }
+                        .font(.headline)
+                    }
+                    
+                    if let pb = personalBest {
+                        HStack {
+                            Image(systemName: "trophy.fill")
+                                .foregroundColor(.yellow)
+                            Text("Record: \(pb.value.formatted)")
+                                .foregroundColor(.yellow)
+                        }
+                        .font(.headline)
+                    }
                 }
                 
                 // Timer avec indicateur visuel
@@ -65,11 +114,25 @@ struct ExerciseDetailView: View {
                     }
                 }
                 
-                // Message si objectif dépassé
-                if let target = targetTime, target > 0 && duration > target {
-                    Text("Objectif dépassé de \((duration - target).formatted)")
-                        .font(.caption)
-                        .foregroundColor(.orange)
+                // Messages de statut
+                VStack(spacing: 4) {
+                    // Nouveau record
+                    if let pb = personalBest, duration > 0 && duration < pb.value {
+                        HStack {
+                            Image(systemName: "star.fill")
+                                .foregroundColor(.yellow)
+                            Text("Nouveau record ! (\(pb.value.formatted) -> \(duration.formatted))")
+                                .font(.caption)
+                                .foregroundColor(.yellow)
+                        }
+                    }
+                    
+                    // Objectif dépassé
+                    if let target = targetTime, target > 0 && duration > target {
+                        Text("Objectif dépassé de \((duration - target).formatted)")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
                 }
 
                 timerControls
@@ -104,8 +167,14 @@ struct ExerciseDetailView: View {
     }
     
     private var timerColor: Color {
-        guard let target = targetTime, target > 0 else { return Color(.label) }
-        return duration > target ? .orange : Color(.label)
+        // Priorité: nouveau record (jaune) > objectif dépassé (orange) > normal
+        if let pb = personalBest, duration > 0 && duration < pb.value {
+            return .yellow  // Nouveau record !
+        } else if let target = targetTime, target > 0 && duration > target {
+            return .orange  // Objectif dépassé
+        } else {
+            return Color(.label)  // Normal
+        }
     }
 
     private var timerControls: some View {

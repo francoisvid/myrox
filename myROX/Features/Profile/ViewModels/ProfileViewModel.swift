@@ -97,6 +97,12 @@ class ProfileViewModel: ObservableObject {
         loadStatistics()
     }
     
+    func refreshActivityStats() async {
+        await MainActor.run {
+            loadStatistics()
+        }
+    }
+    
     private func loadStatistics() {
         let descriptor = FetchDescriptor<Workout>(
             predicate: #Predicate { $0.completedAt != nil }

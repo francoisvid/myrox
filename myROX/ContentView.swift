@@ -30,6 +30,15 @@ struct ContentView: View {
                         Label("Profil", systemImage: "person.circle")
                     }
                     .tag(3)
+                
+                // 🧪 TEMPORAIRE - Vue de test API
+                #if DEBUG
+                APITestView()
+                    .tabItem {
+                        Label("API Test", systemImage: "network")
+                    }
+                    .tag(4)
+                #endif
             }
             .tint(.yellow)
             .sheet(isPresented: $navigationService.shouldShowWorkoutCompletion) {

@@ -5,6 +5,8 @@ struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel: DashboardViewModel
     @StateObject private var statsViewModel: StatisticsViewModel
+    @State private var personalBests: [PersonalBest] = []
+    @State private var personalBestRepository: PersonalBestRepository?
     
     init() {
         let context = ModelContainer.shared.mainContext
@@ -19,6 +21,9 @@ struct DashboardView: View {
                     // Dernier entraînement
                     lastWorkoutSection
                     
+                    // Templates Summary
+                    // templatesSummarySection
+                    
                     // Événements à venir
                     upcomingEventsSection
                 }
@@ -27,15 +32,85 @@ struct DashboardView: View {
             .navigationTitle("Dashboard")
             .navigationBarTitleDisplayMode(.large)
             .refreshable {
-                viewModel.loadData()
+                await viewModel.refreshData()
             }
             .onAppear {
                 // Forcer le rechargement des stats si nécessaire
                 if statsViewModel.personalBests.isEmpty && !statsViewModel.workouts.isEmpty {
                     statsViewModel.loadWorkouts()
                 }
+                
+                // Initialiser le repository et charger les personal bests
+                personalBestRepository = PersonalBestRepository(modelContext: modelContext)
+                loadPersonalBests()
+            }
+            .overlay {
+                if viewModel.isLoading {
+                    ProgressView("Synchronisation...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black.opacity(0.1))
+                }
+            }
+            .alert("Erreur", isPresented: .constant(viewModel.errorMessage != nil)) {
+                Button("OK") { }
+            } message: {
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                }
             }
         }
+    }
+    
+    // MARK: - Helper Functions
+    
+    private func loadPersonalBests() {
+        guard let repository = personalBestRepository else { return }
+        personalBests = repository.getCachedPersonalBests()
+    }
+    
+    // MARK: - Templates Summary Section
+    
+    private var templatesSummarySection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Entrainements")
+                .font(.title3.bold())
+                .foregroundColor(Color(.label))
+            
+            HStack(spacing: 16) {
+                templateSummaryCard(
+                    title: "Personnels",
+                    count: viewModel.personalTemplatesCount,
+                    color: .green
+                )
+                
+                if viewModel.isCoached {
+                    templateSummaryCard(
+                        title: "Assignés",
+                        count: viewModel.assignedTemplatesCount,
+                        color: .blue
+                    )
+                }
+            }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+        }
+    }
+    
+    private func templateSummaryCard(title: String, count: Int, color: Color) -> some View {
+        VStack(spacing: 8) {
+            Text("\(count)")
+                .font(.title.bold())
+                .foregroundColor(color)
+            
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(color.opacity(0.1))
+        .cornerRadius(8)
     }
     
     // MARK: - Sections
@@ -47,7 +122,10 @@ struct DashboardView: View {
                 .foregroundColor(Color(.label))
             
             if let workout = viewModel.lastWorkout {
-                LastWorkoutCard(workout: workout, statsViewModel: statsViewModel)
+                LastWorkoutCard(
+                    workout: workout, 
+                    personalBests: personalBests
+                )
             } else {
                 NoWorkoutCard()
             }
@@ -71,7 +149,7 @@ struct DashboardView: View {
 
 struct LastWorkoutCard: View {
     let workout: Workout
-    let statsViewModel: StatisticsViewModel
+    let personalBests: [PersonalBest]
     @State private var showDetails = false
     
     var body: some View {
@@ -143,8 +221,10 @@ struct LastWorkoutCard: View {
                     ForEach(sortedExercises, id: \.id) { exercise in
                         IndividualExerciseView(
                             exercise: exercise,
-                            personalBest: getBestForExercise(exercise, from: statsViewModel),
-                            isNewRecord: isNewRecord(exercise, personalBest: getBestForExercise(exercise, from: statsViewModel)),
+                            personalBest: nil, // Plus besoin de l'ancien système
+                            persistedPersonalBest: getPersonalBestForExercise(exercise),
+                            isNewRecord: isNewRecordVsPersisted(exercise),
+                            shouldHighlightTime: shouldHighlightTime(exercise),
                             allWorkoutExercises: workout.performances
                         )
                     }
@@ -176,14 +256,20 @@ struct LastWorkoutCard: View {
     
     // MARK: - Helper Functions
     
-    private func getBestForExercise(_ exercise: WorkoutExercise, from statsViewModel: StatisticsViewModel) -> WorkoutExercise? {
-        let key = exercise.statisticsKey
-        return statsViewModel.personalBests[key]
+    private func getPersonalBestForExercise(_ exercise: WorkoutExercise) -> PersonalBest? {
+        let exerciseType = exercise.personalBestExerciseType
+        return personalBests.first { $0.exerciseType == exerciseType }
     }
     
-    private func isNewRecord(_ exercise: WorkoutExercise, personalBest: WorkoutExercise?) -> Bool {
-        guard let best = personalBest else { return false }
-        return exercise.duration < best.duration && exercise.duration > 0
+    private func isNewRecordVsPersisted(_ exercise: WorkoutExercise) -> Bool {
+        guard let personalBest = getPersonalBestForExercise(exercise) else { return false }
+        return exercise.duration < personalBest.value && exercise.duration > 0
+    }
+    
+    private func shouldHighlightTime(_ exercise: WorkoutExercise) -> Bool {
+        guard let personalBest = getPersonalBestForExercise(exercise) else { return false }
+        // Mettre en jaune si c'est un nouveau record OU si c'est égal au PR
+        return exercise.duration <= personalBest.value && exercise.duration > 0
     }
     
     // Fonction pour déterminer si on doit afficher les rounds
@@ -306,7 +392,9 @@ struct PerformanceComparisonRow: View {
 struct IndividualExerciseView: View {
     let exercise: WorkoutExercise
     let personalBest: WorkoutExercise?
+    let persistedPersonalBest: PersonalBest?
     let isNewRecord: Bool
+    let shouldHighlightTime: Bool
     let allWorkoutExercises: [WorkoutExercise]
     
     private var displayParameters: String {
@@ -367,18 +455,25 @@ struct IndividualExerciseView: View {
             
             // Colonne temps (alignée à droite)
             VStack(alignment: .trailing, spacing: 2) {
-                Text(exercise.duration.formatted)
-                    .font(.subheadline.bold())
-                    .foregroundColor(exercise.duration == personalBest?.duration ? .yellow : Color(.label))
+                // Temps actuel (en jaune si c'est la PR ou un nouveau record)
+                if exercise.duration > 0 {
+                    Text(exercise.duration.formatted)
+                        .font(.subheadline.bold())
+                        .foregroundColor(shouldHighlightTime ? .yellow : Color(.label))
+                } else {
+                    Text("--")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.gray)
+                }
                 
-                // Record personnel en dessous
-                if let best = personalBest {
+                // Record personnel persisté en dessous
+                if let persistedBest = persistedPersonalBest {
                     HStack(spacing: 4) {
                         Image(systemName: "trophy.fill")
                             .font(.caption2)
                             .foregroundColor(.yellow)
                         
-                        Text(best.duration.formatted)
+                        Text(persistedBest.value.formatted)
                             .font(.caption.bold())
                             .foregroundColor(.yellow)
                     }

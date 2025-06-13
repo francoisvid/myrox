@@ -78,4 +78,33 @@ struct WatchExercise: Identifiable {
         self.targetDistance = targetDistance
         self.targetRepetitions = targetRepetitions
     }
+    
+    // Helper pour générer l'exerciseType comme sur iOS
+    var personalBestExerciseType: String {
+        var exerciseType = name.lowercased()
+        
+        if let distance = targetDistance, distance > 0 {
+            exerciseType += "_\(Int(distance))m"
+        } else if let reps = targetRepetitions, reps > 0 {
+            exerciseType += "_\(reps)reps"
+        } else {
+            exerciseType += "_timeonly"
+        }
+        
+        return exerciseType
+    }
+}
+
+// Personal Best pour la Watch
+struct WatchPersonalBest: Identifiable, Codable {
+    let id = UUID()
+    let exerciseType: String
+    let value: Double // TimeInterval en secondes
+    let achievedAt: Date
+    
+    init(exerciseType: String, value: Double, achievedAt: Date) {
+        self.exerciseType = exerciseType
+        self.value = value
+        self.achievedAt = achievedAt
+    }
 }

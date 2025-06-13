@@ -10,6 +10,7 @@ class WatchDataService: NSObject, ObservableObject {
     @Published var activeWorkout: WatchWorkout?
     @Published var isPhoneReachable = false
     @Published var goals: [String: TimeInterval] = [:]
+    @Published var personalBests: [WatchPersonalBest] = []
     
     private var session: WCSession
     private let healthStore = HKHealthStore()
@@ -22,6 +23,11 @@ class WatchDataService: NSObject, ObservableObject {
         
         if let savedGoals = UserDefaults.standard.object(forKey: "exerciseGoals") as? [String: TimeInterval] {
             self.goals = savedGoals
+        }
+        
+        if let savedPBData = UserDefaults.standard.data(forKey: "personalBests"),
+           let savedPBs = try? JSONDecoder().decode([WatchPersonalBest].self, from: savedPBData) {
+            self.personalBests = savedPBs
         }
         
         if WCSession.isSupported() {
@@ -58,6 +64,15 @@ class WatchDataService: NSObject, ObservableObject {
         let message = ["action": "requestGoals"]
         session.sendMessage(message, replyHandler: nil) { error in
             print("Erreur demande goals: \(error)")
+        }
+    }
+    
+    func requestPersonalBests() {
+        guard session.isReachable else { return }
+        
+        let message = ["action": "requestPersonalBests"]
+        session.sendMessage(message, replyHandler: nil) { error in
+            print("Erreur demande personal bests: \(error)")
         }
     }
     
@@ -126,9 +141,52 @@ class WatchDataService: NSObject, ObservableObject {
         print("Démarrage de la session de workout pour le template: \(template.name)")
         
         // Vérifier si un workout est déjà actif
-        if activeWorkout != nil {
-            print("Un workout est déjà actif, on ne crée pas de nouvelle session")
-            return
+        if let existingWorkout = activeWorkout {
+            print("Un workout est déjà actif: \(existingWorkout.templateName)")
+            
+            // Si c'est le même template, ne pas créer de nouveau workout mais permettre la navigation
+            if existingWorkout.templateName == template.name {
+                print("Même template déjà actif, autorisation de continuer")
+                return
+            }
+            
+            // Si c'est un template différent, remplacer le workout actuel
+            print("Template différent, remplacement du workout actuel")
+            endWorkoutSession()
+        }
+        
+        // 🔧 CRÉER LE WORKOUT IMMÉDIATEMENT (synchrone) pour que la navigation fonctionne
+        var exercises: [WatchExercise] = []
+        let rounds = template.rounds
+        let templateExercises = template.templateExercises
+        
+        for round in 1...rounds {
+            let roundExercises = templateExercises.map { templateExercise in
+                WatchExercise(
+                    name: templateExercise.name,
+                    round: round,
+                    order: templateExercise.order,
+                    targetDistance: templateExercise.targetDistance,
+                    targetRepetitions: templateExercise.targetRepetitions
+                )
+            }
+            exercises.append(contentsOf: roundExercises)
+        }
+        
+        // Créer le workout IMMÉDIATEMENT (synchrone sur le thread principal)
+        self.activeWorkout = WatchWorkout(
+            templateId: template.id,
+            templateName: template.name,
+            startedAt: Date(),
+            exercises: exercises
+        )
+        print("Workout créé avec \(exercises.count) exercices répartis sur \(rounds) rounds")
+        for exercise in exercises {
+            let params = [
+                exercise.targetDistance.map { "\($0)m" },
+                exercise.targetRepetitions.map { "\($0) reps" }
+            ].compactMap { $0 }.joined(separator: ", ")
+            print("Round \(exercise.round) - \(exercise.name) \(params)")
         }
         
         let configuration = HKWorkoutConfiguration()
@@ -143,42 +201,6 @@ class WatchDataService: NSObject, ObservableObject {
             
             workoutSession?.delegate = self
             builder?.delegate = self
-            
-            // Créer d'abord le workout avec les exercices groupés par round
-            DispatchQueue.main.async {
-                // Créer les exercices pour chaque round en utilisant les paramètres des templates
-                var exercises: [WatchExercise] = []
-                let rounds = template.rounds
-                let templateExercises = template.templateExercises
-                
-                for round in 1...rounds {
-                    let roundExercises = templateExercises.map { templateExercise in
-                        WatchExercise(
-                            name: templateExercise.name,
-                            round: round,
-                            order: templateExercise.order,
-                            targetDistance: templateExercise.targetDistance,
-                            targetRepetitions: templateExercise.targetRepetitions
-                        )
-                    }
-                    exercises.append(contentsOf: roundExercises)
-                }
-                
-                self.activeWorkout = WatchWorkout(
-                    templateId: template.id,
-                    templateName: template.name,
-                    startedAt: Date(),
-                    exercises: exercises
-                )
-                print("Workout créé avec \(exercises.count) exercices répartis sur \(rounds) rounds")
-                for exercise in exercises {
-                    let params = [
-                        exercise.targetDistance.map { "\($0)m" },
-                        exercise.targetRepetitions.map { "\($0) reps" }
-                    ].compactMap { $0 }.joined(separator: ", ")
-                    print("Round \(exercise.round) - \(exercise.name) \(params)")
-                }
-            }
             
             // Démarrer la session HealthKit
             workoutSession?.startActivity(with: Date())
@@ -305,6 +327,8 @@ class WatchDataService: NSObject, ObservableObject {
             UserDefaults.standard.removeObject(forKey: "pendingWorkouts")
         }
     }
+    
+
 }
 
 // MARK: - WCSessionDelegate
@@ -318,6 +342,8 @@ extension WatchDataService: WCSessionDelegate {
         if activationState == .activated {
             requestTemplates()
             requestWorkoutCount()
+            requestGoals()
+            requestPersonalBests()
             syncPendingWorkouts()
         }
     }
@@ -330,6 +356,8 @@ extension WatchDataService: WCSessionDelegate {
         if session.isReachable {
             requestTemplates()
             requestWorkoutCount()
+            requestGoals()
+            requestPersonalBests()
             syncPendingWorkouts()
         }
     }
@@ -352,6 +380,26 @@ extension WatchDataService: WCSessionDelegate {
                 
                 // Sauvegarder localement
                 UserDefaults.standard.set(newGoals, forKey: "exerciseGoals")
+            }
+            
+            if let personalBestsData = message["personalBests"] as? [[String: Any]] {
+                let newPersonalBests = personalBestsData.compactMap { pbData -> WatchPersonalBest? in
+                    guard let exerciseType = pbData["exerciseType"] as? String,
+                          let value = pbData["value"] as? Double,
+                          let achievedAtTimestamp = pbData["achievedAt"] as? TimeInterval else {
+                        return nil
+                    }
+                    
+                    let achievedAt = Date(timeIntervalSince1970: achievedAtTimestamp)
+                    return WatchPersonalBest(exerciseType: exerciseType, value: value, achievedAt: achievedAt)
+                }
+                
+                self.personalBests = newPersonalBests
+                
+                // Sauvegarder localement
+                if let encoded = try? JSONEncoder().encode(newPersonalBests) {
+                    UserDefaults.standard.set(encoded, forKey: "personalBests")
+                }
             }
             
             if let templatesData = message["templates"] as? [[String: Any]] {
@@ -418,6 +466,7 @@ extension WatchDataService: WCSessionDelegate {
                         // Supprimer le template de la liste
                         self.templates.removeAll { $0.id == templateId }
                     }
+
                 default:
                     break
                 }
