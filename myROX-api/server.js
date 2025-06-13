@@ -19,18 +19,25 @@ fastify.addHook('onClose', async () => {
 // Configuration CORS
 fastify.register(require('@fastify/cors'), {
   origin: [
+    // Développement local
     'http://localhost:3000',
     'http://localhost:3001', 
     'http://localhost:3002',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:3001', 
     'http://127.0.0.1:3002',
+    
+    // Développement Orb
     'https://web.myrox.orb.local',
     'http://web.myrox.orb.local',
+    
+    // Production IP (fallback)
     'http://46.202.130.121:3000',
     'https://46.202.130.121:3000',
-    'http://46.202.130.121:3001',
-    'https://46.202.130.121:3001'
+    
+    // Production domaines
+    'https://web.myrox.fr',
+    'https://myrox.fr',
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true

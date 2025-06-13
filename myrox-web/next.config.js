@@ -9,7 +9,7 @@ const nextConfig = {
     serverExternalPackages: ['firebase'],
     output: 'standalone',
     env: {
-      NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "http://46.202.130.121:3001",
+      NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "https://api.myrox.fr",
       NEXT_PUBLIC_FIREBASE_API_KEY: "AIzaSyCtFy5lkgR1qga65tbqHuBb-cJgrS-7Lvw",
       NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "myrox-6fc29.firebaseapp.com",
       NEXT_PUBLIC_FIREBASE_PROJECT_ID: "myrox-6fc29",

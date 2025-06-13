@@ -85,29 +85,19 @@ class AuthViewModel: NSObject, ObservableObject {
     }
     
     private func checkOnboardingCompleted(firebaseUID: String) async throws -> Bool {
-        guard let url = URL(string: "http://localhost:3001/api/v1/users/firebase/\(firebaseUID)/informations") else {
-            throw URLError(.badURL)
+        let endpoint = APIEndpoints.userInformations(firebaseUID: firebaseUID)
+        
+        do {
+            let userInfo = try await APIService.shared.get(endpoint, responseType: UserInformationsResponse.self)
+            return userInfo.hasCompletedOnboarding
+        } catch let error as APIError {
+            if case .notFound = error {
+                return false // 404 signifie que l'onboarding n'est pas fait
+            }
+            throw error // Renvoyer les autres erreurs API
+        } catch {
+            throw error // Renvoyer les erreurs non-API
         }
-        
-        var request = URLRequest(url: url)
-        request.setValue(firebaseUID, forHTTPHeaderField: "x-firebase-uid")
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw URLError(.badServerResponse)
-        }
-        
-        if httpResponse.statusCode == 404 {
-            return false // Pas d'informations = onboarding requis
-        }
-        
-        if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
-            throw URLError(.badServerResponse)
-        }
-        
-        let userInfo = try JSONDecoder().decode(UserInformationsResponse.self, from: data)
-        return userInfo.hasCompletedOnboarding
     }
     
     // Marquer l'onboarding comme complété

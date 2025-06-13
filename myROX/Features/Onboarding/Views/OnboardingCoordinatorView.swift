@@ -75,11 +75,6 @@ struct OnboardingCoordinatorView: View {
                 await viewModel.loadUserInformations()
             }
         }
-        .onChange(of: viewModel.isCompleted) { completed in
-            if completed {
-                authViewModel.markOnboardingCompleted()
-            }
-        }
         .alert("Erreur", isPresented: $viewModel.showAlert) {
             Button("OK", role: .cancel) { }
         } message: {

@@ -43,9 +43,13 @@ export const useAuth = () => {
         try {
           setLoading(true);
           setError(null);
-          // Récupérer les infos utilisateur depuis l'API
-          const userData = await fetchUserData(firebaseUser.uid);
-          setUser(userData);
+          
+          // Ne pas vérifier si l'utilisateur est déjà défini (cas de l'inscription)
+          if (!user) {
+            // Récupérer les infos utilisateur depuis l'API
+            const userData = await fetchUserData(firebaseUser.uid);
+            setUser(userData);
+          }
         } catch (error) {
           console.error('Erreur récupération utilisateur:', error);
           
@@ -69,7 +73,7 @@ export const useAuth = () => {
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, [router, user]);
 
   const fetchUserData = async (firebaseUID: string): Promise<AuthUser> => {
     // Utiliser l'URL absolue pour l'API
@@ -139,6 +143,9 @@ export const useAuth = () => {
       }
       
       const userData = await response.json();
+      
+      // Attendre un peu pour s'assurer que l'utilisateur est bien créé dans la base
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       const authUser: AuthUser = {
         user: userData.user,

@@ -152,9 +152,11 @@ class OnboardingViewModel: ObservableObject {
                 try await saveUserInformations(firebaseUID: currentUser.uid)
                 
                 await MainActor.run {
-                    self.isLoading = false
-                    self.isCompleted = true
-                    self.currentStep = .completion
+                    withAnimation {
+                        self.isLoading = false
+                        self.isCompleted = true
+                        self.currentStep = .completion
+                    }
                 }
             } catch {
                 await MainActor.run {
@@ -168,48 +170,15 @@ class OnboardingViewModel: ObservableObject {
     
     private func saveUserInformations(firebaseUID: String) async throws {
         print("🚀 Début de sauvegarde pour l'utilisateur: \(firebaseUID)")
+        let endpoint = APIEndpoints.userInformations(firebaseUID: firebaseUID)
         
-        guard let url = URL(string: "http://localhost:3001/api/v1/users/firebase/\(firebaseUID)/informations") else {
-            print("❌ URL invalide")
-            throw URLError(.badURL)
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(firebaseUID, forHTTPHeaderField: "x-firebase-uid")
-        
-        // Préparer les données pour l'API
+        // Les données sont préparées dans une structure spécifique pour l'API
         let apiData = OnboardingAPIData(from: userInformations)
-        let jsonData = try JSONEncoder().encode(apiData)
-        request.httpBody = jsonData
+
+        // On n'attend pas de contenu en retour, juste un statut de succès (2xx)
+        _ = try await APIService.shared.request(endpoint, method: .POST, body: apiData, responseType: EmptyResponse.self)
         
-        print("📦 Données à envoyer: \(String(data: jsonData, encoding: .utf8) ?? "Impossible d'encoder")")
-        
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                print("❌ Réponse invalide")
-                throw URLError(.badServerResponse)
-            }
-            
-            print("📡 Status Code: \(httpResponse.statusCode)")
-            
-            if let responseData = String(data: data, encoding: .utf8) {
-                print("📝 Réponse: \(responseData)")
-            }
-            
-            if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
-                print("❌ Erreur HTTP: \(httpResponse.statusCode)")
-                throw URLError(.badServerResponse)
-            }
-            
-            print("✅ Sauvegarde réussie !")
-        } catch {
-            print("❌ Erreur lors de la requête: \(error)")
-            throw error
-        }
+        print("✅ Sauvegarde réussie !")
     }
     
     func loadUserInformations() async {
@@ -241,28 +210,8 @@ class OnboardingViewModel: ObservableObject {
     }
     
     private func fetchUserInformations(firebaseUID: String) async throws -> UserInformations {
-        guard let url = URL(string: "http://localhost:3001/api/v1/users/firebase/\(firebaseUID)/informations") else {
-            throw URLError(.badURL)
-        }
-        
-        var request = URLRequest(url: url)
-        request.setValue(firebaseUID, forHTTPHeaderField: "x-firebase-uid")
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw URLError(.badServerResponse)
-        }
-        
-        if httpResponse.statusCode == 404 {
-            throw URLError(.fileDoesNotExist) // Pas d'informations existantes
-        }
-        
-        if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
-            throw URLError(.badServerResponse)
-        }
-        
-        return try JSONDecoder().decode(UserInformations.self, from: data)
+        let endpoint = APIEndpoints.userInformations(firebaseUID: firebaseUID)
+        return try await APIService.shared.get(endpoint, responseType: UserInformations.self)
     }
     
     // MARK: - Helper Methods

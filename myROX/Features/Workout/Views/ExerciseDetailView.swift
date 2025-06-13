@@ -160,6 +160,18 @@ struct ExerciseDetailView: View {
             duration = exercise.duration
             distance = exercise.distance
             repetitions = exercise.repetitions
+            print("[DEBUG] ExerciseDetailView - exerciseName: \(exercise.exerciseName)")
+            print("[DEBUG] ExerciseDetailView - distance: \(exercise.distance)")
+            print("[DEBUG] ExerciseDetailView - repetitions: \(exercise.repetitions)")
+            print("[DEBUG] ExerciseDetailView - duration: \(exercise.duration)")
+            print("[DEBUG] ExerciseDetailView - completedAt: \(String(describing: exercise.completedAt))")
+            print("[DEBUG] ExerciseDetailView - averageHeartRate: \(exercise.averageHeartRate)")
+            print("[DEBUG] ExerciseDetailView - maxHeartRate: \(exercise.maxHeartRate)")
+            print("[DEBUG] ExerciseDetailView - round: \(exercise.round)")
+            print("[DEBUG] ExerciseDetailView - order: \(exercise.order)")
+            print("[DEBUG] ExerciseDetailView - isPersonalRecord: \(exercise.isPersonalRecord)")
+            print("[DEBUG] ExerciseDetailView - workout: \(String(describing: exercise.workout))")
+            print("[DEBUG] ExerciseDetailView - heartRatePoints: \(exercise.heartRatePoints)")
         }
         .onDisappear {
             timer?.invalidate()

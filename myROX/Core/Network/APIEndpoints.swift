@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseAuth
 
 enum APIEndpoints {
     
@@ -7,6 +8,7 @@ enum APIEndpoints {
     
     // MARK: - User Management (Firebase UID based)
     case userProfile(firebaseUID: String)
+    case userInformations(firebaseUID: String)
     case createUser
     case updateUser(firebaseUID: String)
     
@@ -49,6 +51,8 @@ enum APIEndpoints {
         // User Management
         case .userProfile(let firebaseUID):
             return "/users/firebase/\(firebaseUID)"
+        case .userInformations(let firebaseUID):
+            return "/users/firebase/\(firebaseUID)/informations"
         case .createUser:
             return "/users"
         case .updateUser(let firebaseUID):
@@ -178,7 +182,4 @@ struct UserEndpoints {
     func deletePersonalBest(personalBestId: String) -> APIEndpoints {
         .deletePersonalBest(firebaseUID: firebaseUID, personalBestId: personalBestId)
     }
-}
-
-// Need to import FirebaseAuth for the convenience extension
-import FirebaseAuth 
+} 
