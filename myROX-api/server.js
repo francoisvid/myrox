@@ -119,7 +119,7 @@ const start = async () => {
     // Démarrer le serveur
     await fastify.listen({ 
       port: PORT, 
-      host: NODE_ENV === 'development' ? '0.0.0.0' : '127.0.0.1' 
+      host: '0.0.0.0'
     })
     
     fastify.log.info(`🚀 myROX API démarrée sur http://localhost:${PORT}`)
