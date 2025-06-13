@@ -26,7 +26,9 @@ fastify.register(require('@fastify/cors'), {
     'http://127.0.0.1:3001', 
     'http://127.0.0.1:3002',
     'https://web.myrox.orb.local',
-    'http://web.myrox.orb.local'
+    'http://web.myrox.orb.local',
+    'http://46.202.130.121:3000',     // Ajoutez cette ligne
+    'https://46.202.130.121:3000' 
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
