@@ -12,6 +12,7 @@ import {
 import { auth } from '@/lib/firebase';
 import { User, Coach } from '@/types';
 import { useRouter } from 'next/navigation';
+import { config } from '@/lib/config';
 
 interface AuthUser {
   user: User;
@@ -71,8 +72,8 @@ export const useAuth = () => {
 
   const fetchUserData = async (firebaseUID: string): Promise<AuthUser> => {
     // Utiliser l'URL absolue pour l'API
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-    const userResponse = await fetch(`${baseUrl}/api/v1/auth/user-type/${firebaseUID}`);
+    const baseUrl = config.api.fullUrl;
+    const userResponse = await fetch(`${baseUrl}/auth/user-type/${firebaseUID}`);
     
     if (userResponse.ok) {
       const data = await userResponse.json();
@@ -109,8 +110,8 @@ export const useAuth = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
       // 2. Créer le profil dans l'API avec le rôle
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${baseUrl}/api/v1/auth/register`, {
+      const baseUrl = config.api.fullUrl;
+      const response = await fetch(`${baseUrl}/auth/register`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -203,8 +204,8 @@ export const useAuth = () => {
 
   const checkUserExists = async (firebaseUID: string): Promise<boolean> => {
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${baseUrl}/api/auth/user-type/${firebaseUID}`);
+      const baseUrl = config.api.fullUrl;
+      const response = await fetch(`${baseUrl}/auth/user-type/${firebaseUID}`);
       return response.ok;
     } catch {
       return false;
