@@ -1,4 +1,3 @@
-// src/lib/firebase.ts
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
@@ -11,20 +10,35 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-// Initialiser Firebase seulement si nous sommes côté client et si la config est valide
-let app;
-let auth;
-
-// Vérifier que nous ne sommes pas côté serveur et que les variables sont définies
-if (typeof window !== 'undefined' && firebaseConfig.apiKey) {
-  // Éviter la double initialisation
-  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-  auth = getAuth(app);
-} else {
-  // Côté serveur, créer des objets mock pour éviter les erreurs
-  app = null;
-  auth = null;
+// Fonction pour initialiser Firebase côté client uniquement
+function initializeFirebase() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  
+  // Vérifier que toutes les variables Firebase sont présentes
+  if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'undefined') {
+    console.warn('Variables Firebase manquantes ou invalides');
+    return null;
+  }
+  
+  try {
+    // Éviter la double initialisation
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    return getAuth(app);
+  } catch (error) {
+    console.error('Erreur initialisation Firebase:', error);
+    return null;
+  }
 }
 
-export { auth };
-export default app;
+// Initialiser Firebase seulement côté client
+export const auth = initializeFirebase();
+
+// Configuration pour le développement (optionnel)
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  // Optionnel: connecter à l'émulateur Firebase Auth en développement
+  // connectAuthEmulator(auth, 'http://localhost:9099');
+}
+
+export default auth ? getApp() : null;

@@ -23,9 +23,20 @@ export const useAuth = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [firebaseReady, setFirebaseReady] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
+    // Vérifier que Firebase est initialisé
+    if (!auth) {
+      console.warn('Firebase Auth non initialisé');
+      setError('Firebase non configuré');
+      setLoading(false);
+      return;
+    }
+
+    setFirebaseReady(true);
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
@@ -59,8 +70,9 @@ export const useAuth = () => {
   }, []);
 
   const fetchUserData = async (firebaseUID: string): Promise<AuthUser> => {
-    // 1. Vérifier si l'utilisateur existe
-    const userResponse = await fetch(`/api/auth/user-type/${firebaseUID}`);
+    // Utiliser l'URL absolue pour l'API
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const userResponse = await fetch(`${baseUrl}/api/auth/user-type/${firebaseUID}`);
     
     if (userResponse.ok) {
       const data = await userResponse.json();
@@ -71,8 +83,6 @@ export const useAuth = () => {
       };
     }
     
-    // 2. Si l'utilisateur n'existe pas, il faut le créer
-    // Cela ne devrait arriver que si un utilisateur existant n'a pas encore été migré
     throw new Error('Utilisateur non trouvé - inscription requise');
   };
 
@@ -87,6 +97,10 @@ export const useAuth = () => {
       certifications?: string[];
     }
   ) => {
+    if (!auth) {
+      throw new Error('Firebase non configuré');
+    }
+
     try {
       setError(null);
       setLoading(true);
@@ -95,7 +109,8 @@ export const useAuth = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
       // 2. Créer le profil dans l'API avec le rôle
-      const response = await fetch('/api/auth/register', {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${baseUrl}/api/auth/register`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -137,12 +152,15 @@ export const useAuth = () => {
   };
 
   const login = async (email: string, password: string) => {
+    if (!auth) {
+      throw new Error('Firebase non configuré');
+    }
+
     try {
       setError(null);
       setLoading(true);
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/');
-      // L'utilisateur sera automatiquement mis à jour via onAuthStateChanged
     } catch (error) {
       console.error('Erreur connexion:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erreur de connexion';
@@ -154,6 +172,10 @@ export const useAuth = () => {
   };
 
   const signInWithApple = async () => {
+    if (!auth) {
+      throw new Error('Firebase non configuré');
+    }
+
     try {
       setError(null);
       setLoading(true);
@@ -164,15 +186,11 @@ export const useAuth = () => {
       
       const result = await signInWithPopup(auth, provider);
       
-      // Vérifier si c'est un nouvel utilisateur ou existant
       const userExists = await checkUserExists(result.user.uid);
       
       if (!userExists) {
-        // Nouvel utilisateur Apple - demander le type
         throw new Error('NEW_USER_NEEDS_TYPE_SELECTION');
       }
-      
-      // L'utilisateur sera automatiquement mis à jour via onAuthStateChanged
     } catch (error) {
       console.error('Erreur connexion Apple:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erreur de connexion Apple';
@@ -185,7 +203,8 @@ export const useAuth = () => {
 
   const checkUserExists = async (firebaseUID: string): Promise<boolean> => {
     try {
-      const response = await fetch(`/api/auth/user-type/${firebaseUID}`);
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${baseUrl}/api/auth/user-type/${firebaseUID}`);
       return response.ok;
     } catch {
       return false;
@@ -193,6 +212,10 @@ export const useAuth = () => {
   };
 
   const logout = async () => {
+    if (!auth) {
+      throw new Error('Firebase non configuré');
+    }
+
     try {
       setError(null);
       await signOut(auth);
@@ -211,6 +234,7 @@ export const useAuth = () => {
     user,
     loading,
     error,
+    firebaseReady,
     isAuthenticated: !!user,
     isCoach: user?.userType === 'coach',
     coachId: user?.coach?.id,
@@ -220,4 +244,4 @@ export const useAuth = () => {
     logout,
     clearError
   };
-}; 
+};

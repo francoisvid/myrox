@@ -7,8 +7,6 @@ const nextConfig = {
       ignoreBuildErrors: true,
     },
     serverExternalPackages: ['firebase'],
-    // Désactiver la génération statique pour les pages utilisant Firebase
-    trailingSlash: false,
     output: 'standalone',
     env: {
       NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
