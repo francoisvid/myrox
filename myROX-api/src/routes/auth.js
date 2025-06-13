@@ -141,9 +141,16 @@ async function authRoutes(fastify, options) {
       
     } catch (error) {
       fastify.log.error('Erreur lors de l\'inscription:', error);
+      fastify.log.error('Détails de l\'erreur:', {
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        meta: error.meta
+      });
       return reply.code(500).send({
         success: false,
-        error: 'Erreur interne du serveur'
+        error: 'Erreur interne du serveur',
+        details: error.message
       });
     }
   });
