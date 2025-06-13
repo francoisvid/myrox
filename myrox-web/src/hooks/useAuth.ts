@@ -72,7 +72,7 @@ export const useAuth = () => {
   const fetchUserData = async (firebaseUID: string): Promise<AuthUser> => {
     // Utiliser l'URL absolue pour l'API
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-    const userResponse = await fetch(`${baseUrl}/api/auth/user-type/${firebaseUID}`);
+    const userResponse = await fetch(`${baseUrl}/api/v1/auth/user-type/${firebaseUID}`);
     
     if (userResponse.ok) {
       const data = await userResponse.json();
@@ -110,7 +110,7 @@ export const useAuth = () => {
       
       // 2. Créer le profil dans l'API avec le rôle
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${baseUrl}/api/auth/register`, {
+      const response = await fetch(`${baseUrl}/api/v1/auth/register`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
