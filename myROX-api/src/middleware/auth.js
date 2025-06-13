@@ -10,11 +10,14 @@ async function authMiddleware(fastify, options) {
       '/api/v1/exercises',
       '/docs',
       '/',
-      '/favicon.ico'
+      '/favicon.ico',
+      '/api/v1/auth/user-type'
     ]
     
     const isPublicRoute = publicRoutes.some(route => 
-      request.url === route || request.url.startsWith('/docs')
+      request.url === route || 
+      request.url.startsWith('/docs') ||
+      request.url.startsWith('/api/v1/auth/user-type/')
     )
     
     if (isPublicRoute) {

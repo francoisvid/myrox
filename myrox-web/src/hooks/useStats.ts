@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { AthleteStats, WorkoutTrend, CategoryStats } from '@/types';
+import { coachesApi } from '@/lib/api';
 
 interface UseStatsProps {
   coachId: string;
@@ -28,40 +29,11 @@ export const useStats = ({ coachId, period }: UseStatsProps) => {
       
       console.log('🔄 Fetching stats for coachId:', coachId, 'period:', period);
       
-      // Déterminer l'URL selon l'environnement
-      const isProduction = process.env.NODE_ENV === 'production';
-      const isDevelopment = process.env.NODE_ENV === 'development';
-      
-      // URL selon l'environnement
-      let apiUrl;
-      if (typeof window === 'undefined') {
-        // Côté serveur (SSR) - utiliser l'URL interne Docker
-        apiUrl = process.env.INTERNAL_API_URL || 'http://api:3000';
-      } else {
-        // Côté client - utiliser l'URL externe
-        apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      }
-      
-      const url = `${apiUrl}/api/v1/coaches/${coachId}/stats/detailed?period=${period}`;
-      console.log('📡 API URL:', url);
-      console.log('📡 CoachId:', coachId);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-firebase-uid': 'FkCwkLcLLYhH2RCOyOs4J0Rl28G2'
-        }
-      });
-
-      console.log('📊 Response status:', response.status);
-      console.log('📊 Response ok:', response.ok);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!coachId) {
+        throw new Error('CoachId is required');
       }
 
-      const stats = await response.json();
+      const stats = await coachesApi.getDetailedStats(coachId, period);
       console.log('✅ Stats received:', stats);
       
       setAthleteStats(stats.athleteStats || []);

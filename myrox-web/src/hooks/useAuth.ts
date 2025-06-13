@@ -56,6 +56,7 @@ export const useAuth = () => {
             await signOut(auth);
             setUser(null);
             setError('Profil utilisateur non trouvé. Veuillez vous inscrire.');
+            router.push('/register');
           } else {
             setError('Erreur lors de la récupération des données utilisateur');
           }
@@ -68,12 +69,17 @@ export const useAuth = () => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   const fetchUserData = async (firebaseUID: string): Promise<AuthUser> => {
     // Utiliser l'URL absolue pour l'API
     const baseUrl = config.api.fullUrl;
-    const userResponse = await fetch(`${baseUrl}/auth/user-type/${firebaseUID}`);
+    const userResponse = await fetch(`${baseUrl}/auth/user-type/${firebaseUID}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'x-firebase-uid': firebaseUID
+      }
+    });
     
     if (userResponse.ok) {
       const data = await userResponse.json();
@@ -141,6 +147,7 @@ export const useAuth = () => {
       };
       
       setUser(authUser);
+      router.push('/');
       return authUser;
     } catch (error) {
       console.error('Erreur inscription:', error);
@@ -160,7 +167,17 @@ export const useAuth = () => {
     try {
       setError(null);
       setLoading(true);
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Vérifier si l'utilisateur existe dans notre base
+      const userExists = await checkUserExists(userCredential.user.uid);
+      
+      if (!userExists) {
+        // Déconnecter de Firebase si l'utilisateur n'existe pas dans notre base
+        await signOut(auth);
+        throw new Error('Aucun compte trouvé avec cet email');
+      }
+      
       router.push('/');
     } catch (error) {
       console.error('Erreur connexion:', error);
@@ -190,8 +207,12 @@ export const useAuth = () => {
       const userExists = await checkUserExists(result.user.uid);
       
       if (!userExists) {
-        throw new Error('NEW_USER_NEEDS_TYPE_SELECTION');
+        // Déconnecter de Firebase si l'utilisateur n'existe pas dans notre base
+        await signOut(auth);
+        throw new Error('Aucun compte trouvé avec cet email');
       }
+      
+      router.push('/');
     } catch (error) {
       console.error('Erreur connexion Apple:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erreur de connexion Apple';

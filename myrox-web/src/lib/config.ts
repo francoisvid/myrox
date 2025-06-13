@@ -4,7 +4,7 @@ export const config = {
     baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
     version: 'v1',
     get fullUrl() {
-      return `${this.baseUrl}`;
+      return `${this.baseUrl}/api/v1`;
     }
   },
   

@@ -69,8 +69,6 @@ export const templatesApi = {
 
   // Récupérer un template par ID
   getTemplate: async (id: string, firebaseUID?: string): Promise<Template | undefined> => {
-    // Pour l'instant, on récupère tous les templates et on filtre
-    // TODO: Implémenter une route GET spécifique pour un template
     const uid = firebaseUID || config.defaults.firebaseUID;
     const authenticatedApi = createAuthenticatedApi(uid);
     const response = await authenticatedApi.get(`/users/firebase/${uid}/personal-templates`);
