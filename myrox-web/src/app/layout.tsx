@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+"use client";
+
 import { Geist, Geist_Mono } from "next/font/google";
 import Navigation from "@/components/layout/Navigation";
 import "./globals.css";
@@ -13,10 +14,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "myROX Coach Dashboard",
-  description: "Dashboard pour les coachs myROX - Gérez vos athlètes et templates d'entraînement",
-};
+// export const metadata: Metadata = {
+//   title: "myROX Coach Dashboard",
+//   description: "Dashboard pour les coachs myROX - Gérez vos athlètes et templates d'entraînement",
+// };
 
 export default function RootLayout({
   children,

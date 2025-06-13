@@ -102,9 +102,9 @@ export default function TemplateAssignmentModal({
 
                 <div className="sm:flex sm:items-start">
                   <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                    <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
+                    <h3 className="text-lg font-medium leading-6 text-gray-900">
                       Assigner des templates
-                    </Dialog.Title>
+                    </h3>
 
                     <div className="mt-4">
                       <p className="text-sm text-gray-500 mb-4">
@@ -144,14 +144,6 @@ export default function TemplateAssignmentModal({
                                 onClick={() => handleTemplateToggle(template.id)}
                               >
                                 <div className="flex items-start">
-                                  <div className="flex h-5 items-center">
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedTemplates.includes(template.id)}
-                                      onChange={() => handleTemplateToggle(template.id)}
-                                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                    />
-                                  </div>
                                   <div className="ml-3 flex-1">
                                     <div className="flex items-center justify-between">
                                       <h4 className="text-sm font-medium text-gray-900">

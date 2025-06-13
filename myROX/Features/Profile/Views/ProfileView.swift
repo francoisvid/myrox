@@ -47,6 +47,9 @@ struct ProfileView: View {
             .navigationTitle("Profil")
             .navigationBarTitleDisplayMode(.large)
             .preferredColorScheme(viewModel.followSystemTheme ? nil : (viewModel.isDarkModeEnabled ? .dark : .light))
+            .refreshable {
+                await refreshProfil()
+            }
             .onAppear {
                 viewModel.refreshUserInfo()
             }
@@ -54,6 +57,17 @@ struct ProfileView: View {
                 ExerciseDefaultsView()
             }
         }
+    }
+    
+    // MARK: - Methods
+    
+    @MainActor
+    private func refreshProfil() async {
+        // Actualiser les informations utilisateur (inclut déjà les statistiques)
+        viewModel.refreshUserInfo()
+        
+        // Déclencher le rechargement des informations du coach
+        NotificationCenter.default.post(name: NSNotification.Name("RefreshCoachInfo"), object: nil)
     }
 }
 
@@ -772,6 +786,9 @@ struct CoachManagementView: View {
         .onAppear {
             loadUserProfile()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RefreshCoachInfo"))) { _ in
+            loadUserProfile()
+        }
         .sheet(isPresented: $showingInvitationInput) {
             InvitationCodeInputView(
                 onCodeSubmitted: { code in
@@ -1021,9 +1038,8 @@ struct InvitationCodeInputView: View {
                 
                 // Input du code
                 VStack(spacing: 16) {
-                    TextField("MYROX1", text: $code)
+                    TextField("Veuillez saisir le code d'invitation ici...", text: $code)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .font(.title2.monospaced())
                         .autocorrectionDisabled()
                         .textContentType(.oneTimeCode)
                         .keyboardType(.asciiCapable)
