@@ -1,23 +1,23 @@
 FROM node:18-alpine
 
-# Créer le répertoire de travail
 WORKDIR /app
 
-# Copier les fichiers de dépendances
+# Copie package.json et lockfile
 COPY package*.json ./
 
-# Installer les dépendances
+# Installe les dépendances
 RUN npm ci --only=production
 
-# Copier le code source
+# Copie le dossier prisma ET le code source
+COPY prisma ./prisma
 COPY . .
 
-# Exposer le port
+# Génère le client Prisma
+RUN npx prisma generate
+
 EXPOSE 3000
 
-# Healthcheck
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/api/v1/health || exit 1
 
-# Démarrer l'application
-CMD ["npm", "start"] 
+CMD ["node", "server.js"]
