@@ -1,0 +1,28 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /home/${{ secrets.VPS_USER }}/myROX
+            git pull
+            # Suppression des dossiers inutiles (mobile/tests)
+            rm -rf myROX myROXTests myROXUITests myROX_watch 'myROX_watch AppTests' 'myROX_watch AppUITests'
+            docker compose build
+            docker compose up -d --remove-orphans
