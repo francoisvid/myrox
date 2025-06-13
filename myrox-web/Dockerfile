@@ -15,9 +15,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Copier tous les fichiers .env (y compris .env.local)
-COPY .env* ./
-
 # Build args pour les variables Firebase
 ARG NEXT_PUBLIC_FIREBASE_API_KEY
 ARG NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
@@ -50,9 +47,6 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
-
-# Copier le .env.local dans l'image finale
-COPY --from=builder /app/.env* ./
 
 USER nextjs
 
