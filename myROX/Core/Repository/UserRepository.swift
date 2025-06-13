@@ -149,7 +149,7 @@ class MockUserRepository: UserRepositoryProtocol {
             createdAt: Date().apiString,
             isActive: true,
             athleteCount: 15,
-            totalWorkouts: 250,
+            templateCount: 25,
             averageWorkoutDuration: 45 * 60 // 45 minutes
         )
     }

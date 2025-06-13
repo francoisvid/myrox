@@ -865,10 +865,7 @@ struct CoachManagementView: View {
             // Statistiques du coach
             HStack(spacing: 20) {
                 StatItem(title: "Athlètes", value: "\(coach.athleteCount ?? 0)")
-                StatItem(title: "Workouts", value: "\(coach.totalWorkouts ?? 0)")
-                if let avgDuration = coach.averageWorkoutDuration, avgDuration > 0 {
-                    StatItem(title: "Durée moy.", value: "\(avgDuration / 60)min")
-                }
+                StatItem(title: "Entraînements", value: "\(coach.templateCount ?? 0)")
             }
         }
     }

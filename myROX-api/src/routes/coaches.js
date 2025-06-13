@@ -36,7 +36,9 @@ async function coachRoutes(fastify, options) {
             },
             profilePicture: { type: 'string' },
             createdAt: { type: 'string' },
-            isActive: { type: 'boolean' }
+            isActive: { type: 'boolean' },
+            athleteCount: { type: 'integer' },
+            templateCount: { type: 'integer' }
           }
         },
         404: {
@@ -76,12 +78,13 @@ async function coachRoutes(fastify, options) {
 
       // Calculer les statistiques
       const athleteCount = coach._count.athletes;
-      
-      // Calculer le nombre total de workouts des athlètes (approximation)
-      // Dans une vraie implémentation, on ferait une requête plus complexe
-      const totalWorkouts = athleteCount * 15; // Approximation
-      const averageWorkoutDuration = 2400; // 40 minutes en secondes
 
+      // Compter le nombre de templates créés par ce coach
+      const templateCount = await fastify.prisma.template.count({
+        where: { coachId: id }
+      });
+      const averageWorkoutDuration = 2400; // 40 minutes en secondes
+      console.log('DEBUG templateCount:', templateCount);
       return {
         id: coach.id,
         name: coach.displayName,
@@ -94,8 +97,7 @@ async function coachRoutes(fastify, options) {
         isActive: coach.isActive,
         // Statistiques calculées
         athleteCount,
-        totalWorkouts,
-        averageWorkoutDuration
+        templateCount
       };
     } catch (error) {
       fastify.log.error(`❌ Erreur récupération coach ${id}:`, error);

@@ -73,7 +73,7 @@ struct APICoach: Codable, Identifiable {
     
     // Statistiques du coach (calculées côté serveur, optionnelles)
     let athleteCount: Int?
-    let totalWorkouts: Int?
+    let templateCount: Int?
     let averageWorkoutDuration: Int? // en secondes
     
     // MARK: - Computed Properties
