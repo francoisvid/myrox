@@ -6,6 +6,7 @@ export interface User {
   createdAt: string;
   updatedAt: string;
   coachId?: string;
+  userInformations?: UserInformations;
 }
 
 export interface Coach {
@@ -205,4 +206,32 @@ export interface UseInvitationResponse {
     displayName: string;
     specialization?: string;
   };
+}
+
+// Informations détaillées d'onboarding / profil athlète
+export interface UserInformations {
+  hasCompletedOnboarding?: boolean;
+  hyroxExperience?: string;
+  hasCompetedHyrox?: boolean;
+  primaryGoal?: string;
+  currentTrainingFrequency?: string;
+  trainingTypes?: string[];
+  fitnessLevel?: string;
+  injuriesLimitations?: string;
+  familiarWithHyroxStations?: boolean;
+  difficultExercises?: string[];
+  hasGymAccess?: boolean;
+  gymName?: string;
+  gymLocation?: string;
+  availableEquipment?: string[];
+  preferredTrainingFrequency?: string;
+  preferredSessionDuration?: string;
+  targetCompetitionDate?: string;
+  preferredTrainingTime?: string;
+  preferredIntensity?: string;
+  prefersStructuredProgram?: boolean;
+  wantsNotifications?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  completedAt?: string;
 } 

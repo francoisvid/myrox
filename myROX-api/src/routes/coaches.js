@@ -204,6 +204,67 @@ async function coachRoutes(fastify, options) {
     }
   })
 
+  // GET /coaches/:coachId/athletes/:athleteId - Détail d'un athlète lié au coach
+  fastify.get('/:coachId/athletes/:athleteId', {
+    schema: {
+      description: 'Détail d\'un athlète appartenant à un coach',
+      tags: ['Coaches'],
+      params: {
+        type: 'object',
+        properties: {
+          coachId: { type: 'string' },
+          athleteId: { type: 'string' }
+        },
+        required: ['coachId', 'athleteId']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            firebaseUID: { type: 'string' },
+            email: { type: 'string' },
+            displayName: { type: 'string' },
+            createdAt: { type: 'string' },
+            userInformations: {
+              type: 'object',
+              additionalProperties: true
+            }
+          }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    const { coachId, athleteId } = request.params;
+  
+    // Récupérer l'athlète avec ses informations d'onboarding
+    const athlete = await fastify.prisma.user.findUnique({
+      where: { id: athleteId },
+      include: {
+        userInformations: true
+      }
+    });
+  
+    if (!athlete) {
+      return reply.code(404).send({ success: false, error: 'Athlète non trouvé' });
+    }
+  
+    // Vérifier l'appartenance au coach
+    if (athlete.coachId !== coachId) {
+      return reply.code(403).send({ success: false, error: 'Cet athlète n\'appartient pas à ce coach' });
+    }
+  
+    // Retourner les infos de l'athlète
+    return {
+      id: athlete.id,
+      firebaseUID: athlete.firebaseUID,
+      email: athlete.email,
+      displayName: athlete.displayName,
+      createdAt: athlete.createdAt,
+      userInformations: athlete.userInformations
+    };
+  });
+
   // GET /coaches/:id/stats/detailed - Statistiques détaillées du coach
   fastify.get('/:id/stats/detailed', {
     schema: {

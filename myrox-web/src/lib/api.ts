@@ -139,6 +139,12 @@ export const usersApi = {
     const response = await api.get(`/users/${userId}/workouts`);
     return response.data;
   },
+
+  // Récupérer le détail d'un athlète (vérification coach)
+  getAthleteDetail: async (coachId: string, athleteId: string): Promise<User> => {
+    const response = await api.get(`/coaches/${coachId}/athletes/${athleteId}`);
+    return response.data;
+  },
 };
 
 // Coaches API
