@@ -25,5 +25,5 @@ jobs:
             git pull
             rm -rf myROX myROXTests myROXUITests myROX_watch 'myROX_watch AppTests' 'myROX_watch AppUITests' MyROX.xcodeproj .idea
             rm -f MyROX-watch-Watch-App-Info.plist 'myROX_watch Watch App.entitlements' README.md DOCKER_SETUP.md PGADMIN_SETUP.md MyROX.xcodeproj 
-            docker compose -f docker-compose.prod.yml build
+            docker compose build --no-cache
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
