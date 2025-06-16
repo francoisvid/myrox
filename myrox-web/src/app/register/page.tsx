@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function RegisterPage() {
-  const [userType, setUserType] = useState<'athlete' | 'coach'>('athlete');
+  const [userType, setUserType] = useState<'athlete' | 'coach'>('coach');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -19,7 +19,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { register, signInWithApple } = useAuth();
+  const { register } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,21 +62,21 @@ export default function RegisterPage() {
     }
   };
 
-  const handleAppleSignIn = async () => {
-    try {
-      setError('');
-      await signInWithApple();
-      // Si succès, redirection automatique via le hook
-    } catch (err) {
-      if (err instanceof Error && err.message === 'NEW_USER_NEEDS_TYPE_SELECTION') {
-        // Nouvel utilisateur Apple - afficher sélection du type
-        setError('Veuillez d&apos;abord choisir votre type de profil ci-dessous, puis utiliser l&apos;inscription par email.');
-      } else {
-        const errorMessage = err instanceof Error ? err.message : 'Erreur de connexion Apple';
-        setError(errorMessage);
-      }
-    }
-  };
+  // const handleAppleSignIn = async () => {
+  //   try {
+  //     setError('');
+  //     await signInWithApple();
+  //     // Si succès, redirection automatique via le hook
+  //   } catch (err) {
+  //     if (err instanceof Error && err.message === 'NEW_USER_NEEDS_TYPE_SELECTION') {
+  //       // Nouvel utilisateur Apple - afficher sélection du type
+  //       setError('Veuillez d&apos;abord choisir votre type de profil ci-dessous, puis utiliser l&apos;inscription par email.');
+  //     } else {
+  //       const errorMessage = err instanceof Error ? err.message : 'Erreur de connexion Apple';
+  //       setError(errorMessage);
+  //     }
+  //   }
+  // };
 
   const addCertification = () => {
     setFormData(prev => ({
@@ -118,8 +118,8 @@ export default function RegisterPage() {
           {/* Choix du type d'utilisateur */}
           <div>
             <p className="text-lg font-medium mb-4 text-gray-900">Je suis :</p>
-            <div className="grid grid-cols-2 gap-4">
-              <button 
+            <div className="grid grid-cols-1 gap-4">
+              {/* <button 
                 type="button"
                 onClick={() => setUserType('athlete')}
                 className={`p-4 border rounded-lg text-center transition-colors ${
@@ -131,7 +131,7 @@ export default function RegisterPage() {
                 <div className="text-2xl mb-2">🏃‍♂️</div>
                 <div className="font-medium">Athlète</div>
                 <div className="text-sm text-gray-500">Je veux m&apos;entraîner</div>
-              </button>
+              </button> */}
               
               <button 
                 type="button"
@@ -150,7 +150,7 @@ export default function RegisterPage() {
           </div>
 
           {/* Sign in with Apple */}
-          <div>
+          {/* <div>
             <button
               type="button"
               onClick={handleAppleSignIn}
@@ -161,7 +161,7 @@ export default function RegisterPage() {
               </svg>
               Continuer avec Apple
             </button>
-          </div>
+          </div> */}
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">

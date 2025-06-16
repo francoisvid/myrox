@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { login, signInWithApple } = useAuth();
+  const { login } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,21 +33,21 @@ export default function LoginPage() {
     }
   };
 
-  const handleAppleSignIn = async () => {
-    try {
-      setError('');
-      await signInWithApple();
-      // Redirection automatique via le hook
-    } catch (err) {
-      if (err instanceof Error && err.message === 'NEW_USER_NEEDS_TYPE_SELECTION') {
-        // Nouvel utilisateur Apple - rediriger vers inscription
-        router.push('/register');
-      } else {
-        const errorMessage = err instanceof Error ? err.message : 'Erreur de connexion Apple';
-        setError(errorMessage);
-      }
-    }
-  };
+  // const handleAppleSignIn = async () => {
+  //   try {
+  //     setError('');
+  //     await signInWithApple();
+  //     // Redirection automatique via le hook
+  //   } catch (err) {
+  //     if (err instanceof Error && err.message === 'NEW_USER_NEEDS_TYPE_SELECTION') {
+  //       // Nouvel utilisateur Apple - rediriger vers inscription
+  //       router.push('/register');
+  //     } else {
+  //       const errorMessage = err instanceof Error ? err.message : 'Erreur de connexion Apple';
+  //       setError(errorMessage);
+  //     }
+  //   }
+  // };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -67,7 +67,7 @@ export default function LoginPage() {
         <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
           
           {/* Sign in with Apple */}
-          <div>
+          {/* <div>
             <button
               type="button"
               onClick={handleAppleSignIn}
@@ -87,7 +87,7 @@ export default function LoginPage() {
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-white text-gray-500">Ou avec votre email</span>
             </div>
-          </div>
+          </div> */}
 
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">

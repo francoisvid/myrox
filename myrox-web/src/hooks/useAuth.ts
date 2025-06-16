@@ -6,8 +6,8 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  OAuthProvider,
-  signInWithPopup
+  // OAuthProvider,
+  // signInWithPopup
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { User, Coach } from '@/types';
@@ -209,39 +209,39 @@ export const useAuth = () => {
     }
   };
 
-  const signInWithApple = async () => {
-    if (!auth) {
-      throw new Error('Firebase non configuré');
-    }
+  // const signInWithApple = async () => {
+  //   if (!auth) {
+  //     throw new Error('Firebase non configuré');
+  //   }
 
-    try {
-      setError(null);
-      setLoading(true);
+  //   try {
+  //     setError(null);
+  //     setLoading(true);
       
-      const provider = new OAuthProvider('apple.com');
-      provider.addScope('email');
-      provider.addScope('name');
+  //     const provider = new OAuthProvider('apple.com');
+  //     provider.addScope('email');
+  //     provider.addScope('name');
       
-      const result = await signInWithPopup(auth, provider);
+  //     const result = await signInWithPopup(auth, provider);
       
-      const userExists = await checkUserExists(result.user.uid);
+  //     const userExists = await checkUserExists(result.user.uid);
       
-      if (!userExists) {
-        // Déconnecter de Firebase si l'utilisateur n'existe pas dans notre base
-        await signOut(auth);
-        throw new Error('Aucun compte trouvé avec cet email');
-      }
+  //     if (!userExists) {
+  //       // Déconnecter de Firebase si l'utilisateur n'existe pas dans notre base
+  //       await signOut(auth);
+  //       throw new Error('Aucun compte trouvé avec cet email');
+  //     }
       
-      router.push('/');
-    } catch (error) {
-      console.error('Erreur connexion Apple:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erreur de connexion Apple';
-      setError(errorMessage);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     router.push('/');
+  //   } catch (error) {
+  //     console.error('Erreur connexion Apple:', error);
+  //     const errorMessage = error instanceof Error ? error.message : 'Erreur de connexion Apple';
+  //     setError(errorMessage);
+  //     throw error;
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const checkUserExists = async (firebaseUID: string): Promise<boolean> => {
     try {
@@ -282,7 +282,7 @@ export const useAuth = () => {
     coachId: user?.coach?.id,
     register,
     login,
-    signInWithApple,
+    //signInWithApple,
     logout,
     clearError
   };
