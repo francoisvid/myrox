@@ -10,9 +10,11 @@ class APIService {
     // Configuration automatique local/prod
     private let baseURL: String = {
         #if DEBUG
-            return "http://localhost:3001/api/v1"  // Local Fastify
+        //return "http://localhost:3001/api/v1"  // Local Fastify
+        return "https://api.myrox.fr/api/v1"
         #else
-            return "https://myrox.api.vdl-creation.fr/api/v1"  // Production
+        //return "https://myrox.api.vdl-creation.fr/api/v1"  // Production
+        return "https://api.myrox.fr/api/v1"
         #endif
     }()
     

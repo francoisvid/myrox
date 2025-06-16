@@ -28,7 +28,7 @@ class OnboardingViewModel: ObservableObject {
             case .equipmentGym: return "Équipements & Salle"
             case .planning: return "Planning d'entraînement"
             case .preferences: return "Vos préférences"
-            case .completion: return "Félicitations!"
+            case .completion: return "Félicitations ! 🎉"
             }
         }
         

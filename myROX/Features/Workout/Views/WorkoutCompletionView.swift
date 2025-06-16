@@ -64,7 +64,7 @@ struct WorkoutCompletionView: View {
                             // Partage général
                             ShareLink(
                                 item: WorkoutSharingService.shared.generateShareText(for: workout),
-                                subject: Text("Ma séance myROX"),
+                                subject: Text("Ma séance MyROX"),
                                 message: Text("Regarde ma séance d'entraînement !")
                             ) {
                                 HStack {

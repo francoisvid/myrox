@@ -19,14 +19,13 @@ struct OnboardingCompletionView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 32) {
-                Spacer(minLength: 40)
                 
                 // Animation de félicitations
                 VStack(spacing: 24) {
                     // Confetti Animation
                     ZStack {
                         if showConfetti {
-                            ForEach(0..<20, id: \.self) { index in
+                            ForEach(0..<40, id: \.self) { index in
                                 ConfettiPiece(delay: Double(index) * 0.1)
                             }
                         }
@@ -37,18 +36,6 @@ struct OnboardingCompletionView: View {
                             .foregroundColor(.yellow)
                             .scaleEffect(showConfetti ? 1.0 : 0.8)
                             .animation(.spring(response: 0.6, dampingFraction: 0.7), value: showConfetti)
-                    }
-                    
-                    VStack(spacing: 12) {
-                        Text("Félicitations ! 🎉")
-                            .font(.largeTitle.bold())
-                            .foregroundColor(Color.adaptiveTextPrimary)
-                            .multilineTextAlignment(.center)
-                        
-                        Text("Votre profil HYROX est maintenant configuré")
-                            .font(.title3)
-                            .foregroundColor(Color.adaptiveTextSecondary)
-                            .multilineTextAlignment(.center)
                     }
                 }
                 
