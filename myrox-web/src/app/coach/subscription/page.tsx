@@ -21,22 +21,6 @@ export default function SubscriptionPage() {
     );
   }
 
-  // Vérifications d'accès
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Authentification requise
-          </h1>
-          <p className="text-gray-600">
-            Veuillez vous connecter pour accéder à cette page.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   if (!isCoach) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -55,7 +39,7 @@ export default function SubscriptionPage() {
   const handleSelectPlan = (planId: string) => {
     console.log('Plan sélectionné:', planId);
     // Ici on pourrait intégrer Stripe ou un autre système de paiement
-    
+
     // Pour le moment, rediriger vers une page de contact ou de paiement
     if (planId === 'ENTERPRISE') {
       window.location.href = 'mailto:contact@myrox.fr?subject=Demande plan Entreprise';
@@ -82,13 +66,13 @@ export default function SubscriptionPage() {
       </header>
 
       {/* Statut actuel */}
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto py-6 px-6 sm:px-6 lg:px-8">
         <div className="mb-8">
           <SubscriptionStatus />
         </div>
 
         {/* Plans disponibles */}
-        <SubscriptionPlans 
+        <SubscriptionPlans
           currentPlan={subscriptionStatus?.plan}
           onSelectPlan={handleSelectPlan}
         />
@@ -99,45 +83,45 @@ export default function SubscriptionPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-6">
               Questions fréquentes
             </h2>
-            
+
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
                   Puis-je changer de plan à tout moment ?
                 </h3>
                 <p className="text-gray-600">
-                  Oui, vous pouvez passer à un plan supérieur à tout moment. 
+                  Oui, vous pouvez passer à un plan supérieur à tout moment.
                   La facturation sera ajustée au prorata de la période restante.
                 </p>
               </div>
-              
+
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
                   Que se passe-t-il si je dépasse les limites de mon plan ?
                 </h3>
                 <p className="text-gray-600">
-                  Vous recevrez une notification vous invitant à passer au plan supérieur. 
+                  Vous recevrez une notification vous invitant à passer au plan supérieur.
                   Vos données restent accessibles mais certaines fonctionnalités peuvent être limitées.
                 </p>
               </div>
-              
+
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
                   Y a-t-il une période d&apos;essai ?
                 </h3>
                 <p className="text-gray-600">
-                  Oui, tous les plans payants incluent une période d&apos;essai gratuite de 14 jours. 
+                  Oui, tous les plans payants incluent une période d&apos;essai gratuite de 14 jours.
                   Aucun engagement, annulation possible à tout moment.
                 </p>
               </div>
-              
+
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
                   Le support est-il inclus ?
                 </h3>
                 <p className="text-gray-600">
-                  Oui, tous les plans incluent un support. Le niveau varie selon votre plan : 
-                  communautaire pour le plan gratuit, email pour Starter, prioritaire pour Pro, 
+                  Oui, tous les plans incluent un support. Le niveau varie selon votre plan :
+                  communautaire pour le plan gratuit, email pour Starter, prioritaire pour Pro,
                   et dédié pour Entreprise.
                 </p>
               </div>
@@ -147,4 +131,4 @@ export default function SubscriptionPage() {
       </div>
     </div>
   );
-} 
+}

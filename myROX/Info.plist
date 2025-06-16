@@ -12,7 +12,7 @@
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>myROX souhaite sauvegarder vos cartes d'entraînement dans Photos pour les partager sur les réseaux sociaux.</string>
 
-	<!-- <key>NSAppTransportSecurity</key>
+	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
@@ -26,6 +26,6 @@
 				<true/>
 			</dict>
 		</dict>
-	</dict> -->
+	</dict>
 </dict>
 </plist>

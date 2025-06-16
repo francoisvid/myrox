@@ -7,12 +7,14 @@ struct WatchTemplateExercise: Identifiable, Codable {
     let order: Int
     let targetDistance: Double?
     let targetRepetitions: Int?
+    let targetDuration: TimeInterval?
     
-    init(name: String, order: Int, targetDistance: Double? = nil, targetRepetitions: Int? = nil) {
+    init(name: String, order: Int, targetDistance: Double? = nil, targetRepetitions: Int? = nil, targetDuration: TimeInterval? = nil) {
         self.name = name
         self.order = order
         self.targetDistance = targetDistance
         self.targetRepetitions = targetRepetitions
+        self.targetDuration = targetDuration
     }
 }
 
@@ -65,18 +67,20 @@ struct WatchExercise: Identifiable {
     var repetitions: Int = 0
     var targetDistance: Double? // Ajout des objectifs
     var targetRepetitions: Int? // Ajout des objectifs
+    var targetDuration: TimeInterval? // durée cible en secondes
     var heartRatePoints: [(value: Int, timestamp: Date)] = []
     var isCompleted: Bool = false
     var round: Int = 1
     var order: Int = 0
     
     // Constructeur mis à jour
-    init(name: String, round: Int = 1, order: Int = 0, targetDistance: Double? = nil, targetRepetitions: Int? = nil) {
+    init(name: String, round: Int = 1, order: Int = 0, targetDistance: Double? = nil, targetRepetitions: Int? = nil, targetDuration: TimeInterval? = nil) {
         self.name = name
         self.round = round
         self.order = order
         self.targetDistance = targetDistance
         self.targetRepetitions = targetRepetitions
+        self.targetDuration = targetDuration
     }
     
     // Helper pour générer l'exerciseType comme sur iOS
@@ -87,6 +91,8 @@ struct WatchExercise: Identifiable {
             exerciseType += "_\(Int(distance))m"
         } else if let reps = targetRepetitions, reps > 0 {
             exerciseType += "_\(reps)reps"
+        } else if let targetTime = targetDuration, targetTime > 0 {
+            exerciseType += "_\(Int(targetTime))sec"
         } else {
             exerciseType += "_timeonly"
         }

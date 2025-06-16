@@ -224,8 +224,15 @@ struct ActiveWorkoutView: View {
 struct ActiveExerciseParametersView: View {
     let exercise: WatchExercise
     
+    // Helper pour formater la durée en mm:ss
+    private func formatTime(_ timeInterval: TimeInterval) -> String {
+        let minutes = Int(timeInterval) / 60
+        let seconds = Int(timeInterval) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+    
     var body: some View {
-        if exercise.targetDistance != nil || exercise.targetRepetitions != nil {
+        if exercise.targetDistance != nil || exercise.targetRepetitions != nil || exercise.targetDuration != nil {
             HStack(spacing: 8) {
                 if let distance = exercise.targetDistance, distance > 0 {
                     HStack(spacing: 2) {
@@ -254,6 +261,21 @@ struct ActiveExerciseParametersView: View {
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
                     .background(Color.green.opacity(0.2))
+                    .clipShape(Capsule())
+                }
+                
+                if let targetTime = exercise.targetDuration, targetTime > 0 {
+                    HStack(spacing: 2) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 12))
+                            .foregroundColor(.orange)
+                        Text(formatTime(targetTime))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.orange)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.orange.opacity(0.2))
                     .clipShape(Capsule())
                 }
             }

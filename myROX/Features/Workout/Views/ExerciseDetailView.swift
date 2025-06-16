@@ -7,7 +7,7 @@ struct ExerciseDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Query private var goals: [ExerciseGoal]
     @Query private var personalBests: [PersonalBest]
-    
+
     @State private var duration: TimeInterval = 0
     @State private var distance: Double = 0
     @State private var repetitions: Int = 0
@@ -17,11 +17,13 @@ struct ExerciseDetailView: View {
 
     // Ajoute le modelContext pour accéder aux données SwiftData
     @Environment(\.modelContext) private var modelContext
-    
-    private var targetTime: TimeInterval? {
-        goals.first(where: { $0.exerciseName == exercise.exerciseName })?.targetTime
+
+    // Durée cible : prioritaire celle portée par l'exercice (issue du template), sinon objectif défini par l'utilisateur
+    private var displayedTargetTime: TimeInterval? {
+        if let exerciseTarget = exercise.targetDuration { return exerciseTarget }
+        return goals.first(where: { $0.exerciseName == exercise.exerciseName })?.targetTime
     }
-    
+
     private var personalBest: PersonalBest? {
         let exerciseType = exercise.personalBestExerciseType
         return personalBests.first { $0.exerciseType == exerciseType }
@@ -34,9 +36,9 @@ struct ExerciseDetailView: View {
                     .font(.largeTitle.bold())
                     .foregroundColor(Color(.label))
                     .padding(.top, 30)
-                
+
                 // Afficher les paramètres à effectuer
-                if exercise.distance > 0 || exercise.repetitions > 0 {
+                if exercise.distance > 0 || exercise.repetitions > 0 || (exercise.targetDuration ?? 0) > 0 {
                     HStack(spacing: 16) {
                         if exercise.distance > 0 {
                             HStack(spacing: 4) {
@@ -48,7 +50,7 @@ struct ExerciseDetailView: View {
                                     .foregroundColor(.blue)
                             }
                         }
-                        
+
                         if exercise.repetitions > 0 {
                             HStack(spacing: 4) {
                                 Image(systemName: "repeat")
@@ -59,25 +61,26 @@ struct ExerciseDetailView: View {
                                     .foregroundColor(.green)
                             }
                         }
+
+                        if let target = exercise.targetDuration, target > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock")
+                                    .font(.subheadline)
+                                    .foregroundColor(.orange)
+                                Text(formatTime(target))
+                                    .font(.title2.bold())
+                                    .foregroundColor(.orange)
+                            }
+                        }
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 8)
                     .background(Color(.systemGray6))
                     .cornerRadius(12)
                 }
-                
+
                 // Afficher l'objectif et le PR
                 VStack(spacing: 8) {
-                    if let target = targetTime, target > 0 {
-                        HStack {
-                            Image(systemName: "target")
-                                .foregroundColor(.blue)
-                            Text("Objectif: \(target.formatted)")
-                                .foregroundColor(.blue)
-                        }
-                        .font(.headline)
-                    }
-                    
                     if let pb = personalBest {
                         HStack {
                             Image(systemName: "trophy.fill")
@@ -88,19 +91,19 @@ struct ExerciseDetailView: View {
                         .font(.headline)
                     }
                 }
-                
+
                 // Timer avec indicateur visuel
                 ZStack {
                     Text(duration.formatted)
                         .font(.system(size: 80, weight: .bold, design: .monospaced))
                         .foregroundColor(timerColor)
-                    
+
                     // Cercle de progression si objectif défini
-                    if let target = targetTime, target > 0 {
+                    if let target = displayedTargetTime, target > 0 {
                         Circle()
                             .stroke(Color.gray.opacity(0.3), lineWidth: 4)
                             .frame(width: 200, height: 200)
-                        
+
                         Circle()
                             .trim(from: 0, to: min(1, duration / target))
                             .stroke(
@@ -113,7 +116,7 @@ struct ExerciseDetailView: View {
                             .padding(20)
                     }
                 }
-                
+
                 // Messages de statut
                 VStack(spacing: 4) {
                     // Nouveau record
@@ -126,9 +129,9 @@ struct ExerciseDetailView: View {
                                 .foregroundColor(.yellow)
                         }
                     }
-                    
+
                     // Objectif dépassé
-                    if let target = targetTime, target > 0 && duration > target {
+                    if let target = displayedTargetTime, target > 0 && duration > target {
                         Text("Objectif dépassé de \((duration - target).formatted)")
                             .font(.caption)
                             .foregroundColor(.orange)
@@ -177,12 +180,12 @@ struct ExerciseDetailView: View {
             timer?.invalidate()
         }
     }
-    
+
     private var timerColor: Color {
         // Priorité: nouveau record (jaune) > objectif dépassé (orange) > normal
         if let pb = personalBest, duration > 0 && duration < pb.value {
             return .yellow  // Nouveau record !
-        } else if let target = targetTime, target > 0 && duration > target {
+        } else if let target = displayedTargetTime, target > 0 && duration > target {
             return .orange  // Objectif dépassé
         } else {
             return Color(.label)  // Normal

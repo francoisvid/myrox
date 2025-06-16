@@ -292,7 +292,7 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
                 order: index, // Ordre séquentiel 0,1,2,3,4,5...
                 sets: nil,
                 targetReps: exercise.repetitions > 0 ? exercise.repetitions : nil,
-                targetDuration: exercise.duration > 0 ? Int(exercise.duration) : nil,
+                targetDuration: exercise.targetDuration != nil ? Int(exercise.targetDuration!) : nil,
                 targetDistance: exercise.distance > 0 ? exercise.distance : nil,
                 targetWeight: nil,
                 restTime: nil

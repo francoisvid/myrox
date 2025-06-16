@@ -128,6 +128,7 @@ class TemplateRepository: TemplateRepositoryProtocol {
                         exerciseName: apiExercise.exercise.name,
                         targetDistance: apiExercise.targetDistance,
                         targetRepetitions: apiExercise.targetReps,
+                        targetDuration: apiExercise.targetDuration != nil ? TimeInterval(apiExercise.targetDuration!) : nil,
                         order: apiExercise.order
                     )
                     
@@ -200,6 +201,7 @@ class TemplateRepository: TemplateRepositoryProtocol {
                 exerciseName: apiExercise.exercise.name,
                 targetDistance: apiExercise.targetDistance,
                 targetRepetitions: apiExercise.targetReps,
+                targetDuration: apiExercise.targetDuration != nil ? TimeInterval(apiExercise.targetDuration!) : nil,
                 order: apiExercise.order
             )
             

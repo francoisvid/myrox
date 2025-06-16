@@ -140,6 +140,10 @@ class WorkoutViewModel {
                     workoutExercise.repetitions = targetReps
                 }
                 
+                if let targetTime = templateExercise.targetDuration {
+                    workoutExercise.targetDuration = targetTime
+                }
+                
                 return workoutExercise
             }
             workout.performances.append(contentsOf: roundExercises)

@@ -24,22 +24,6 @@ export default function InvitationsPage() {
     );
   }
 
-  // Vérifications d'accès
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Authentification requise
-          </h1>
-          <p className="text-gray-600">
-            Veuillez vous connecter pour accéder à cette page.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   if (!isCoach) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -78,7 +62,7 @@ export default function InvitationsPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto py-6 px-6 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Colonne gauche - Générateur et abonnement */}
           <div className="lg:col-span-1 space-y-6">
@@ -86,7 +70,7 @@ export default function InvitationsPage() {
             <SubscriptionStatus />
 
             {/* Générateur de codes */}
-            <InvitationGenerator 
+            <InvitationGenerator
               onInvitationCreated={handleInvitationCreated}
               subscriptionStatus={subscriptionStatus}
             />
@@ -136,4 +120,4 @@ export default function InvitationsPage() {
       </main>
     </div>
   );
-} 
+}

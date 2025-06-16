@@ -238,65 +238,114 @@ class AuthViewModel: NSObject, ObservableObject {
         alertMessage = "Votre compte a été supprimé avec succès."
         showAlert = true
     }
+    
+    private func handleFirebaseAuth(credential: ASAuthorizationAppleIDCredential) async throws -> FirebaseAuth.User {
+        let idTokenString = try credential.getTokenString()
+        let firebaseCredential = OAuthProvider.credential(
+            withProviderID: "apple.com",
+            idToken: idTokenString,
+            rawNonce: currentNonce ?? ""
+        )
+        
+        let result = try await Auth.auth().signIn(with: firebaseCredential)
+        print("✅ Authentification Firebase réussie avec UID: \(result.user.uid)")
+        return result.user
+    }
+    
+    private func updateFirebaseProfile(user: FirebaseAuth.User, fullName: PersonNameComponents?) async throws {
+        if let givenName = fullName?.givenName,
+           let familyName = fullName?.familyName {
+            let displayName = "\(givenName) \(familyName)"
+            let changeRequest = user.createProfileChangeRequest()
+            changeRequest.displayName = displayName
+            try await changeRequest.commitChanges()
+            UserDefaults.standard.set(displayName, forKey: "username")
+            print("✅ Profil Firebase mis à jour: \(displayName)")
+        }
+    }
+    
+    private func syncUserWithAPI(firebaseUser: FirebaseAuth.User, email: String?) async throws {
+        let userRepository = UserRepository()
+        do {
+            _ = try await userRepository.fetchUserProfile(firebaseUID: firebaseUser.uid)
+            print("✅ Utilisateur existant dans l'API")
+        } catch {
+            print("➕ Création du profil utilisateur dans l'API")
+            let newUser = APIUser(
+                firebaseUID: firebaseUser.uid,
+                email: email ?? firebaseUser.email,
+                displayName: UserDefaults.standard.string(forKey: "username")
+            )
+            _ = try await userRepository.createUserProfile(newUser)
+            print("✅ Profil utilisateur créé dans l'API")
+        }
+    }
 }
 
 // MARK: - ASAuthorizationControllerDelegate
 extension AuthViewModel: ASAuthorizationControllerDelegate {
     
     func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
-        isLoading = false
+        guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential else { return }
         
-        if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
-            guard let appleIDToken = appleIDCredential.identityToken else {
-                self.alertMessage = "Impossible d'obtenir le token d'identité Apple."
-                self.showAlert = true
-                return
-            }
-            
-            guard let idTokenString = String(data: appleIDToken, encoding: .utf8) else {
-                self.alertMessage = "Impossible de convertir le token d'identité en chaîne."
-                self.showAlert = true
-                return
-            }
-            
-            let firebaseCredential = OAuthProvider.credential(
-                withProviderID: "apple.com",
-                idToken: idTokenString,
-                rawNonce: currentNonce ?? ""
-            )
-            
-            // Vérifier si c'est une re-auth pour suppression ou une connexion normale
-            if Auth.auth().currentUser != nil {
-                // Re-authentification pour suppression
-                Auth.auth().currentUser?.reauthenticate(with: firebaseCredential) { [weak self] _, error in
-                    guard let self = self else { return }
-                    
-                    if let error = error {
-                        self.alertMessage = "Erreur de re-authentification: \(error.localizedDescription)"
-                        self.showAlert = true
-                    } else {
-                        // Re-auth réussie, procéder à la suppression
-                        self.performAccountDeletion()
-                    }
+        // Re-authentification pour suppression de compte
+        if Auth.auth().currentUser != nil {
+            handleReauthentication(credential: appleIDCredential)
+            return
+        }
+        
+        // Connexion normale
+        Task {
+            do {
+                let firebaseUser = try await handleFirebaseAuth(credential: appleIDCredential)
+                try await updateFirebaseProfile(user: firebaseUser, fullName: appleIDCredential.fullName)
+                
+                if let email = appleIDCredential.email {
+                    UserDefaults.standard.set(email, forKey: "email")
                 }
+                
+                try await syncUserWithAPI(firebaseUser: firebaseUser, email: appleIDCredential.email)
+                
+                await MainActor.run {
+                    self.isLoggedIn = true
+                    self.isLoading = false
+                    self.checkOnboardingStatus()
+                }
+            } catch {
+                print("❌ Erreur d'authentification: \(error)")
+                try? await Auth.auth().signOut()
+                
+                await MainActor.run {
+                    self.isLoggedIn = false
+                    self.isLoading = false
+                    self.alertMessage = "Erreur d'authentification: \(error.localizedDescription)"
+                    self.showAlert = true
+                }
+            }
+        }
+    }
+    
+    private func handleReauthentication(credential: ASAuthorizationAppleIDCredential) {
+        guard let idTokenString = try? credential.getTokenString() else {
+            self.alertMessage = "Erreur lors de la récupération du token"
+            self.showAlert = true
+            return
+        }
+        
+        let firebaseCredential = OAuthProvider.credential(
+            withProviderID: "apple.com",
+            idToken: idTokenString,
+            rawNonce: currentNonce ?? ""
+        )
+        
+        Auth.auth().currentUser?.reauthenticate(with: firebaseCredential) { [weak self] _, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                self.alertMessage = "Erreur de re-authentification: \(error.localizedDescription)"
+                self.showAlert = true
             } else {
-                // Connexion normale
-                Auth.auth().signIn(with: firebaseCredential) { [weak self] (authResult, error) in
-                    guard let self = self else { return }
-                    
-                    if let error = error {
-                        self.alertMessage = "Erreur d'authentification Firebase avec Apple: \(error.localizedDescription)"
-                        self.showAlert = true
-                        return
-                    }
-                    
-                    if let authResult = authResult {
-                        print("Connexion Firebase avec Apple réussie ! User: \(authResult.user.uid)")
-                        self.isLoggedIn = true
-                        self.handleAppleUserInfo(credential: appleIDCredential, firebaseUser: authResult.user)
-                        self.checkOnboardingStatus()
-                    }
-                }
+                self.performAccountDeletion()
             }
         }
     }
@@ -406,4 +455,19 @@ extension AuthViewModel: ASAuthorizationControllerPresentationContextProviding {
 // MARK: - Response Models
 struct UserInformationsResponse: Codable {
     let hasCompletedOnboarding: Bool
+}
+
+// Extension pour simplifier la récupération du token
+extension ASAuthorizationAppleIDCredential {
+    func getTokenString() throws -> String {
+        guard let appleIDToken = self.identityToken else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Token Apple manquant"])
+        }
+        
+        guard let idTokenString = String(data: appleIDToken, encoding: .utf8) else {
+            throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Impossible de convertir le token"])
+        }
+        
+        return idTokenString
+    }
 }

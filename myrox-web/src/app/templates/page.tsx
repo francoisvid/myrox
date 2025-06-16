@@ -8,16 +8,16 @@ export default function TemplatesPage() {
   const { templates, loading, error, deleteTemplate } = useTemplates();
 
   const handleDelete = async (templateId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce template ?')) {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce modèle ?')) {
       return;
     }
 
     try {
       await deleteTemplate(templateId);
-      alert('Template supprimé avec succès !');
+      alert('Modèle supprimé avec succès !');
     } catch (error) {
       console.error('Erreur lors de la suppression:', error);
-      alert('Erreur lors de la suppression du template');
+      alert('Erreur lors de la suppression du modèle');
     }
   };
 
@@ -75,7 +75,7 @@ export default function TemplatesPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement des templates...</p>
+          <p className="mt-4 text-gray-600">Chargement des modèles...</p>
         </div>
       </div>
     );
@@ -97,17 +97,24 @@ export default function TemplatesPage() {
       {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-gray-900">Templates d'entraînement</h1>
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col md:flex-row justify-between">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-3xl font-bold text-gray-900">
+                Modèle d'entraînement
+              </h1>
+              <p className="mt-1 text-sm text-gray-500">
+                Gérez les modèles d'entraînement pour vos athlètes.
+              </p>
+            </div>
+            <div className="flex items-center justify-between mt-4 md:mt-0 md:justify-end w-full md:w-auto space-x-4">
               <span className="text-sm text-gray-500">
-                {templates.length} template{templates.length > 1 ? 's' : ''}
+                {templates.length} modèle{templates.length > 1 ? 's' : ''}
               </span>
-              <Link 
+              <Link
                 href="/templates/new"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
               >
-                Nouveau Template
+                Nouveau modèle
               </Link>
             </div>
           </div>
@@ -115,18 +122,18 @@ export default function TemplatesPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto py-6 px-6 sm:px-6 lg:px-8">
         {templates.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-400 text-6xl mb-4">📝</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun template trouvé</h3>
-            <p className="text-gray-500">Créez votre premier template d'entraînement !</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun modèle trouvé</h3>
+            <p className="text-gray-500">Créez votre premier modèle d'entraînement !</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {templates.map((template) => (
               <div key={template.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow duration-200">
-                
+
                 <div className="p-6">
                   {/* En-tête du template */}
                   {/* Actions */}
@@ -234,4 +241,4 @@ export default function TemplatesPage() {
       </div>
     </div>
   );
-} 
+}

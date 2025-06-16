@@ -261,6 +261,66 @@ L'app iOS communique avec cette API via :
 - **Headers**: `X-Firebase-UID` pour l'auth
 - **Cache local**: SwiftData pour le mode offline
 
+## 🔄 Scripts Docker et Base de Données
+
+### Exécuter des scripts dans le conteneur
+```bash
+# Exécuter un script dans le conteneur API
+docker exec myrox-api npm run <nom-du-script>
+
+# Exemple pour générer le client Prisma
+docker exec myrox-api npm run db:generate
+
+# Exemple pour les migrations
+docker exec myrox-api npm run db:migrate
+```
+
+### Insérer des données avec les scripts
+```bash
+# Exécuter le seed dans le conteneur
+docker exec myrox-api npm run db:seed
+
+# Exécuter un script SQL personnalisé
+docker exec myrox-postgres psql -U myrox_user -d myrox_db -f /path/to/script.sql
+
+# Restaurer une sauvegarde
+docker exec -i myrox-postgres psql -U myrox_user -d myrox_db < backup.sql
+```
+
+### Commandes utiles pour la base de données
+```bash
+# Accéder au shell PostgreSQL
+docker exec -it myrox-postgres psql -U myrox_user -d myrox_db
+
+# Créer une sauvegarde
+docker exec myrox-postgres pg_dump -U myrox_user myrox_db > backup.sql
+
+# Vérifier les logs de la base de données
+docker logs myrox-postgres
+```
+
+### Astuces pour le développement
+- Utilisez `docker exec` pour exécuter des commandes dans les conteneurs en cours d'exécution
+- Les scripts npm peuvent être exécutés directement dans le conteneur API
+- Pour les opérations sur la base de données, utilisez le conteneur PostgreSQL
+- Les volumes Docker persistent les données entre les redémarrages
+
+### Scripts spécifiques
+
+#### Script add-exercises.js
+```bash
+# Exécuter le script add-exercises.js dans le conteneur
+docker exec myrox-api node src/scripts/add-exercises.js
+
+# Pour ajouter de nouveaux exercices en mode développement
+docker exec myrox-api NODE_ENV=development node src/scripts/add-exercises.js
+
+# Pour ajouter de nouveaux exercices en mode production
+docker exec myrox-api NODE_ENV=production node src/scripts/add-exercises.js
+```
+
+> Note : Le script `add-exercises.js` permet d'ajouter ou de mettre à jour la liste des exercices dans la base de données. Il est recommandé de l'exécuter après chaque mise à jour de la liste des exercices.
+
 ---
 
 **Happy coding! 🏃‍♂️💪** 

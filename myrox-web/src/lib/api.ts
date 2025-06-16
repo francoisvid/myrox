@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from 'axios';
 import { Template, Exercise, User, Workout, DashboardStats, Coach, StatsResponse, CoachInvitation, SubscriptionStatus, InvitationResponse, UseInvitationResponse } from '@/types';
 import { config } from '@/lib/config';
+import { auth } from '@/lib/firebase';
 
 // Construire l'URL de base en utilisant la configuration centralisée
 const API_BASE_URL = config.api.fullUrl;
@@ -15,25 +17,33 @@ const api = axios.create({
 
 // Fonction pour créer une instance API avec l'authentification
 export const createAuthenticatedApi = (firebaseUID?: string) => {
-  const authenticatedApi = axios.create({
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-Client-Type': 'web',
+  };
+  if (firebaseUID) {
+    headers['x-firebase-uid'] = firebaseUID;
+  }
+
+  return axios.create({
     baseURL: API_BASE_URL,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Client-Type': 'web',
-      'x-firebase-uid': firebaseUID || config.defaults.firebaseUID
-    },
+    headers,
   });
-  
-  return authenticatedApi;
 };
 
-// API par défaut pour la compatibilité
-api.interceptors.request.use((requestConfig) => {
-  // Fallback sur la valeur par défaut si pas d'UID fourni
-  if (!requestConfig.headers['x-firebase-uid']) {
-    requestConfig.headers['x-firebase-uid'] = config.defaults.firebaseUID;
+// Intercepteur pour ajouter l'UID si disponible dans la requête
+/* eslint-disable @typescript-eslint/no-explicit-any */
+api.interceptors.request.use((config) => {
+  // Exécuter côté client uniquement
+  if (typeof window !== 'undefined' && auth?.currentUser?.uid) {
+    if (!config.headers) {
+      (config as any).headers = {};
+    }
+    if (!(config.headers as any)['x-firebase-uid']) {
+      (config.headers as any)['x-firebase-uid'] = auth.currentUser.uid;
+    }
   }
-  return requestConfig;
+  return config;
 });
 
 // Templates API
@@ -46,7 +56,7 @@ export const templatesApi = {
 
   // Créer un nouveau template personnel
   createTemplate: async (template: Omit<Template, 'id' | 'createdAt' | 'updatedAt'>, firebaseUID?: string): Promise<Template> => {
-    const uid = firebaseUID || config.defaults.firebaseUID;
+    const uid = firebaseUID;
     const authenticatedApi = createAuthenticatedApi(uid);
     const response = await authenticatedApi.post(`/users/firebase/${uid}/personal-templates`, template);
     return response.data;
@@ -54,7 +64,7 @@ export const templatesApi = {
 
   // Mettre à jour un template personnel
   updateTemplate: async (id: string, template: Partial<Template>, firebaseUID?: string): Promise<Template> => {
-    const uid = firebaseUID || config.defaults.firebaseUID;
+    const uid = firebaseUID;
     const authenticatedApi = createAuthenticatedApi(uid);
     const response = await authenticatedApi.put(`/users/firebase/${uid}/personal-templates/${id}`, template);
     return response.data;
@@ -62,14 +72,14 @@ export const templatesApi = {
 
   // Supprimer un template personnel
   deleteTemplate: async (id: string, firebaseUID?: string): Promise<void> => {
-    const uid = firebaseUID || config.defaults.firebaseUID;
+    const uid = firebaseUID;
     const authenticatedApi = createAuthenticatedApi(uid);
     await authenticatedApi.delete(`/users/firebase/${uid}/personal-templates/${id}`);
   },
 
   // Récupérer un template par ID
   getTemplate: async (id: string, firebaseUID?: string): Promise<Template | undefined> => {
-    const uid = firebaseUID || config.defaults.firebaseUID;
+    const uid = firebaseUID;
     const authenticatedApi = createAuthenticatedApi(uid);
     const response = await authenticatedApi.get(`/users/firebase/${uid}/personal-templates`);
     return response.data.find((t: Template) => t.id === id);

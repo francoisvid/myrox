@@ -8,6 +8,7 @@ final class WorkoutExercise {
     var duration: TimeInterval = 0
     var distance: Double = 0
     var repetitions: Int = 0
+    var targetDuration: TimeInterval? // durée cible en secondes
     var completedAt: Date?
     var averageHeartRate: Int = 0
     var maxHeartRate: Int = 0
@@ -21,11 +22,12 @@ final class WorkoutExercise {
     @Relationship(deleteRule: .cascade)
     var heartRatePoints: [HeartRatePoint] = []
     
-    init(exerciseName: String, round: Int = 1, order: Int = 0) {
+    init(exerciseName: String, round: Int = 1, order: Int = 0, targetDuration: TimeInterval? = nil) {
         self.id = UUID()
         self.exerciseName = exerciseName
         self.round = round
         self.order = order
+        self.targetDuration = targetDuration
     }
 }
 
@@ -44,8 +46,9 @@ extension WorkoutExercise {
             key += "_\(repetitions)reps"
         }
         
-        // Si aucun paramètre, indiquer que c'est temps seulement
-        if distance <= 0 && repetitions <= 0 {
+        if let t = targetDuration, t > 0 {
+            key += "_\(Int(t))sec"
+        } else if distance <= 0 && repetitions <= 0 {
             key += "_timeOnly"
         }
         
@@ -64,7 +67,11 @@ extension WorkoutExercise {
             components.append("\(repetitions) reps")
         }
         
-        if distance <= 0 && repetitions <= 0 {
+        if let t = targetDuration, t > 0 {
+            let minutes = Int(t)/60
+            let seconds = Int(t)%60
+            components.append(String(format: "%d:%02d", minutes, seconds))
+        } else if distance <= 0 && repetitions <= 0 {
             components.append("temps seulement")
         }
         
@@ -81,6 +88,12 @@ extension WorkoutExercise {
         
         if repetitions > 0 {
             components.append("\(repetitions)")
+        }
+        
+        if let t = targetDuration, t > 0 {
+            let minutes = Int(t)/60
+            let seconds = Int(t)%60
+            components.append(String(format: "%d:%02d", minutes, seconds))
         }
         
         return components.joined(separator: " ")

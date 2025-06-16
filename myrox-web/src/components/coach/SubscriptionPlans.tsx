@@ -7,12 +7,11 @@ const plans = [
     id: 'FREE',
     name: 'Gratuit',
     price: '0€',
-    period: 'pour toujours',
+    period: 'à vie',
     description: 'Parfait pour commencer',
     features: [
-      '3 athlètes maximum',
-      '5 codes d\'invitation',
-      'Accès aux templates de base',
+      '3 athlètes',
+      'Modèles illimités',
       'Support communautaire'
     ],
     limitations: [
@@ -27,12 +26,11 @@ const plans = [
     id: 'STARTER',
     name: 'Starter',
     price: '19,99€',
-    period: 'par mois',
+    period: ' / mois',
     description: 'Pour les coachs qui se lancent',
     features: [
       '10 athlètes',
-      '15 codes d\'invitation',
-      'Tous les templates',
+      'Modèles illimités',
       'Statistiques de base',
       'Support par email'
     ],
@@ -45,12 +43,11 @@ const plans = [
     id: 'PROFESSIONAL',
     name: 'Professionnel',
     price: '49,99€',
-    period: 'par mois',
+    period: ' / mois',
     description: 'Pour les coachs expérimentés',
     features: [
       '50 athlètes',
-      '75 codes d\'invitation',
-      'Templates personnalisés',
+      'Modèles illimités',
       'Statistiques avancées',
       'Support prioritaire',
       'Rapports détaillés'
@@ -64,11 +61,11 @@ const plans = [
     id: 'ENTERPRISE',
     name: 'Entreprise',
     price: '99,99€',
-    period: 'par mois',
+    period: ' / mois',
     description: 'Pour les structures professionnelles',
     features: [
       'Athlètes illimités',
-      'Codes d\'invitation illimités',
+      'Modèles illimités',
       'Multi-coachs',
       'API personnalisée',
       'Support dédié',
@@ -99,8 +96,8 @@ export default function SubscriptionPlans({ currentPlan = 'FREE', onSelectPlan }
             Évoluez avec vos besoins et développez votre activité de coaching
           </p>
         </div>
-        
-        <div className="mx-auto mt-16 pt-4 grid max-w-lg grid-cols-1 gap-y-6 sm:gap-y-0 lg:max-w-none lg:grid-cols-4 lg:gap-x-8">
+
+        <div className="mx-auto mt-16 pt-4 grid max-w-lg grid-cols-1 gap-y-6 sm:gap-y-6 lg:max-w-none lg:grid-cols-4 lg:gap-x-8">
           {plans.map((plan) => (
             <div
               key={plan.id}
@@ -115,13 +112,13 @@ export default function SubscriptionPlans({ currentPlan = 'FREE', onSelectPlan }
               }`}
             >
               {plan.popular && (
-                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-24 rounded-full bg-blue-600 px-2 py-1 text-xs font-medium text-white text-center z-10">
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-24 rounded-full bg-blue-600 px-2 py-1 text-xs font-medium text-white text-center z-10">
                   Populaire
                 </div>
               )}
-              
+
               {currentPlan === plan.id && (
-                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-24 rounded-full bg-green-600 px-2 py-1 text-xs font-medium text-white text-center z-10">
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-24 rounded-full bg-green-600 px-2 py-1 text-xs font-medium text-white text-center z-10">
                   Plan actuel
                 </div>
               )}
@@ -132,10 +129,10 @@ export default function SubscriptionPlans({ currentPlan = 'FREE', onSelectPlan }
                     {plan.name}
                   </h3>
                 </div>
-                <p className="mt-4 text-sm leading-6 text-gray-600">
+                <p className="mt-4 text-sm leading-6 text-gray-600 h-10">
                   {plan.description}
                 </p>
-                <p className="mt-6 flex items-baseline gap-x-1">
+                <p className="mt-6 flex items-center gap-x-1">
                   <span className="text-4xl font-bold tracking-tight text-gray-900">
                     {plan.price}
                   </span>
@@ -143,7 +140,7 @@ export default function SubscriptionPlans({ currentPlan = 'FREE', onSelectPlan }
                     {plan.period}
                   </span>
                 </p>
-                
+
                 <ul role="list" className="mt-8 space-y-3 text-sm leading-6 text-gray-600">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex gap-x-3">
@@ -153,7 +150,7 @@ export default function SubscriptionPlans({ currentPlan = 'FREE', onSelectPlan }
                   ))}
                 </ul>
               </div>
-              
+
               <button
                 onClick={() => onSelectPlan?.(plan.id)}
                 disabled={currentPlan === plan.id}
@@ -168,15 +165,15 @@ export default function SubscriptionPlans({ currentPlan = 'FREE', onSelectPlan }
             </div>
           ))}
         </div>
-        
+
         <div className="mt-12 text-center">
           <p className="text-sm text-gray-600">
-            Tous les plans incluent une période d&apos;essai de 14 jours • 
-            Annulation possible à tout moment • 
+            Tous les plans incluent une période d&apos;essai de 14 jours •
+            Annulation possible à tout moment •
             Support disponible pour tous les plans
           </p>
         </div>
       </div>
     </div>
   );
-} 
+}

@@ -218,6 +218,12 @@ struct TemplateExercisePreviewRow: View {
 struct ExerciseParametersView: View {
     let templateExercise: TemplateExercise
     
+    private func formatTime(_ time: TimeInterval) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+    
     var body: some View {
         HStack(spacing: 8) {
             if let distance = templateExercise.targetDistance, distance > 0 {
@@ -229,7 +235,11 @@ struct ExerciseParametersView: View {
             }
             
             if templateExercise.targetDistance == nil && templateExercise.targetRepetitions == nil {
-                TimeBadge()
+                if let time = templateExercise.targetDuration, time > 0 {
+                    DurationBadge(duration: time)
+                } else {
+                    TimeBadge()
+                }
             }
         }
     }
@@ -276,6 +286,27 @@ struct TimeBadge: View {
                 .font(.caption2)
                 .foregroundColor(.orange)
         }
+    }
+}
+
+struct DurationBadge: View {
+    let duration: TimeInterval
+    
+    var body: some View {
+        HStack(spacing: 2) {
+            Image(systemName: "clock")
+                .font(.caption2)
+                .foregroundColor(.orange)
+            Text(formatTime(duration))
+                .font(.caption2.bold())
+                .foregroundColor(.orange)
+        }
+    }
+    
+    private func formatTime(_ time: TimeInterval) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
 }
 

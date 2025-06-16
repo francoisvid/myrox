@@ -46,9 +46,9 @@ function NavigationSkeleton() {
           <div className="flex">
             <div className="flex gap-2 flex-shrink-0 flex items-center">
               <Image src="/logo_myrox.png" className="rounded-md" alt="myROX" width={42} height={32} />
-              
+
             </div>
-            
+
             {/* Navigation skeleton */}
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
               {[1, 2, 3, 4].map((i) => (
@@ -99,8 +99,8 @@ export default function Navigation() {
   };
 
   // Choisir la navigation selon le type d'utilisateur
-  const navigation = isAuthenticated && user ? 
-    (isCoach ? coachNavigation : athleteNavigation) : 
+  const navigation = isAuthenticated && user ?
+    (isCoach ? coachNavigation : athleteNavigation) :
     coachNavigation; // Par défaut pour les non-connectés
 
   return (
@@ -109,9 +109,6 @@ export default function Navigation() {
         <div className="flex justify-between h-16 items-center">
           <div className="flex items-center gap-2">
             <Image src="/logo_myrox.png" className="rounded-md" alt="myROX" width={42} height={32} priority />
-            <h1 className="text-xl font-bold text-gray-900">
-              {isAuthenticated && user ? (isCoach ? 'Espace Coach' : 'Espace Athlète') : 'MyROX'}
-            </h1>
           </div>
 
           {/* Menu desktop */}

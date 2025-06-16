@@ -29,18 +29,18 @@ import { useStats } from '@/hooks/useStats';
 export default function Dashboard() {
   const { isAuthenticated, loading: authLoading, coachId } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d'>('30d');
-  
-  const { 
-    loading: statsLoading, 
-    error, 
-    athleteStats, 
-    workoutTrends, 
-    categoryStats, 
+
+  const {
+    loading: statsLoading,
+    error,
+    athleteStats,
+    workoutTrends,
+    categoryStats,
     summary,
-    refetch 
-  } = useStats({ 
-    coachId: coachId || '', 
-    period: selectedPeriod 
+    refetch
+  } = useStats({
+    coachId: coachId || '',
+    period: selectedPeriod
   });
 
   // Loading state
@@ -55,30 +55,14 @@ export default function Dashboard() {
     );
   }
 
-  // Not authenticated
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Authentification requise
-          </h1>
-          <p className="text-gray-600">
-            Veuillez vous connecter pour accéder au dashboard.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
+          <div className="flex flex-col md:flex-row justify-between py-6">
             <div className="flex items-center space-x-4">
-              <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
+              <h1 className="mb-2 md:mb-0 text-3xl font-bold text-gray-900">Tableau de bord</h1>
               {error && (
                 <div className="flex items-center space-x-2 text-amber-600">
                   <ExclamationTriangleIcon className="h-5 w-5" />
@@ -108,7 +92,7 @@ export default function Dashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto py-6 px-6 sm:px-6 lg:px-8">
         {/* Métriques générales */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white overflow-hidden shadow rounded-lg">
@@ -206,17 +190,17 @@ export default function Dashboard() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="count" 
-                  stroke="#3B82F6" 
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#3B82F6"
                   strokeWidth={2}
                   name="Nombre de workouts"
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="avgRating" 
-                  stroke="#10B981" 
+                <Line
+                  type="monotone"
+                  dataKey="avgRating"
+                  stroke="#10B981"
                   strokeWidth={2}
                   name="Note moyenne"
                 />

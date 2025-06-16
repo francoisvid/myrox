@@ -1,7 +1,6 @@
 'use client';
 
 import { useAuth } from './useAuth';
-import config from '@/lib/config';
 
 /**
  * Hook pour récupérer l'ID du coach connecté
@@ -31,10 +30,10 @@ export const useCoachId = () => {
     };
   }
   
-  // Valeurs par défaut pour les tests ou utilisateurs non connectés
+  // Utilisateur non authentifié ou non coach
   return {
-    coachId: config.defaults.coachId,
-    firebaseUID: config.defaults.firebaseUID,
+    coachId: undefined,
+    firebaseUID: undefined,
     loading: false,
     isCoach: false
   };

@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { 
-  MagnifyingGlassIcon, 
-  UserGroupIcon, 
+import {
+  MagnifyingGlassIcon,
+  UserGroupIcon,
   PlusIcon,
   ChartBarIcon,
-  DocumentPlusIcon 
+  DocumentPlusIcon
 } from '@heroicons/react/24/outline';
 import { useAthletes } from '@/hooks/useAthletes';
 import { useTemplates } from '@/hooks/useTemplates';
@@ -19,7 +19,7 @@ import { config } from '@/lib/config';
 export default function AthletesPage() {
   const { athletes, loading: athletesLoading, error: athletesError, refetch } = useAthletes();
   const { templates, loading: templatesLoading } = useTemplates();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
@@ -32,8 +32,8 @@ export default function AthletesPage() {
   );
 
   const handleSelectAthlete = (athleteId: string) => {
-    setSelectedAthletes(prev => 
-      prev.includes(athleteId) 
+    setSelectedAthletes(prev =>
+      prev.includes(athleteId)
         ? prev.filter(id => id !== athleteId)
         : [...prev, athleteId]
     );
@@ -77,9 +77,9 @@ export default function AthletesPage() {
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <div className="md:flex md:items-center md:justify-between">
             <div className="flex-1 min-w-0">
-              <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+              <h1 className="text-3xl font-bold text-gray-900">
                 Mes Athlètes
-              </h2>
+              </h1>
               <p className="mt-1 text-sm text-gray-500">
                 Gérez vos athlètes et assignez-leur des templates d'entraînement
               </p>
@@ -97,7 +97,7 @@ export default function AthletesPage() {
               </div>
             )}
           </div>
-          
+
           {/* Navigation par onglets */}
           <div className="mt-6">
             <div className="border-b border-gray-200">
@@ -130,7 +130,7 @@ export default function AthletesPage() {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto py-6 px-6 sm:px-6 lg:px-8">
         {activeTab === 'athletes' && (
           <>
             {/* Statistiques */}
@@ -322,7 +322,7 @@ export default function AthletesPage() {
         )}
 
         {activeTab === 'assignments' && (
-          <TemplateAssignmentManagerWrapper 
+          <TemplateAssignmentManagerWrapper
             onUpdate={() => {
               // Optionnel: recharger les données si nécessaire
             }}
@@ -342,4 +342,4 @@ export default function AthletesPage() {
       )}
     </div>
   );
-} 
+}

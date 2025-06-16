@@ -5,24 +5,26 @@ struct WorkoutExerciseRow: View {
     let exercise: WorkoutExercise
     let isNext: Bool
     let onTap: () -> Void
-    
+
     @Query private var goals: [ExerciseGoal]
     @Query private var personalBests: [PersonalBest]
-    
-    private var targetTime: TimeInterval? {
-        goals.first(where: { $0.exerciseName == exercise.exerciseName })?.targetTime
+
+    // Durée cible prioritaire : celle définie dans l'exercice, sinon depuis les goals
+    private var displayedTargetTime: TimeInterval? {
+        if let exerciseTarget = exercise.targetDuration { return exerciseTarget }
+        return goals.first(where: { $0.exerciseName == exercise.exerciseName })?.targetTime
     }
-    
+
     private var personalBest: PersonalBest? {
         let exerciseType = exercise.personalBestExerciseType
         return personalBests.first { $0.exerciseType == exerciseType }
     }
-    
+
     private var hasAchievedGoal: Bool {
-        guard let target = targetTime, target > 0, exercise.duration > 0 else { return false }
+        guard let target = displayedTargetTime, target > 0, exercise.duration > 0 else { return false }
         return exercise.duration <= target
     }
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 12) {
@@ -31,19 +33,19 @@ struct WorkoutExerciseRow: View {
                     Circle()
                         .fill(statusColor)
                         .frame(width: 32, height: 32)
-                    
+
                     statusIcon
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(exercise.completedAt != nil ? .black : .white)
                 }
-                
+
                 // Exercise info
                 VStack(alignment: .leading, spacing: 4) {
                     // Nom de l'exercice
                     Text(exercise.exerciseName)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(Color(.label))
-                    
+
                     // Distance et répétitions à effectuer + Personal Best
                     VStack(alignment: .leading, spacing: 2) {
                         // Paramètres de l'exercice (distance/reps à effectuer)
@@ -58,7 +60,7 @@ struct WorkoutExerciseRow: View {
                                         .foregroundColor(.blue)
                                 }
                             }
-                            
+
                             if exercise.repetitions > 0 {
                                 HStack(spacing: 4) {
                                     Image(systemName: "repeat")
@@ -69,8 +71,20 @@ struct WorkoutExerciseRow: View {
                                         .foregroundColor(.green)
                                 }
                             }
+
+                            // Durée cible (objectif) si disponible et aucune distance/reps
+                            if let target = displayedTargetTime, target > 0, exercise.distance == 0 && exercise.repetitions == 0 {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "clock")
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                    Text(formatTime(target))
+                                        .font(.caption.bold())
+                                        .foregroundColor(.orange)
+                                }
+                            }
                         }
-                        
+
                         // Personal Best et Objectif
                         HStack(spacing: 12) {
                             // Personal Best (toujours affiché s'il existe)
@@ -84,21 +98,21 @@ struct WorkoutExerciseRow: View {
                                         .foregroundColor(.yellow)
                                 }
                             }
-                            
-                            // Objectif (affiché en plus du PR)
-                            if let target = targetTime, target > 0 {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "target")
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                    Text("Obj: \(target.formatted)")
-                                        .font(.caption.bold())
-                                        .foregroundColor(.blue)
-                                }
-                            }
+
+//                            // Objectif (affiché en plus du PR)
+//                            if let target = displayedTargetTime, target > 0 {
+//                                HStack(spacing: 4) {
+//                                    Image(systemName: "target")
+//                                        .font(.caption)
+//                                        .foregroundColor(.blue)
+//                                    Text("Obj: \(target.formatted)")
+//                                        .font(.caption.bold())
+//                                        .foregroundColor(.blue)
+//                                }
+//                            }
                         }
                     }
-                    
+
                     // Stats si complété
                     if exercise.completedAt != nil {
                         HStack(spacing: 16) {
@@ -107,18 +121,18 @@ struct WorkoutExerciseRow: View {
                                 Image(systemName: "timer")
                                     .font(.caption)
                                     .foregroundColor(.gray)
-                                
+
                                 Text(exercise.duration.formatted)
                                     .font(.caption)
                                     .foregroundColor(.gray)
-                                
-                                if targetTime != nil {
+
+                                if displayedTargetTime != nil {
                                     Image(systemName: hasAchievedGoal ? "checkmark.circle.fill" : "xmark.circle")
                                         .font(.caption)
                                         .foregroundColor(hasAchievedGoal ? .green : .orange)
                                 }
                             }
-                            
+
                             // Distance
                             if exercise.distance > 0 {
                                 HStack(spacing: 4) {
@@ -130,7 +144,7 @@ struct WorkoutExerciseRow: View {
                                         .foregroundColor(.gray)
                                 }
                             }
-                            
+
                             // Répétitions
                             if exercise.repetitions > 0 {
                                 HStack(spacing: 4) {
@@ -149,9 +163,9 @@ struct WorkoutExerciseRow: View {
                             .foregroundColor(.gray)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 // Chevron
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14))
@@ -164,19 +178,19 @@ struct WorkoutExerciseRow: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
-    
+
     // MARK: - Computed Properties
-    
+
     private var statusColor: Color {
         if exercise.completedAt != nil {
-            return hasAchievedGoal || targetTime == nil ? .green : .orange
+            return hasAchievedGoal || displayedTargetTime == nil ? .green : .orange
         } else if isNext {
             return .yellow
         } else {
             return Color.gray.opacity(0.3)
         }
     }
-    
+
     @ViewBuilder
     private var statusIcon: some View {
         if exercise.completedAt != nil {
@@ -188,14 +202,21 @@ struct WorkoutExerciseRow: View {
                 .font(.caption)
         }
     }
-    
+
     private var backgroundStyle: some View {
         RoundedRectangle(cornerRadius: 12)
             .fill(isNext ? Color.yellow.opacity(0.15) : Color(.systemGray6))
     }
-    
+
     private var overlayBorder: some View {
         RoundedRectangle(cornerRadius: 12)
             .stroke(isNext ? Color.yellow : Color.clear, lineWidth: 2)
+    }
+
+    // Helper
+    private func formatTime(_ time: TimeInterval) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
 }

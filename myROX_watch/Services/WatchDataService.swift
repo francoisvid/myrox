@@ -167,7 +167,8 @@ class WatchDataService: NSObject, ObservableObject {
                     round: round,
                     order: templateExercise.order,
                     targetDistance: templateExercise.targetDistance,
-                    targetRepetitions: templateExercise.targetRepetitions
+                    targetRepetitions: templateExercise.targetRepetitions,
+                    targetDuration: templateExercise.targetDuration
                 )
             }
             exercises.append(contentsOf: roundExercises)

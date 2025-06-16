@@ -17,11 +17,11 @@ export default function EditTemplatePage() {
   const router = useRouter();
   const params = useParams();
   const templateId = params.id as string;
-  
+
   const { updateTemplate, isCreating } = useTemplates();
   const { exercises, loading: exercisesLoading } = useExercises();
   const { firebaseUID, loading: authLoading } = useCoachId();
-  
+
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -38,14 +38,14 @@ export default function EditTemplatePage() {
       if (authLoading || !firebaseUID) {
         return;
       }
-      
+
       try {
         setLoading(true);
         console.log('🔍 Chargement du template:', templateId);
-        
+
         // Utiliser l'API avec le firebaseUID de l'utilisateur connecté
         const template = await templatesApi.getTemplate(templateId, firebaseUID);
-        
+
         if (!template) {
           console.error('❌ Template non trouvé:', templateId);
           alert('Template non trouvé');
@@ -83,7 +83,7 @@ export default function EditTemplatePage() {
         rounds,
         exercises: selectedExercises,
       });
-      
+
       router.push('/templates');
     } catch (error) {
       console.error('Erreur lors de la mise à jour:', error);
@@ -100,13 +100,13 @@ export default function EditTemplatePage() {
   const handleExerciseConfigSave = (exerciseConfig: Omit<TemplateExercise, 'id' | 'templateId'>) => {
     if (editingExercise) {
       // Mode édition
-      const updated = selectedExercises.map(ex => 
-        ex.id === editingExercise.id 
-          ? { 
-              ...exerciseConfig, 
-              id: ex.id, 
+      const updated = selectedExercises.map(ex =>
+        ex.id === editingExercise.id
+          ? {
+              ...exerciseConfig,
+              id: ex.id,
               templateId: ex.templateId,
-              order: ex.order 
+              order: ex.order
             }
           : ex
       );
@@ -122,7 +122,7 @@ export default function EditTemplatePage() {
       };
       setSelectedExercises([...selectedExercises, newExercise]);
     }
-    
+
     setShowExerciseConfig(false);
     setSelectedExerciseForConfig(null);
   };
@@ -166,8 +166,8 @@ export default function EditTemplatePage() {
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-4">
-              <Link href="/templates" className="text-blue-600 hover:text-blue-800">
+            <div className="flex flex-col space-x-4">
+              <Link href="/templates" className="mb-3 text-blue-600 hover:text-blue-800">
                 ← Retour aux templates
               </Link>
               <h1 className="text-3xl font-bold text-gray-900">Modifier le template</h1>
@@ -327,9 +327,9 @@ export default function EditTemplatePage() {
                 </button>
               </div>
               <div className="overflow-y-auto max-h-[60vh]">
-                <ExerciseSelector 
-                  exercises={exercises} 
-                  onExerciseSelect={handleExerciseSelect} 
+                <ExerciseSelector
+                  exercises={exercises}
+                  onExerciseSelect={handleExerciseSelect}
                 />
               </div>
             </div>
@@ -358,4 +358,4 @@ export default function EditTemplatePage() {
       )}
     </div>
   );
-} 
+}
