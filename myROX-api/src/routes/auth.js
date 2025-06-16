@@ -110,11 +110,8 @@ async function authRoutes(fastify, options) {
             }
           });
           
-          // 3. Mettre à jour l'utilisateur avec l'ID du coach pour établir la relation bidirectionnelle
-          updatedUser = await prisma.user.update({
-            where: { id: user.id },
-            data: { coachId: coach.id }
-          });
+          // ⚠️ Sur le web on NE met plus à jour coachId pour éviter la relation circulaire
+          updatedUser = user; // on garde l'utilisateur tel quel
         }
         
         return { user: updatedUser, coach };

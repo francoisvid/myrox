@@ -26,6 +26,7 @@ export const useAuth = () => {
   const [error, setError] = useState<string | null>(null);
   const [firebaseReady, setFirebaseReady] = useState(false);
   const router = useRouter();
+  const [isRegistering, setIsRegistering] = useState(false);
 
   useEffect(() => {
     // Vérifier que Firebase est initialisé
@@ -45,7 +46,7 @@ export const useAuth = () => {
           setError(null);
           
           // Ne pas vérifier si l'utilisateur est déjà défini (cas de l'inscription)
-          if (!user) {
+          if (!user && !isRegistering) {
             // Récupérer les infos utilisateur depuis l'API
             const userData = await fetchUserData(firebaseUser.uid);
             setUser(userData);
@@ -55,9 +56,14 @@ export const useAuth = () => {
           
           // Si l'utilisateur n'existe pas dans notre base, on le déconnecte de Firebase
           // et on le redirige vers l'inscription
-          if (error instanceof Error && error.message.includes('Utilisateur non trouvé')) {
+          if (isRegistering) {
+            // On est en cours d'inscription : on ignore cette erreur temporaire
+            console.log('Profil encore inexistant pendant inscription, on ignore');
+          } else if (error instanceof Error && error.message.includes('Utilisateur non trouvé')) {
             console.log('Utilisateur Firebase sans profil - déconnexion et redirection vers inscription');
-            await signOut(auth);
+            if (auth) {
+              await signOut(auth);
+            }
             setUser(null);
             setError('Profil utilisateur non trouvé. Veuillez vous inscrire.');
             router.push('/register');
@@ -73,7 +79,7 @@ export const useAuth = () => {
     });
 
     return () => unsubscribe();
-  }, [router, user]);
+  }, [router, user, isRegistering]);
 
   const fetchUserData = async (firebaseUID: string): Promise<AuthUser> => {
     // Utiliser l'URL absolue pour l'API
@@ -111,11 +117,12 @@ export const useAuth = () => {
     if (!auth) {
       throw new Error('Firebase non configuré');
     }
-
+  
     try {
       setError(null);
       setLoading(true);
-      
+      setIsRegistering(true);
+  
       // 1. Créer le compte Firebase
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
@@ -136,7 +143,7 @@ export const useAuth = () => {
           ...additionalData
         })
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Erreur création profil');
@@ -144,9 +151,7 @@ export const useAuth = () => {
       
       const userData = await response.json();
       
-      // Attendre un peu pour s'assurer que l'utilisateur est bien créé dans la base
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      // 3. Définir directement l'utilisateur sans attendre onAuthStateChanged
       const authUser: AuthUser = {
         user: userData.user,
         coach: userData.coach,
@@ -154,15 +159,23 @@ export const useAuth = () => {
       };
       
       setUser(authUser);
+      setIsRegistering(false); // Important : désactiver avant la navigation
       router.push('/');
       return authUser;
+      
     } catch (error) {
       console.error('Erreur inscription:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erreur d\'inscription';
       setError(errorMessage);
+      
+      // En cas d'erreur, on déconnecte de Firebase
+      if (auth.currentUser) {
+        await signOut(auth);
+      }
       throw error;
     } finally {
       setLoading(false);
+      setIsRegistering(false);
     }
   };
 
