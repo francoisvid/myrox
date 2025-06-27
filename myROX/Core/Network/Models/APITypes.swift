@@ -105,53 +105,40 @@ struct PaginatedResponse<T: Codable>: Codable {
 // MARK: - Utility Extensions
 
 extension ISO8601DateFormatter {
+    /// Formatter standard pour les dates API - utilise le timezone système
     static let apiFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter
     }()
     
+    /// Formatter UTC - RECOMMANDÉ pour toutes les communications avec l'API
+    /// Garantit la cohérence timezone entre les différents appareils/timezones
+    /// 🇫🇷 Testé et validé pour la France (CEST/CET)
     static let utcFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         formatter.timeZone = TimeZone(secondsFromGMT: 0) // Force UTC
         return formatter
     }()
-    
-    static let localAsUTCFormatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        // Utilise le timezone local mais formate comme UTC
-        return formatter
-    }()
 }
 
 extension Date {
+    /// Formate la date avec le timezone système - pour usage local uniquement
     var apiString: String {
         return ISO8601DateFormatter.apiFormatter.string(from: self)
     }
     
+    /// Formate la date en UTC - RECOMMANDÉ pour toutes les communications API
+    /// Évite les problèmes de timezone entre différents appareils
+    /// 🇫🇷 VALIDÉ: Conversion correcte CEST → UTC pour les utilisateurs français
     var utcString: String {
         return ISO8601DateFormatter.utcFormatter.string(from: self)
     }
     
-    var localAsUTCString: String {
-        // Prendre les composants de date locale et les formater comme UTC
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second, .nanosecond], from: self)
-        
-        // Créer une date UTC avec ces composants
-        var utcCalendar = Calendar.current
-        utcCalendar.timeZone = TimeZone(secondsFromGMT: 0)!
-        
-        guard let utcDate = utcCalendar.date(from: components) else {
-            return utcString // Fallback
-        }
-        
-        return ISO8601DateFormatter.utcFormatter.string(from: utcDate)
-    }
-    
+    /// Parse une date depuis string API - gère automatiquement les timezones
     static func fromAPIString(_ string: String) -> Date? {
         return ISO8601DateFormatter.apiFormatter.date(from: string)
     }
+
 } 

@@ -304,8 +304,8 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
             )
         }
         
-        let startedAtString = workout.startedAt.localAsUTCString // TEST: Heure locale formatée comme UTC
-        print("🕐 DEBUG: Date envoyée à l'API - startedAt: '\(startedAtString)'")
+        let startedAtString = workout.startedAt.utcString
+        print("🕐 FIXED: Date UTC envoyée à l'API - startedAt: '\(startedAtString)'")
         print("🕐 DEBUG: Date locale originale: \(workout.startedAt)")
         
         return CreateWorkoutRequest(
@@ -424,12 +424,12 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
                 weightUsed: nil,
                 restTime: nil,
                 notes: nil,
-                completedAt: exercise.completedAt?.localAsUTCString // TEST: Heure locale formatée comme UTC
+                completedAt: exercise.completedAt?.utcString // 🚀 OPTIMISATION P0 #4: Fix timezone UTC
             )
         }
         
         return UpdateWorkoutRequest(
-            completedAt: workout.completedAt?.localAsUTCString, // TEST: Heure locale formatée comme UTC
+            completedAt: workout.completedAt?.utcString, // 🚀 OPTIMISATION P0 #4: Fix timezone UTC
             totalDuration: workout.totalDuration > 0 ? Int(workout.totalDuration) : nil,
             notes: nil,
             rating: nil,
