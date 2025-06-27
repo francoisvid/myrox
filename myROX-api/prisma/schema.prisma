@@ -196,7 +196,7 @@ model PersonalBest {
   userId          String   @map("user_id")
   user            User     @relation(fields: [userId], references: [id])
   workoutId       String?    @map("workout_id")
-  workout         Workout? @relation(fields: [workoutId], references: [id])
+  workout         Workout? @relation(fields: [workoutId], references: [id], onDelete: SetNull)
 
   @@unique([userId, exerciseType])
   @@map("personal_bests")

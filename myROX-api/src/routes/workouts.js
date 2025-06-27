@@ -1083,11 +1083,13 @@ async function recalculateAllPersonalBests(prisma, userId) {
     console.log(`🗑️ Anciens Personal Bests supprimés`);
     
     // 2. Récupérer tous les exercices complétés de l'utilisateur
+    // IMPORTANT: S'assurer que le workout parent existe encore (pas supprimé)
     const completedExercises = await prisma.workoutExercise.findMany({
       where: {
         workout: {
           userId: userId,
           completedAt: { not: null }
+          // Le workout doit exister (pas de condition sur deletedAt car on n'a pas ce champ)
         },
         completedAt: { not: null },
         durationCompleted: { gt: 0 }
