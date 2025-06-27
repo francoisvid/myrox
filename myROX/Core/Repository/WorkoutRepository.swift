@@ -25,7 +25,6 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
     private let apiService: APIService
     private let modelContext: ModelContext
     
-    // 🚀 OPTIMISATION P0 #2: Cache statique des Exercise IDs pour éviter les recherches O(n)
     private static var exerciseIdCache: [String: String] = [:]
     private static var cacheLastUpdated: Date?
     private static let cacheValidityDuration: TimeInterval = 300 // 5 minutes
@@ -316,7 +315,6 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
         )
     }
     
-    // 🚀 OPTIMISATION P0 #2: Fonction optimisée avec cache pour résoudre les IDs d'exercices
     private func getExerciseIdByName(_ exerciseName: String) -> String {
         // Extraire le nom de base de l'exercice (supprimer distance/répétitions)
         let baseName = extractBaseExerciseName(from: exerciseName)
@@ -350,7 +348,6 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
         return fallbackId
     }
     
-    // 🚀 OPTIMISATION P0 #2: Reconstruction du cache d'Exercise IDs
     private func rebuildExerciseIdCache() {
         print("🔄 Reconstruction du cache Exercise ID (optimisation P0 #2)...")
         
@@ -381,7 +378,6 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
         }
     }
     
-    // 🚀 OPTIMISATION P0 #2: Méthode publique pour invalider le cache (utile après synchronisation d'exercices)
     static func invalidateExerciseIdCache() {
         exerciseIdCache.removeAll()
         cacheLastUpdated = nil
@@ -424,12 +420,12 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
                 weightUsed: nil,
                 restTime: nil,
                 notes: nil,
-                completedAt: exercise.completedAt?.utcString // 🚀 OPTIMISATION P0 #4: Fix timezone UTC
+                completedAt: exercise.completedAt?.utcString
             )
         }
         
         return UpdateWorkoutRequest(
-            completedAt: workout.completedAt?.utcString, // 🚀 OPTIMISATION P0 #4: Fix timezone UTC
+            completedAt: workout.completedAt?.utcString,
             totalDuration: workout.totalDuration > 0 ? Int(workout.totalDuration) : nil,
             notes: nil,
             rating: nil,
