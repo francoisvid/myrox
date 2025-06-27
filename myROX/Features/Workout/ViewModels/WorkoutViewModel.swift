@@ -204,11 +204,11 @@ class WorkoutViewModel {
                 }
             }
             
-            // Programmer la notification de fin de séance
+            // 🔔 SUPPRIMÉ : Plus de notification automatique pour les workouts iOS
+            // La modale de partage s'ouvre directement à la place
+            
+            // Garder seulement les notifications de records personnels
             Task {
-                await NotificationService.shared.scheduleWorkoutCompletionNotification(for: workout)
-                
-                // Vérifier et notifier les nouveaux records personnels
                 let personalRecords = workout.performances.filter { $0.isPersonalRecord }
                 for record in personalRecords {
                     await NotificationService.shared.schedulePersonalRecordNotification(
@@ -697,40 +697,57 @@ class WorkoutViewModel {
     // MARK: - Test Functions (à supprimer en production)
     func testNotifications() {
         Task {
-            // Tester la demande de permission
+            print("🧪 === TEST DES NOTIFICATIONS ===")
+            
+            // 1. Vérifier l'état détaillé des permissions
+            await NotificationService.shared.checkDetailedNotificationStatus()
+            
+            // 2. Tester une notification immédiate d'abord
+            await NotificationService.shared.sendImmediateTestNotification()
+            
+            // 3. Attendre un peu puis continuer avec les tests normaux
+            try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 secondes
+            
+            // 4. Tester la demande de permission (au cas où)
             let granted = await NotificationService.shared.requestPermission()
-            print("Permissions de notification: \(granted)")
+            print("🔐 Permissions de notification: \(granted)")
             
-            // Vérifier le statut
-            let status = await NotificationService.shared.checkNotificationStatus()
-            print("Statut des notifications: \(status)")
-            
-            // Vérifier les notifications en attente avant
+            // 5. Vérifier les notifications en attente avant
             await NotificationService.shared.checkPendingNotifications()
             
-            // Créer un workout de test
+            // 6. Créer un workout de test
             let testWorkout = Workout()
             testWorkout.templateName = "Test Séance"
             testWorkout.totalDuration = 1200 // 20 minutes
             testWorkout.completedAt = Date()
             
-            // Tester la notification de fin de séance
+            // 7. Tester la notification de fin de séance
             await NotificationService.shared.scheduleWorkoutCompletionNotification(for: testWorkout)
             
-            // Tester une notification de record personnel
+            // 8. Tester une notification de record personnel
             await NotificationService.shared.schedulePersonalRecordNotification(
                 exerciseName: "SkiErg",
                 recordType: "Temps"
             )
             
-            // Vérifier les notifications en attente après
+            // 9. Vérifier les notifications en attente après
             await NotificationService.shared.checkPendingNotifications()
+            
+            print("🎯 === FIN DU TEST DES NOTIFICATIONS ===")
         }
     }
     
     func testWatchNotification() {
         Task {
-            // Créer un workout de test simulant une séance Watch
+            print("⌚ === TEST NOTIFICATION APPLE WATCH ===")
+            
+            // 1. Vérifier les permissions d'abord
+            await NotificationService.shared.checkDetailedNotificationStatus()
+            
+            // 2. Test notification immédiate Watch
+            await NotificationService.shared.sendImmediateTestNotification()
+            
+            // 3. Créer un workout de test simulant une séance Watch
             let watchWorkout = Workout()
             watchWorkout.templateName = "LA DÉFENSE"
             watchWorkout.totalDuration = 1200 // 20 minutes
@@ -778,10 +795,11 @@ class WorkoutViewModel {
             modelContext.insert(watchWorkout)
             try? modelContext.save()
             
-            // Tester la notification spécifique Watch
+            // 4. Tester la notification spécifique Watch
             await NotificationService.shared.scheduleWorkoutCompletionFromWatchNotification(for: watchWorkout)
             
             print("📱⌚ Test notification Apple Watch envoyée")
+            print("⌚ === FIN TEST NOTIFICATION APPLE WATCH ===")
         }
     }
     

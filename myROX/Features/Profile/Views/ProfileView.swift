@@ -321,6 +321,15 @@ struct SettingsView: View {
             #if DEBUG
             Button {
                 Task {
+                    await NotificationService.shared.sendImmediateTestNotification()
+                }
+            } label: {
+                Label("Test notification immédiate", systemImage: "bell.badge")
+                    .foregroundColor(.red)
+            }
+            
+            Button {
+                Task {
                     let workoutViewModel = WorkoutViewModel(modelContext: ModelContainer.shared.mainContext)
                     workoutViewModel.testNotifications()
                 }

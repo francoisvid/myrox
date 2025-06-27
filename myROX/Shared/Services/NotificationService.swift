@@ -116,6 +116,69 @@ class NotificationService: NSObject, ObservableObject {
         }
     }
     
+    func checkDetailedNotificationStatus() async {
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        
+        print("🔔 État détaillé des notifications:")
+        print("   - Statut d'autorisation: \(settings.authorizationStatus.rawValue)")
+        print("   - Alertes autorisées: \(settings.alertSetting.rawValue)")
+        print("   - Sons autorisés: \(settings.soundSetting.rawValue)")
+        print("   - Badges autorisés: \(settings.badgeSetting.rawValue)")
+        print("   - Centre de notifications: \(settings.notificationCenterSetting.rawValue)")
+        print("   - Écran verrouillé: \(settings.lockScreenSetting.rawValue)")
+        
+        // Vérifier les paramètres spécifiques iOS 15+
+        if #available(iOS 15.0, *) {
+            print("   - Interruptions programmées: \(settings.scheduledDeliverySetting.rawValue)")
+            print("   - Aperçus: \(settings.showPreviewsSetting.rawValue)")
+        }
+        
+        switch settings.authorizationStatus {
+        case .notDetermined:
+            print("   ⚠️ Permissions non demandées")
+        case .denied:
+            print("   ❌ Permissions refusées")
+        case .authorized:
+            print("   ✅ Permissions accordées")
+        case .provisional:
+            print("   🟡 Permissions provisoires")
+        case .ephemeral:
+            print("   🔄 Permissions éphémères")
+        @unknown default:
+            print("   ❓ Statut inconnu")
+        }
+    }
+    
+    /// Test de notification immédiate (sans délai)
+    func sendImmediateTestNotification() async {
+        let center = UNUserNotificationCenter.current()
+        
+        let content = UNMutableNotificationContent()
+        content.title = "Test Notification Immédiate 🧪"
+        content.body = "Si vous voyez ceci, les notifications fonctionnent !"
+        content.sound = .default
+        
+        content.userInfo = [
+            "type": "test-immediate",
+            "timestamp": Date().timeIntervalSince1970
+        ]
+        
+        // Pas de trigger = notification immédiate
+        let request = UNNotificationRequest(
+            identifier: "test-immediate-\(UUID().uuidString)",
+            content: content,
+            trigger: nil
+        )
+        
+        do {
+            try await center.add(request)
+            print("🧪 Notification de test immédiate envoyée")
+        } catch {
+            print("❌ Erreur notification de test: \(error)")
+        }
+    }
+    
     // MARK: - Notification de fin de séance depuis la Watch
     func scheduleWorkoutCompletionFromWatchNotification(for workout: Workout) async {
         let center = UNUserNotificationCenter.current()
@@ -166,8 +229,12 @@ extension NotificationService: UNUserNotificationCenterDelegate {
     ) {
         print("📱 Notification reçue en premier plan: \(notification.request.content.title)")
         
-        // Afficher la notification avec son, badge et bannière même en premier plan
-        completionHandler([.banner, .sound, .badge])
+        // Afficher la notification avec toutes les options disponibles
+        if #available(iOS 14.0, *) {
+            completionHandler([.banner, .list, .sound, .badge])
+        } else {
+            completionHandler([.alert, .sound, .badge])
+        }
     }
     
     // Cette méthode gère les interactions avec les notifications

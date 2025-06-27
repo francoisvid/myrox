@@ -5,9 +5,18 @@ import SwiftData
 class WatchConnectivityService: NSObject, ObservableObject {
     static let shared = WatchConnectivityService()
     
+    // MARK: - Published Properties
     @Published var isReachable = false
+    
+    // MARK: - Private Properties
     private var session: WCSession
     private let modelContext: ModelContext
+    
+    // MARK: - Constants
+    private enum SyncDelays {
+        static let personalBestSync: UInt64 = 2_000_000_000 // 2 secondes
+        static let notificationDelay: UInt64 = 1_000_000_000 // 1 seconde
+    }
     
     override init() {
         self.session = WCSession.default
@@ -20,7 +29,7 @@ class WatchConnectivityService: NSObject, ObservableObject {
         }
     }
     
-    // MARK: - Send Data to Watch
+    // MARK: - Public Send Methods
     
     func sendWorkoutCount() {
         guard session.isReachable else { return }
@@ -34,36 +43,10 @@ class WatchConnectivityService: NSObject, ObservableObject {
             let message = ["workoutCount": workouts.count]
             
             session.sendMessage(message, replyHandler: nil) { error in
-                print("Erreur envoi workout count: \(error)")
+                print("❌ Erreur envoi workout count: \(error)")
             }
         } catch {
-            print("Erreur fetch workouts: \(error)")
-        }
-    }
-    
-    func sendWorkoutDeleted(_ workoutId: UUID) {
-        guard session.isReachable else { return }
-        
-        let message = [
-            "action": "workoutDeleted",
-            "workoutId": workoutId.uuidString
-        ]
-        
-        session.sendMessage(message, replyHandler: nil) { error in
-            print("Erreur envoi suppression workout: \(error)")
-        }
-    }
-    
-    func sendTemplateDeleted(_ templateId: UUID) {
-        guard session.isReachable else { return }
-        
-        let message = [
-            "action": "templateDeleted",
-            "templateId": templateId.uuidString
-        ]
-        
-        session.sendMessage(message, replyHandler: nil) { error in
-            print("Erreur envoi suppression template: \(error)")
+            print("❌ Erreur fetch workouts: \(error)")
         }
     }
     
@@ -74,66 +57,25 @@ class WatchConnectivityService: NSObject, ObservableObject {
         
         do {
             let templates = try modelContext.fetch(descriptor)
-            let templatesData = templates.map { template in
-                // Utiliser uniquement les TemplateExercise
-                let exercisesData = template.exercises.sorted(by: { $0.order < $1.order }).map { templateExercise in
-                    var exerciseData: [String: Any] = [
-                        "name": templateExercise.exerciseName,
-                        "order": templateExercise.order
-                    ]
-                    
-                    if let distance = templateExercise.targetDistance, distance > 0 {
-                        exerciseData["targetDistance"] = distance
-                    }
-                    
-                    if let reps = templateExercise.targetRepetitions, reps > 0 {
-                        exerciseData["targetRepetitions"] = reps
-                    }
-                    
-                    return exerciseData
-                }
-                
-                // Créer aussi la liste des noms pour compatibilité Watch
-                let exerciseNames = template.exercises.sorted(by: { $0.order < $1.order }).map { $0.exerciseName }
-                
-                return [
-                    "id": template.id.uuidString,
-                    "name": template.name,
-                    "exercisesData": exercisesData,
-                    "exercises": exerciseNames, // Compatibilité avec l'ancien format Watch
-                    "rounds": template.rounds
-                ]
-            }
-            
+            let templatesData = buildTemplatesData(from: templates)
             let message = ["templates": templatesData]
             
             session.sendMessage(message, replyHandler: nil) { error in
-                print("Erreur envoi templates: \(error)")
+                print("❌ Erreur envoi templates: \(error)")
             }
         } catch {
-            print("Erreur fetch templates: \(error)")
+            print("❌ Erreur fetch templates: \(error)")
         }
     }
     
     func sendActiveWorkout(_ workout: Workout) {
         guard session.isReachable else { return }
         
-        let workoutData: [String: Any] = [
-            "id": workout.id.uuidString,
-            "startedAt": workout.startedAt.timeIntervalSince1970,
-            "exercises": workout.performances.map { exercise in
-                [
-                    "name": exercise.exerciseName,
-                    "duration": exercise.duration,
-                    "completed": exercise.completedAt != nil
-                ]
-            }
-        ]
-        
+        let workoutData = buildActiveWorkoutData(from: workout)
         let message = ["activeWorkout": workoutData]
         
         session.sendMessage(message, replyHandler: nil) { error in
-            print("Erreur envoi workout actif: \(error)")
+            print("❌ Erreur envoi workout actif: \(error)")
         }
     }
     
@@ -154,10 +96,10 @@ class WatchConnectivityService: NSObject, ObservableObject {
             let message = ["goals": goalsData]
             
             session.sendMessage(message, replyHandler: nil) { error in
-                print("Erreur envoi goals: \(error)")
+                print("❌ Erreur envoi goals: \(error)")
             }
         } catch {
-            print("Erreur fetch goals: \(error)")
+            print("❌ Erreur fetch goals: \(error)")
         }
     }
     
@@ -179,22 +121,227 @@ class WatchConnectivityService: NSObject, ObservableObject {
             let message = ["personalBests": personalBestsData]
             
             session.sendMessage(message, replyHandler: nil) { error in
-                print("Erreur envoi personal bests: \(error)")
+                print("❌ Erreur envoi personal bests: \(error)")
             }
         } catch {
-            print("Erreur fetch personal bests: \(error)")
+            print("❌ Erreur fetch personal bests: \(error)")
         }
     }
     
-    /// Synchronise les Personal Bests après un workout depuis la Watch
+    // MARK: - Public Delete Methods
+    
+    func sendWorkoutDeleted(_ workoutId: UUID) {
+        guard session.isReachable else { return }
+        
+        let message = [
+            "action": "workoutDeleted",
+            "workoutId": workoutId.uuidString
+        ]
+        
+        session.sendMessage(message, replyHandler: nil) { error in
+            print("❌ Erreur envoi suppression workout: \(error)")
+        }
+    }
+    
+    func sendTemplateDeleted(_ templateId: UUID) {
+        guard session.isReachable else { return }
+        
+        let message = [
+            "action": "templateDeleted",
+            "templateId": templateId.uuidString
+        ]
+        
+        session.sendMessage(message, replyHandler: nil) { error in
+            print("❌ Erreur envoi suppression template: \(error)")
+        }
+    }
+    
+    // MARK: - Private Data Building Methods
+    
+    private func buildTemplatesData(from templates: [WorkoutTemplate]) -> [[String: Any]] {
+        return templates.map { template in
+            // Construire les données d'exercices avec paramètres
+            let exercisesData = template.exercises.sorted(by: { $0.order < $1.order }).map { templateExercise in
+                var exerciseData: [String: Any] = [
+                    "name": templateExercise.exerciseName,
+                    "order": templateExercise.order
+                ]
+                
+                if let distance = templateExercise.targetDistance, distance > 0 {
+                    exerciseData["targetDistance"] = distance
+                }
+                
+                if let reps = templateExercise.targetRepetitions, reps > 0 {
+                    exerciseData["targetRepetitions"] = reps
+                }
+                
+                return exerciseData
+            }
+            
+            // Créer aussi la liste des noms pour compatibilité Watch
+            let exerciseNames = template.exercises.sorted(by: { $0.order < $1.order }).map { $0.exerciseName }
+            
+            return [
+                "id": template.id.uuidString,
+                "name": template.name,
+                "exercisesData": exercisesData,
+                "exercises": exerciseNames, // Compatibilité avec l'ancien format Watch
+                "rounds": template.rounds
+            ]
+        }
+    }
+    
+    private func buildActiveWorkoutData(from workout: Workout) -> [String: Any] {
+        return [
+            "id": workout.id.uuidString,
+            "startedAt": workout.startedAt.timeIntervalSince1970,
+            "exercises": workout.performances.map { exercise in
+                [
+                    "name": exercise.exerciseName,
+                    "duration": exercise.duration,
+                    "completed": exercise.completedAt != nil
+                ]
+            }
+        ]
+    }
+    
+    // MARK: - Workout Completion Handling
+    
+    func handleWorkoutCompleted(_ workoutData: [String: Any]) {
+        print("🏋️ Traitement d'un workout complété depuis la Watch")
+        
+        // Créer le workout depuis les données Watch
+        let workout = createWorkoutFromWatchData(workoutData)
+        
+        // Sauvegarder localement
+        saveWorkoutLocally(workout)
+        
+        // Synchroniser avec l'API et envoyer la notification
+        Task {
+            await processWorkoutCompletion(workout)
+        }
+    }
+    
+    private func createWorkoutFromWatchData(_ workoutData: [String: Any]) -> Workout {
+        let workout = Workout()
+        
+        // Récupérer les métadonnées du template
+        if let templateIdString = workoutData["templateId"] as? String,
+           !templateIdString.isEmpty,
+           let templateId = UUID(uuidString: templateIdString) {
+            workout.templateID = templateId
+        }
+        
+        if let templateName = workoutData["templateName"] as? String {
+            workout.templateName = templateName
+        }
+        
+        // Créer les exercices depuis les données Watch
+        if let exercises = workoutData["exercises"] as? [[String: Any]] {
+            for exerciseData in exercises {
+                let exercise = createWorkoutExercise(from: exerciseData)
+                workout.performances.append(exercise)
+            }
+        }
+        
+        // Définir les métadonnées du workout
+        workout.completedAt = Date()
+        workout.totalDuration = workoutData["totalDuration"] as? TimeInterval ?? 0
+        workout.totalDistance = workoutData["totalDistance"] as? Double ?? 0
+        
+        // Récupérer la vraie heure de début si disponible
+        if let startedAtTimestamp = workoutData["startedAt"] as? TimeInterval {
+            workout.startedAt = Date(timeIntervalSince1970: startedAtTimestamp)
+        }
+        
+        return workout
+    }
+    
+    private func createWorkoutExercise(from exerciseData: [String: Any]) -> WorkoutExercise {
+        let exercise = WorkoutExercise(
+            exerciseName: exerciseData["name"] as? String ?? "",
+            round: exerciseData["round"] as? Int ?? 1,
+            order: exerciseData["order"] as? Int ?? 0
+        )
+        
+        exercise.duration = exerciseData["duration"] as? TimeInterval ?? 0
+        exercise.distance = exerciseData["distance"] as? Double ?? 0
+        exercise.repetitions = exerciseData["repetitions"] as? Int ?? 0
+        exercise.completedAt = Date() // Marquer comme complété
+        
+        // Ajouter les données de fréquence cardiaque si disponibles
+        if let heartRateData = exerciseData["heartRate"] as? [[String: Any]] {
+            addHeartRateData(to: exercise, from: heartRateData)
+        }
+        
+        return exercise
+    }
+    
+    private func addHeartRateData(to exercise: WorkoutExercise, from heartRateData: [[String: Any]]) {
+        for hrPoint in heartRateData {
+            if let value = hrPoint["value"] as? Int,
+               let timestamp = hrPoint["timestamp"] as? TimeInterval {
+                let point = HeartRatePoint(
+                    value: value,
+                    timestamp: Date(timeIntervalSince1970: timestamp)
+                )
+                exercise.heartRatePoints.append(point)
+            }
+        }
+        
+        // Calculer les moyennes
+        let values = exercise.heartRatePoints.map { $0.value }
+        exercise.averageHeartRate = values.isEmpty ? 0 : values.reduce(0, +) / values.count
+        exercise.maxHeartRate = values.max() ?? 0
+    }
+    
+    private func saveWorkoutLocally(_ workout: Workout) {
+        modelContext.insert(workout)
+        
+        do {
+            try modelContext.save()
+            print("✅ Workout Watch sauvé localement avec ID: \(workout.id)")
+        } catch {
+            print("❌ Erreur sauvegarde locale workout Watch: \(error)")
+        }
+    }
+    
+    // MARK: - Async Processing
+    
+    private func processWorkoutCompletion(_ workout: Workout) async {
+        do {
+            // 1. Synchroniser le workout avec l'API
+            try await syncWorkoutWithAPI(workout)
+            
+            // 2. Synchroniser les Personal Bests mis à jour
+            await syncPersonalBestsAfterWorkout()
+            
+            // 3. Envoyer la notification après synchronisation réussie
+            await sendWorkoutCompletionNotification(for: workout)
+            
+        } catch {
+            print("⚠️ Erreur synchronisation API workout Watch: \(error)")
+            // Envoyer la notification même en cas d'erreur de sync
+            await sendWorkoutCompletionNotification(for: workout, fallback: true)
+        }
+        
+        // 4. Notifier l'app
+        notifyAppOfWorkoutCompletion(workout)
+    }
+    
+    private func syncWorkoutWithAPI(_ workout: Workout) async throws {
+        let workoutRepository = WorkoutRepository(modelContext: modelContext)
+        try await workoutRepository.syncCompletedWorkout(workout)
+        print("✅ Workout Watch synchronisé avec l'API avec ID: \(workout.id)")
+    }
+    
     @MainActor
     private func syncPersonalBestsAfterWorkout() async {
         print("🔄 Synchronisation des Personal Bests après workout Watch...")
         
         // Attendre un court délai pour laisser l'API traiter les nouveaux records
-        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 secondes
+        try? await Task.sleep(nanoseconds: SyncDelays.personalBestSync)
         
-        // Synchroniser les Personal Bests depuis l'API
         let personalBestRepository = PersonalBestRepository(modelContext: modelContext)
         
         do {
@@ -210,107 +357,28 @@ class WatchConnectivityService: NSObject, ObservableObject {
         }
     }
     
-    // MARK: - Receive from Watch
+    private func sendWorkoutCompletionNotification(for workout: Workout, fallback: Bool = false) async {
+        await MainActor.run {
+            Task {
+                let mode = fallback ? "(fallback)" : ""
+                print("🏋️ Séance terminée depuis la Watch - Envoi de notification \(mode)")
+                print("🆔 Workout iPhone ID: \(workout.id) (utilisé pour la notification)")
+                
+                // Attendre un court délai pour s'assurer que tout est bien synchronisé
+                try? await Task.sleep(nanoseconds: SyncDelays.notificationDelay)
+                
+                // Notification spécifique pour les séances Watch avec l'ID iPhone
+                await NotificationService.shared.scheduleWorkoutCompletionFromWatchNotification(for: workout)
+                
+                print("📱⌚ Notification de fin de séance depuis Watch programmée avec ID: \(workout.id)")
+            }
+        }
+    }
     
-    func handleWorkoutCompleted(_ workoutData: [String: Any]) {
-        // Créer un nouveau workout depuis les données Watch
-        let workout = Workout()
-        
-        // Récupérer le templateId si disponible  
-        if let templateIdString = workoutData["templateId"] as? String,
-           !templateIdString.isEmpty,
-           let templateId = UUID(uuidString: templateIdString) {
-            workout.templateID = templateId
-        }
-        
-        // Récupérer le nom du template si disponible
-        if let templateName = workoutData["templateName"] as? String {
-            workout.templateName = templateName
-        }
-        
-        // Récupérer les exercices
-        if let exercises = workoutData["exercises"] as? [[String: Any]] {
-            for exerciseData in exercises {
-                let exercise = WorkoutExercise(
-                    exerciseName: exerciseData["name"] as? String ?? "",
-                    round: exerciseData["round"] as? Int ?? 1,
-                    order: exerciseData["order"] as? Int ?? 0
-                )
-                exercise.duration = exerciseData["duration"] as? TimeInterval ?? 0
-                exercise.distance = exerciseData["distance"] as? Double ?? 0
-                exercise.repetitions = exerciseData["repetitions"] as? Int ?? 0
-                exercise.completedAt = Date() // Marquer comme complété
-                
-                // Ajouter les données de fréquence cardiaque si disponibles
-                if let heartRateData = exerciseData["heartRate"] as? [[String: Any]] {
-                    for hrPoint in heartRateData {
-                        if let value = hrPoint["value"] as? Int,
-                           let timestamp = hrPoint["timestamp"] as? TimeInterval {
-                            let point = HeartRatePoint(
-                                value: value,
-                                timestamp: Date(timeIntervalSince1970: timestamp)
-                            )
-                            exercise.heartRatePoints.append(point)
-                        }
-                    }
-                    
-                    // Calculer les moyennes
-                    let values = exercise.heartRatePoints.map { $0.value }
-                    exercise.averageHeartRate = values.isEmpty ? 0 : values.reduce(0, +) / values.count
-                    exercise.maxHeartRate = values.max() ?? 0
-                }
-                
-                workout.performances.append(exercise)
-            }
-        }
-        
-        workout.completedAt = Date()
-        workout.totalDuration = workoutData["totalDuration"] as? TimeInterval ?? 0
-        workout.totalDistance = workoutData["totalDistance"] as? Double ?? 0
-        
-        // Récupérer la vraie heure de début si disponible
-        if let startedAtTimestamp = workoutData["startedAt"] as? TimeInterval {
-            workout.startedAt = Date(timeIntervalSince1970: startedAtTimestamp)
-        }
-        
-        // Sauvegarder
-        modelContext.insert(workout)
-        try? modelContext.save()
-        
-        // 🚀 NOUVEAU : Synchroniser avec l'API en arrière-plan
-        Task {
-            do {
-                let workoutRepository = WorkoutRepository(modelContext: modelContext)
-                try await workoutRepository.syncCompletedWorkout(workout)
-                print("✅ Workout Watch synchronisé avec l'API")
-                
-                // 🆕 NOUVEAU : Synchroniser les Personal Bests mis à jour après le workout
-                await syncPersonalBestsAfterWorkout()
-                
-            } catch {
-                print("⚠️ Erreur synchronisation API workout Watch (workout sauvé localement): \(error)")
-                // Le workout reste sauvé localement même si la sync API échoue
-                // isSynced reste à false pour une prochaine tentative
-            }
-        }
-        
-        // 🔔 NOUVEAU : Déclencher des notifications pour la séance terminée depuis la Watch
-        Task { @MainActor in
-            print("🏋️ Séance terminée depuis la Watch - Envoi de notification")
-            
-            // Notification spécifique pour les séances Watch
-            await NotificationService.shared.scheduleWorkoutCompletionFromWatchNotification(for: workout)
-            
-            // Vérifier et notifier les nouveaux records personnels
-            // TODO: Calculer les records depuis la Watch plus tard
-            
-            print("📱⌚ Notification de fin de séance depuis Watch programmée")
-        }
-        
-        // Notifier l'app
+    private func notifyAppOfWorkoutCompletion(_ workout: Workout) {
         NotificationCenter.default.post(
             name: Notification.Name("WorkoutCompletedFromWatch"),
-            object: workout // Passer le workout comme objet
+            object: workout
         )
     }
 }
@@ -325,10 +393,7 @@ extension WatchConnectivityService: WCSessionDelegate {
         
         if activationState == .activated {
             // Envoyer les données initiales
-            sendWorkoutCount()
-            sendTemplates()
-            sendGoals()
-            sendPersonalBests()
+            sendInitialData()
         }
     }
     
@@ -346,30 +411,42 @@ extension WatchConnectivityService: WCSessionDelegate {
     
     func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
         DispatchQueue.main.async {
-            if let action = message["action"] as? String {
-                switch action {
-                case "requestTemplates":
-                    self.sendTemplates()
-                    
-                case "requestGoals":
-                    self.sendGoals()
-                
-                case "requestPersonalBests":
-                    self.sendPersonalBests()
-                    
-                case "requestWorkoutCount":
-                    self.sendWorkoutCount()
-                    
-                case "workoutCompleted":
-                    if let workoutData = message["workout"] as? [String: Any] {
-                        self.handleWorkoutCompleted(workoutData)
-                    }
-
-
-                default:
-                    break
-                }
+            self.handleIncomingMessage(message)
+        }
+    }
+    
+    // MARK: - Private Helper Methods
+    
+    private func sendInitialData() {
+        sendWorkoutCount()
+        sendTemplates()
+        sendGoals()
+        sendPersonalBests()
+    }
+    
+    private func handleIncomingMessage(_ message: [String: Any]) {
+        guard let action = message["action"] as? String else { return }
+        
+        switch action {
+        case "requestTemplates":
+            sendTemplates()
+            
+        case "requestGoals":
+            sendGoals()
+        
+        case "requestPersonalBests":
+            sendPersonalBests()
+            
+        case "requestWorkoutCount":
+            sendWorkoutCount()
+            
+        case "workoutCompleted":
+            if let workoutData = message["workout"] as? [String: Any] {
+                handleWorkoutCompleted(workoutData)
             }
+            
+        default:
+            print("⚠️ Action non supportée: \(action)")
         }
     }
     
