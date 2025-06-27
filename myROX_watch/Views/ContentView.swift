@@ -11,7 +11,7 @@ struct ContentView: View {
                     HStack {
                         Image(systemName: "figure.strengthtraining.traditional")
                             .foregroundColor(.yellow)
-                        Text("Workouts complétés")
+                        Text("Entrainements complétés")
                         Spacer()
                         Text("\(dataService.workoutCount)")
                             .foregroundColor(.yellow)
@@ -22,7 +22,7 @@ struct ContentView: View {
                 // Templates
                 Section {
                     HStack {
-                        Text("Templates")
+                        Text("Entrainements")
                             .font(.system(size: 16, weight: .semibold))
                         Spacer()
                         Text("\(dataService.templates.count)")

@@ -85,19 +85,32 @@ struct WatchExercise: Identifiable {
     
     // Helper pour générer l'exerciseType comme sur iOS
     var personalBestExerciseType: String {
-        var exerciseType = name.lowercased()
+        // Nettoyer le nom de l'exercice (enlever espaces, mettre en minuscules) - IDENTIQUE À iOS
+        let cleanName = name.lowercased().replacingOccurrences(of: " ", with: "")
         
+        let result: String
+        
+        // Priorité: distance > reps > timeOnly - IDENTIQUE À iOS
         if let distance = targetDistance, distance > 0 {
-            exerciseType += "_\(Int(distance))m"
+            let roundedDistance = Int(distance)
+            result = "\(cleanName)_\(roundedDistance)m"
         } else if let reps = targetRepetitions, reps > 0 {
-            exerciseType += "_\(reps)reps"
+            result = "\(cleanName)_\(reps)reps"
         } else if let targetTime = targetDuration, targetTime > 0 {
-            exerciseType += "_\(Int(targetTime))sec"
+            result = "\(cleanName)_\(Int(targetTime))sec"
         } else {
-            exerciseType += "_timeonly"
+            result = "\(cleanName)_timeonly"
         }
         
-        return exerciseType
+        // 🐛 DEBUG: Log pour vérifier la génération de clé
+        print("🔑 Watch personalBestExerciseType:")
+        print("   - Nom original: '\(name)'")
+        print("   - Nom nettoyé: '\(cleanName)'")
+        print("   - Distance: \(targetDistance ?? 0)")
+        print("   - Répétitions: \(targetRepetitions ?? 0)")
+        print("   - Clé générée: '\(result)'")
+        
+        return result
     }
 }
 

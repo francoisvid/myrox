@@ -186,7 +186,29 @@ class WatchConnectivityService: NSObject, ObservableObject {
         }
     }
     
-
+    /// Synchronise les Personal Bests après un workout depuis la Watch
+    @MainActor
+    private func syncPersonalBestsAfterWorkout() async {
+        print("🔄 Synchronisation des Personal Bests après workout Watch...")
+        
+        // Attendre un court délai pour laisser l'API traiter les nouveaux records
+        try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 secondes
+        
+        // Synchroniser les Personal Bests depuis l'API
+        let personalBestRepository = PersonalBestRepository(modelContext: modelContext)
+        
+        do {
+            try await personalBestRepository.syncPersonalBestsWithCache()
+            print("✅ Personal Bests synchronisés depuis l'API")
+            
+            // Envoyer les nouveaux Personal Bests à la Watch
+            sendPersonalBests()
+            print("📤 Nouveaux Personal Bests envoyés à la Watch")
+            
+        } catch {
+            print("⚠️ Erreur synchronisation Personal Bests: \(error)")
+        }
+    }
     
     // MARK: - Receive from Watch
     
@@ -261,6 +283,10 @@ class WatchConnectivityService: NSObject, ObservableObject {
                 let workoutRepository = WorkoutRepository(modelContext: modelContext)
                 try await workoutRepository.syncCompletedWorkout(workout)
                 print("✅ Workout Watch synchronisé avec l'API")
+                
+                // 🆕 NOUVEAU : Synchroniser les Personal Bests mis à jour après le workout
+                await syncPersonalBestsAfterWorkout()
+                
             } catch {
                 print("⚠️ Erreur synchronisation API workout Watch (workout sauvé localement): \(error)")
                 // Le workout reste sauvé localement même si la sync API échoue

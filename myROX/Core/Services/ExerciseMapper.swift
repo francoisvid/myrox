@@ -51,30 +51,26 @@ class ExerciseMapper: ObservableObject {
         // Normaliser le nom pour la recherche (case insensitive, sans espaces)
         let normalizedName = exerciseName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // Recherche exacte d'abord
+        print("🔍 ExerciseMapper: Recherche de '\(exerciseName)' (normalisé: '\(normalizedName)')")
+        
+        // 1. Recherche exacte d'abord
         if let exercise = apiExercises.first(where: { 
             $0.name.lowercased() == normalizedName 
         }) {
+            print("✅ ExerciseMapper: Match exact trouvé - '\(exerciseName)' -> '\(exercise.name)' (ID: \(exercise.id))")
             return exercise.id
         }
         
-        // Recherche sans espaces
+        // 2. Recherche sans espaces
         let nameWithoutSpaces = normalizedName.replacingOccurrences(of: " ", with: "")
         if let exercise = apiExercises.first(where: { 
             $0.name.lowercased().replacingOccurrences(of: " ", with: "") == nameWithoutSpaces 
         }) {
+            print("✅ ExerciseMapper: Match sans espaces trouvé - '\(exerciseName)' -> '\(exercise.name)' (ID: \(exercise.id))")
             return exercise.id
         }
         
-        // Recherche partielle (contient le nom)
-        if let exercise = apiExercises.first(where: { 
-            $0.name.lowercased().contains(normalizedName) || 
-            normalizedName.contains($0.name.lowercased())
-        }) {
-            return exercise.id
-        }
-        
-        // Mappages de base uniquement pour les variations d'écriture
+        // 3. Mappages explicites pour les variations d'écriture SEULEMENT
         let basicMappings: [String: String] = [
             // Course / Running (base)
             "course": "Run",
@@ -104,13 +100,24 @@ class ExerciseMapper: ObservableObject {
             "pushup": "Push-ups"
         ]
         
-        // Vérifier les mappages de base
+        // Vérifier les mappages explicites
         if let mappedName = basicMappings[normalizedName] {
-            return apiExercises.first(where: { $0.name == mappedName })?.id
+            if let exercise = apiExercises.first(where: { $0.name == mappedName }) {
+                print("✅ ExerciseMapper: Match via mapping explicite - '\(exerciseName)' -> '\(exercise.name)' (ID: \(exercise.id))")
+                return exercise.id
+            }
         }
         
-        // Pas trouvé
-        print("⚠️ ExerciseMapper: Exercice '\(exerciseName)' non trouvé dans l'API")
+        // 4. SUPPRIMÉ : La recherche partielle trop permissive qui causait le problème
+        // Cette recherche causait que "burpees" matchait "burpees broad jump"
+        
+        // Pas trouvé - lister les exercices disponibles pour debug
+        print("❌ ExerciseMapper: Exercice '\(exerciseName)' non trouvé dans l'API")
+        print("📋 ExerciseMapper: Exercices disponibles contenant 'burpees':")
+        for exercise in apiExercises.filter({ $0.name.lowercased().contains("burpees") }) {
+            print("   - '\(exercise.name)' (ID: \(exercise.id), HYROX: \(exercise.isHyroxExercise))")
+        }
+        
         return nil
     }
     

@@ -10,29 +10,46 @@ class WatchWorkoutViewModel: ObservableObject {
     private var exerciseStartTime: Date?
     private var workoutStartTime: Date?
     
-    var currentExercise: WatchExercise? {
-        guard let workout = WatchDataService.shared.activeWorkout else { return nil }
-        
-        // Trier les exercices par round puis par ordre
-        let sortedExercises = workout.exercises.sorted { (exercise1: WatchExercise, exercise2: WatchExercise) in
+    // 🆕 Exercices triés pour la navigation
+    var sortedExercises: [WatchExercise] {
+        guard let workout = WatchDataService.shared.activeWorkout else { return [] }
+        return workout.exercises.sorted { (exercise1: WatchExercise, exercise2: WatchExercise) in
             if exercise1.round == exercise2.round {
                 return exercise1.order < exercise2.order
             }
             return exercise1.round < exercise2.round
         }
-        
-        // Trouver le premier exercice non complété
-        guard let nextExercise = sortedExercises.first(where: { !$0.isCompleted }) else {
-            return nil
-        }
-        
-        return nextExercise
+    }
+    
+    var currentExercise: WatchExercise? {
+        let exercises = sortedExercises
+        guard currentExerciseIndex < exercises.count else { return nil }
+        return exercises[currentExerciseIndex]
+    }
+    
+    // 🆕 Vérifications pour les boutons de navigation
+    var canGoPrevious: Bool {
+        return currentExerciseIndex > 0
+    }
+    
+    var canGoNext: Bool {
+        return currentExerciseIndex < sortedExercises.count - 1
     }
     
     var progress: Double {
         guard let workout = WatchDataService.shared.activeWorkout else { return 0 }
         let completed = workout.exercises.filter { $0.isCompleted }.count
         return Double(completed) / Double(workout.exercises.count)
+    }
+    
+    // 🆕 Initialiser l'index au premier exercice non complété
+    func initializeExerciseIndex() {
+        let exercises = sortedExercises
+        if let firstIncompleteIndex = exercises.firstIndex(where: { !$0.isCompleted }) {
+            currentExerciseIndex = firstIncompleteIndex
+        } else {
+            currentExerciseIndex = 0
+        }
     }
     
     func startExerciseTimer() {
@@ -78,7 +95,7 @@ class WatchWorkoutViewModel: ObservableObject {
             updatedWorkout.exercises[index].duration = self.exerciseTimer
             updatedWorkout.exercises[index].isCompleted = true
             
-            // 🔧 NOUVEAU : Copier les valeurs cibles dans les valeurs réelles
+            // Copier les valeurs cibles dans les valeurs réelles
             if let targetDistance = currentExercise.targetDistance {
                 updatedWorkout.exercises[index].distance = targetDistance
                 print("✅ Distance copiée: \(targetDistance)m pour \(currentExercise.name)")
@@ -93,15 +110,16 @@ class WatchWorkoutViewModel: ObservableObject {
             WatchDataService.shared.activeWorkout = updatedWorkout
         }
         
-        // Réinitialiser le timer pour le prochain exercice
+        // Réinitialiser le timer
         self.exerciseTimer = 0
         self.exerciseStartTime = nil
         self.pauseExerciseTimer()
         
-        // Vérifier s'il reste des exercices
-        if self.currentExercise != nil {
-            print("Passage à l'exercice suivant")
-        } else {
+        // 🆕 Aller au prochain exercice non complété si possible
+        let exercises = sortedExercises
+        if let nextIncompleteIndex = exercises[(currentExerciseIndex + 1)...].firstIndex(where: { !$0.isCompleted }) {
+            currentExerciseIndex = nextIncompleteIndex
+        } else if exercises.allSatisfy({ $0.isCompleted }) {
             // Workout terminé
             print("Workout terminé")
             self.finishWorkout()
@@ -109,65 +127,29 @@ class WatchWorkoutViewModel: ObservableObject {
     }
     
     func previousExercise() {
-        guard let workout = WatchDataService.shared.activeWorkout,
-              let currentExercise = currentExercise else { return }
+        guard canGoPrevious else { return }
         
-        // Trier les exercices par round puis par ordre
-        let sortedExercises = workout.exercises.sorted { (exercise1: WatchExercise, exercise2: WatchExercise) in
-            if exercise1.round == exercise2.round {
-                return exercise1.order < exercise2.order
-            }
-            return exercise1.round < exercise2.round
-        }
-        
-        // Trouver l'index de l'exercice actuel
-        if let currentIndex = sortedExercises.firstIndex(where: { $0.id == currentExercise.id }),
-           currentIndex > 0 {
-            // Trouver le dernier exercice non complété avant l'exercice actuel
-            for i in (0..<currentIndex).reversed() {
-                if !sortedExercises[i].isCompleted {
-                    DispatchQueue.main.async {
-                        self.exerciseTimer = 0
-                        self.exerciseStartTime = nil
-                        self.pauseExerciseTimer()
-                        print("Passage à l'exercice précédent: \(sortedExercises[i].name) - Round \(sortedExercises[i].round)")
-                    }
-                    break
-                }
-            }
+        DispatchQueue.main.async {
+            self.currentExerciseIndex -= 1
+            self.exerciseTimer = 0
+            self.exerciseStartTime = nil
+            self.pauseExerciseTimer()
+            print("🔄 Navigation vers l'exercice précédent: \(self.currentExercise?.name ?? "") - Round \(self.currentExercise?.round ?? 0)")
         }
     }
     
     func nextExercise() {
-        guard let workout = WatchDataService.shared.activeWorkout,
-              let currentExercise = currentExercise else { return }
+        guard canGoNext else { return }
         
-        // Trier les exercices par round puis par ordre
-        let sortedExercises = workout.exercises.sorted { (exercise1: WatchExercise, exercise2: WatchExercise) in
-            if exercise1.round == exercise2.round {
-                return exercise1.order < exercise2.order
-            }
-            return exercise1.round < exercise2.round
-        }
-        
-        // Trouver l'index de l'exercice actuel
-        if let currentIndex = sortedExercises.firstIndex(where: { $0.id == currentExercise.id }),
-           currentIndex < sortedExercises.count - 1 {
-            // Trouver le prochain exercice non complété après l'exercice actuel
-            for i in (currentIndex + 1)..<sortedExercises.count {
-                if !sortedExercises[i].isCompleted {
-                    DispatchQueue.main.async {
-                        self.exerciseTimer = 0
-                        self.exerciseStartTime = nil
-                        self.pauseExerciseTimer()
-                        print("Passage à l'exercice suivant: \(sortedExercises[i].name) - Round \(sortedExercises[i].round)")
-                    }
-                    break
-                }
-            }
+        DispatchQueue.main.async {
+            self.currentExerciseIndex += 1
+            self.exerciseTimer = 0
+            self.exerciseStartTime = nil
+            self.pauseExerciseTimer()
+            print("🔄 Navigation vers l'exercice suivant: \(self.currentExercise?.name ?? "") - Round \(self.currentExercise?.round ?? 0)")
         }
     }
-    
+
     func finishWorkout() {
         print("Finalisation du workout")
         DispatchQueue.main.async {
@@ -179,7 +161,7 @@ class WatchWorkoutViewModel: ObservableObject {
                     workout.totalDuration = Date().timeIntervalSince(startTime)
                     print("Temps total du workout: \(workout.totalDuration) secondes")
                     
-                    // 🔧 NOUVEAU : Calculer la distance totale
+                    // Calculer la distance totale
                     workout.totalDistance = workout.exercises.reduce(0) { $0 + $1.distance }
                     print("✅ Distance totale calculée: \(workout.totalDistance)m")
                     

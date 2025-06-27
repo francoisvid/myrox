@@ -258,7 +258,58 @@ struct LastWorkoutCard: View {
     
     private func getPersonalBestForExercise(_ exercise: WorkoutExercise) -> PersonalBest? {
         let exerciseType = exercise.personalBestExerciseType
-        return personalBests.first { $0.exerciseType == exerciseType }
+        
+        // 1. Essayer le match exact d'abord
+        if let exactMatch = personalBests.first(where: { $0.exerciseType == exerciseType }) {
+            return exactMatch
+        }
+        
+        // 2. Essayer un match flexible si le match exact échoue
+        let flexibleMatch = findFlexibleMatch(for: exercise, with: exerciseType)
+        
+        // 🐛 DEBUG: Log pour comprendre le matching
+        print("🔍 DEBUG getPersonalBestForExercise:")
+        print("   - Exercice: \(exercise.exerciseName)")
+        print("   - Distance: \(exercise.distance)")
+        print("   - Repetitions: \(exercise.repetitions)")
+        print("   - ExerciseType généré: '\(exerciseType)'")
+        if flexibleMatch != nil {
+            print("   - Match flexible trouvé: '\(flexibleMatch!.exerciseType)'")
+        }
+        print("   - Match trouvé: \(flexibleMatch != nil ? "✅" : "❌")")
+        
+        return flexibleMatch
+    }
+    
+    /// Recherche flexible de Personal Best avec matching partiel
+    private func findFlexibleMatch(for exercise: WorkoutExercise, with exerciseType: String) -> PersonalBest? {
+        // Extraire les composants de l'exerciseType recherché
+        let components = exerciseType.split(separator: "_")
+        guard let baseName = components.first else { return nil }
+        
+        // Rechercher tous les Personal Bests qui correspondent au nom de base
+        let candidates = personalBests.filter { pb in
+            let pbComponents = pb.exerciseType.split(separator: "_")
+            guard let pbBaseName = pbComponents.first else { return false }
+            
+            // Match exact du nom de base SEULEMENT (pas de contains pour éviter burpees/burpeesbroadjump)
+            return baseName.lowercased() == pbBaseName.lowercased()
+        }
+        
+        // Si on a des paramètres (distance/reps), essayer de matcher exactement
+        if components.count > 1 {
+            let parameter = components.dropFirst().joined(separator: "_")
+            
+            // Chercher un candidat avec les mêmes paramètres
+            if let parameterMatch = candidates.first(where: { pb in
+                pb.exerciseType.hasSuffix("_\(parameter)")
+            }) {
+                return parameterMatch
+            }
+        }
+        
+        // Sinon, prendre le premier candidat qui match exactement le nom de base
+        return candidates.first
     }
     
     private func isNewRecordVsPersisted(_ exercise: WorkoutExercise) -> Bool {
@@ -422,14 +473,8 @@ struct IndividualExerciseView: View {
         HStack(alignment: .top, spacing: 12) {
             // Colonne principale (nom + status)
             VStack(alignment: .leading, spacing: 2) {
-                // Nom de l'exercice avec paramètres et icône record
+                // Nom de l'exercice avec paramètres (trophée déplacé dans la colonne temps)
                 HStack(spacing: 4) {
-                    if isNewRecord {
-                        Image(systemName: "trophy.fill")
-                            .foregroundColor(.yellow)
-                            .font(.caption)
-                    }
-                    
                     Text(exercise.exerciseName)
                         .font(.subheadline.bold())
                         .foregroundColor(Color(.label))
@@ -455,33 +500,54 @@ struct IndividualExerciseView: View {
             
             // Colonne temps (alignée à droite)
             VStack(alignment: .trailing, spacing: 2) {
-                // Temps actuel (en jaune si c'est la PR ou un nouveau record)
+                // Temps actuel avec logique de trophée et couleur
                 if exercise.duration > 0 {
-                    Text(exercise.duration.formatted)
-                        .font(.subheadline.bold())
-                        .foregroundColor(shouldHighlightTime ? .yellow : Color(.label))
+                    HStack(spacing: 4) {
+                        // 🏆 Trophée seulement si c'est une nouvelle PR
+                        if isNewRecord {
+                            Image(systemName: "trophy.fill")
+                                .font(.caption2)
+                                .foregroundColor(.yellow)
+                        }
+                        
+                        Text(exercise.duration.formatted)
+                            .font(.subheadline.bold())
+                            .foregroundColor(isCurrentTimeBest ? .yellow : Color(.label))
+                    }
                 } else {
                     Text("--")
                         .font(.subheadline.bold())
                         .foregroundColor(.gray)
                 }
                 
-                // Record personnel persisté en dessous
+                // Record personnel persisté en dessous (sans trophée si battu)
                 if let persistedBest = persistedPersonalBest {
-                    HStack(spacing: 4) {
-                        Image(systemName: "trophy.fill")
-                            .font(.caption2)
-                            .foregroundColor(.yellow)
-                        
-                        Text(persistedBest.value.formatted)
-                            .font(.caption.bold())
-                            .foregroundColor(.yellow)
-                    }
+                    Text(persistedBest.value.formatted)
+                        .font(.caption.bold())
+                        .foregroundColor(isPreviousRecordBest ? .yellow : .gray)
                 }
             }
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
+    }
+    
+    // MARK: - Computed Properties for Logic
+    
+    /// Le temps actuel est-il le meilleur entre les deux ?
+    private var isCurrentTimeBest: Bool {
+        guard let persistedBest = persistedPersonalBest, exercise.duration > 0 else {
+            return exercise.duration > 0 // Jaune s'il n'y a pas de record précédent
+        }
+        return exercise.duration <= persistedBest.value
+    }
+    
+    /// L'ancien record est-il encore le meilleur ?
+    private var isPreviousRecordBest: Bool {
+        guard let persistedBest = persistedPersonalBest, exercise.duration > 0 else {
+            return true // Garder en jaune l'ancien record s'il n'y a pas de nouveau temps
+        }
+        return persistedBest.value < exercise.duration
     }
 }
 

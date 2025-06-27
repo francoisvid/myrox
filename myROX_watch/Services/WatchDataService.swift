@@ -140,6 +140,9 @@ class WatchDataService: NSObject, ObservableObject {
     func startWorkoutSession(for template: WatchTemplate) {
         print("Démarrage de la session de workout pour le template: \(template.name)")
         
+        // 🆕 Demander les derniers Personal Bests avant de commencer
+        requestPersonalBests()
+        
         // Vérifier si un workout est déjà actif
         if let existingWorkout = activeWorkout {
             print("Un workout est déjà actif: \(existingWorkout.templateName)")
@@ -395,12 +398,30 @@ extension WatchDataService: WCSessionDelegate {
                     return WatchPersonalBest(exerciseType: exerciseType, value: value, achievedAt: achievedAt)
                 }
                 
+                // 🐛 DEBUG: Comparer les anciens et nouveaux Personal Bests
+                print("🔄 Mise à jour des Personal Bests:")
+                print("   - Anciens PB: \(self.personalBests.count)")
+                print("   - Nouveaux PB: \(newPersonalBests.count)")
+                
+                // Vérifier les changements
+                for newPB in newPersonalBests {
+                    if let oldPB = self.personalBests.first(where: { $0.exerciseType == newPB.exerciseType }) {
+                        if oldPB.value != newPB.value {
+                            print("   📈 MISE À JOUR: \(newPB.exerciseType) - \(oldPB.value)s → \(newPB.value)s")
+                        }
+                    } else {
+                        print("   🆕 NOUVEAU: \(newPB.exerciseType) - \(newPB.value)s")
+                    }
+                }
+                
                 self.personalBests = newPersonalBests
                 
                 // Sauvegarder localement
                 if let encoded = try? JSONEncoder().encode(newPersonalBests) {
                     UserDefaults.standard.set(encoded, forKey: "personalBests")
                 }
+                
+                print("✅ Personal Bests mis à jour sur la Watch")
             }
             
             if let templatesData = message["templates"] as? [[String: Any]] {
