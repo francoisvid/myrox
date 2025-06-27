@@ -606,6 +606,10 @@ async function workoutRoutes(fastify, options) {
         where: { id: workoutId }
       });
 
+      // Recalculer tous les Personal Bests après suppression
+      await recalculateAllPersonalBests(fastify.prisma, user.id);
+      fastify.log.info(`✅ Personal Bests recalculés après suppression du workout ${workoutId}`);
+
       reply.code(204).send();
 
     } catch (error) {
@@ -1061,6 +1065,84 @@ async function calculatePersonalBests(prisma, userId, workoutId, exercises) {
   } catch (error) {
     console.error('Erreur lors du calcul des personal bests:', error);
     // Ne pas faire échouer le workout pour une erreur de calcul de records
+  }
+}
+
+/**
+ * Recalcule tous les Personal Bests d'un utilisateur
+ * Utilisé après suppression de workout pour s'assurer que les records sont corrects
+ */
+async function recalculateAllPersonalBests(prisma, userId) {
+  try {
+    console.log(`🔄 Recalcul de tous les Personal Bests pour l'utilisateur ${userId}`);
+    
+    // 1. Supprimer tous les Personal Bests existants
+    await prisma.personalBest.deleteMany({
+      where: { userId: userId }
+    });
+    console.log(`🗑️ Anciens Personal Bests supprimés`);
+    
+    // 2. Récupérer tous les exercices complétés de l'utilisateur
+    const completedExercises = await prisma.workoutExercise.findMany({
+      where: {
+        workout: {
+          userId: userId,
+          completedAt: { not: null }
+        },
+        completedAt: { not: null },
+        durationCompleted: { gt: 0 }
+      },
+      include: {
+        exercise: true,
+        workout: true
+      },
+      orderBy: {
+        durationCompleted: 'asc' // Trier par temps pour avoir les meilleurs en premier
+      }
+    });
+    
+    console.log(`📊 ${completedExercises.length} exercices complétés trouvés`);
+    
+    // 3. Grouper par type d'exercice et garder le meilleur de chaque
+    const bestsByType = new Map();
+    
+    for (const exercise of completedExercises) {
+      const exerciseType = generateExerciseType(exercise.exercise.name, {
+        distanceCompleted: exercise.distanceCompleted,
+        repsCompleted: exercise.repsCompleted,
+        durationCompleted: exercise.durationCompleted
+      });
+      
+      // Si on n'a pas encore de record pour ce type, ou si ce temps est meilleur
+      if (!bestsByType.has(exerciseType) || 
+          exercise.durationCompleted < bestsByType.get(exerciseType).durationCompleted) {
+        bestsByType.set(exerciseType, exercise);
+      }
+    }
+    
+    console.log(`🎯 ${bestsByType.size} types d'exercices uniques trouvés`);
+    
+    // 4. Créer les nouveaux Personal Bests
+    for (const [exerciseType, bestExercise] of bestsByType) {
+      await prisma.personalBest.create({
+        data: {
+          userId: userId,
+          exerciseType: exerciseType,
+          value: bestExercise.durationCompleted,
+          unit: 'seconds',
+          achievedAt: bestExercise.completedAt,
+          workoutId: bestExercise.workoutId
+        }
+      });
+      
+      console.log(`✅ Personal Best créé: ${exerciseType} - ${bestExercise.durationCompleted}s`);
+    }
+    
+    console.log(`🎉 Recalcul terminé: ${bestsByType.size} Personal Bests créés`);
+    
+  } catch (error) {
+    console.error('❌ Erreur lors du recalcul des Personal Bests:', error);
+    throw error;
   }
 }
 

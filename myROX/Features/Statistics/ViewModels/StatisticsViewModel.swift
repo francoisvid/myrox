@@ -17,15 +17,19 @@ class StatisticsViewModel: ObservableObject {
     @Published private(set) var totalDistance: Double = 0
     
     // MARK: - Dependencies
-    private let modelContext: ModelContext
-    private var cancellables = Set<AnyCancellable>()
+private let modelContext: ModelContext
+private let workoutRepository: WorkoutRepository
+private let personalBestRepository: PersonalBestRepository
+private var cancellables = Set<AnyCancellable>()
     
     // Cache des workouts
     @Published var workouts: [Workout] = []
     
     // MARK: - Init
     init(modelContext: ModelContext) {
-        self.modelContext = modelContext
+    self.modelContext = modelContext
+    self.workoutRepository = WorkoutRepository(modelContext: modelContext)
+    self.personalBestRepository = PersonalBestRepository(modelContext: modelContext)
         
         // Observer les changements de période et mode d'affichage
         Publishers.CombineLatest($selectedPeriodIndex, $selectedViewMode)
@@ -51,6 +55,53 @@ class StatisticsViewModel: ObservableObject {
         } catch {
             print("Erreur chargement workouts: \(error)")
             workouts = []
+        }
+    }
+    
+    /// Synchronisation complète : API → Local avec détection des suppressions
+    func forceFullSync() async {
+        do {
+            // 1. Récupérer tous les workouts depuis l'API
+            let apiWorkouts = try await workoutRepository.fetchWorkouts()
+            let apiWorkoutIds = Set(apiWorkouts.map { $0.uuid })
+            
+            // 2. Récupérer les workouts locaux
+            let localWorkouts = getCachedWorkouts()
+            
+            // 3. Supprimer les workouts locaux qui n'existent plus dans l'API
+            for localWorkout in localWorkouts {
+                if !apiWorkoutIds.contains(localWorkout.id) {
+                    print("🗑️ Suppression locale workout inexistant dans l'API: \(localWorkout.id)")
+                    modelContext.delete(localWorkout)
+                }
+            }
+            
+                    // 4. Synchroniser normalement (ajouts/mises à jour)
+        try await workoutRepository.syncWorkoutsWithCache()
+        
+        // 5. Synchroniser les Personal Bests
+        try await personalBestRepository.syncPersonalBestsWithCache()
+        
+        // 6. Recharger les données locales
+        loadWorkouts()
+        
+        print("✅ Synchronisation complète terminée (workouts + Personal Bests)")
+            
+        } catch {
+            print("❌ Erreur synchronisation complète: \(error)")
+        }
+    }
+    
+    private func getCachedWorkouts() -> [Workout] {
+        let descriptor = FetchDescriptor<Workout>(
+            sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
+        )
+        
+        do {
+            return try modelContext.fetch(descriptor)
+        } catch {
+            print("Erreur récupération workouts locaux: \(error)")
+            return []
         }
     }
     
@@ -139,40 +190,69 @@ class StatisticsViewModel: ObservableObject {
     }
     
     // MARK: - Actions
-    func deleteWorkout(_ workout: Workout) {
-        // Sauvegarder l'ID avant la suppression
-        let workoutId = workout.id
+    func deleteWorkout(_ workout: Workout) async throws {
+        do {
+            // 1. Supprimer côté API d'abord
+            try await workoutRepository.deleteWorkout(workoutId: workout.id)
+            print("✅ Workout supprimé côté API: \(workout.id)")
+            
+            // 2. Supprimer localement
+            modelContext.delete(workout)
+            try modelContext.save()
+            print("✅ Workout supprimé localement: \(workout.id)")
+            
+            // 3. Synchroniser avec la montre
+            WatchConnectivityService.shared.sendWorkoutDeleted(workout.id)
+            WatchConnectivityService.shared.sendWorkoutCount()
+            
+                    // 4. Synchroniser les Personal Bests (recalculés par l'API)
+        try await personalBestRepository.syncPersonalBestsWithCache()
+        print("✅ Personal Bests synchronisés après suppression")
         
-        // Supprimer le workout
-        modelContext.delete(workout)
-        try? modelContext.save()
-        
-        // Synchroniser avec la montre
-        WatchConnectivityService.shared.sendWorkoutDeleted(workoutId)
-        WatchConnectivityService.shared.sendWorkoutCount()
-        
-        // Recharger les données
+        // 5. Recharger les données
         loadWorkouts()
+        
+    } catch {
+        print("❌ Erreur suppression workout: \(error)")
+        // En cas d'erreur API, on ne supprime pas localement
+        // L'utilisateur sera informé de l'erreur
+        throw error
+    }
     }
     
-    func deleteAllWorkouts() {
-        // Sauvegarder les IDs avant la suppression
-        let workoutIds = workouts.map { $0.id }
+    func deleteAllWorkouts() async throws {
+        do {
+            // 1. Supprimer tous les workouts côté API
+            for workout in workouts {
+                try await workoutRepository.deleteWorkout(workoutId: workout.id)
+            }
+            print("✅ Tous les workouts supprimés côté API")
+            
+            // 2. Supprimer tous les workouts localement
+            for workout in workouts {
+                modelContext.delete(workout)
+            }
+            try modelContext.save()
+            print("✅ Tous les workouts supprimés localement")
+            
+            // 3. Synchroniser avec la montre
+            let workoutIds = workouts.map { $0.id }
+            for workoutId in workoutIds {
+                WatchConnectivityService.shared.sendWorkoutDeleted(workoutId)
+            }
+            WatchConnectivityService.shared.sendWorkoutCount()
+            
+                    // 4. Synchroniser les Personal Bests (recalculés par l'API)
+        try await personalBestRepository.syncPersonalBestsWithCache()
+        print("✅ Personal Bests synchronisés après suppression de tous les workouts")
         
-        // Supprimer tous les workouts
-        for workout in workouts {
-            modelContext.delete(workout)
-        }
-        try? modelContext.save()
-        
-        // Synchroniser avec la montre
-        for workoutId in workoutIds {
-            WatchConnectivityService.shared.sendWorkoutDeleted(workoutId)
-        }
-        WatchConnectivityService.shared.sendWorkoutCount()
-        
-        // Recharger les données
+        // 5. Recharger les données
         loadWorkouts()
+        
+    } catch {
+        print("❌ Erreur suppression de tous les workouts: \(error)")
+        throw error
+    }
     }
     
     // MARK: - Helpers

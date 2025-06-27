@@ -6,6 +6,9 @@ struct StatisticsView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel: StatisticsViewModel
     @State private var showDeleteAllAlert = false
+    @State private var isDeleting = false
+    @State private var errorMessage: String?
+    @State private var showErrorAlert = false
     
     init() {
         let context = ModelContainer.shared.mainContext
@@ -59,15 +62,59 @@ struct StatisticsView: View {
             .alert("Supprimer toutes les séances", isPresented: $showDeleteAllAlert) {
                 Button("Annuler", role: .cancel) { }
                 Button("Supprimer", role: .destructive) {
-                    viewModel.deleteAllWorkouts()
+                    Task {
+                        await deleteAllWorkouts()
+                    }
                 }
             } message: {
                 Text("Cette action supprimera définitivement toutes vos séances.")
             }
+            .alert("Erreur", isPresented: $showErrorAlert) {
+                Button("OK") { }
+            } message: {
+                if let errorMessage = errorMessage {
+                    Text(errorMessage)
+                }
+            }
             .refreshable {
-                viewModel.loadWorkouts()
+                await viewModel.forceFullSync()
+            }
+            .overlay {
+                if isDeleting {
+                    ProgressView("Suppression en cours...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black.opacity(0.3))
+                }
             }
         }
+    }
+    
+    // MARK: - Actions
+    
+    private func deleteAllWorkouts() async {
+        isDeleting = true
+        
+        do {
+            try await viewModel.deleteAllWorkouts()
+        } catch {
+            errorMessage = "Erreur lors de la suppression: \(error.localizedDescription)"
+            showErrorAlert = true
+        }
+        
+        isDeleting = false
+    }
+    
+    private func deleteWorkout(_ workout: Workout) async {
+        isDeleting = true
+        
+        do {
+            try await viewModel.deleteWorkout(workout)
+        } catch {
+            errorMessage = "Erreur lors de la suppression: \(error.localizedDescription)"
+            showErrorAlert = true
+        }
+        
+        isDeleting = false
     }
     
     // MARK: - Subviews
@@ -278,7 +325,9 @@ struct StatisticsView: View {
                         if let workout = viewModel.workouts.first(where: {
                             $0.performances.contains(where: { $0.id == exercise.id })
                         }) {
-                            viewModel.deleteWorkout(workout)
+                            Task {
+                                await deleteWorkout(workout)
+                            }
                         }
                     }
                 )

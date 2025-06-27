@@ -108,7 +108,7 @@ class WorkoutViewModel {
     }
     
     // MARK: - Workout Actions
-    private func startWorkout(from template: WorkoutTemplate) {
+    func startWorkout(from template: WorkoutTemplate) {
         // 🔄 SYNC Personal Bests avant de démarrer le workout
         // pour avoir les données les plus récentes depuis l'API
         Task {
