@@ -17,7 +17,6 @@ protocol PersonalBestRepositoryProtocol {
     
     // Local PersonalBest Management
     func savePersonalBestLocally(_ personalBest: PersonalBest) throws
-    func updateOrCreatePersonalBest(exerciseType: String, value: Double, unit: String, achievedAt: Date, workoutId: UUID?) async throws
 }
 
 class PersonalBestRepository: PersonalBestRepositoryProtocol {
@@ -146,72 +145,13 @@ class PersonalBestRepository: PersonalBestRepositoryProtocol {
         try modelContext.save()
     }
     
-    /// Met à jour ou crée un personal best localement et le synchronise avec l'API
-    func updateOrCreatePersonalBest(exerciseType: String, value: Double, unit: String, achievedAt: Date, workoutId: UUID?) async throws {
-        // Vérifier s'il existe déjà un record pour ce type d'exercice
-        let existingPersonalBest = getCachedPersonalBest(exerciseType: exerciseType)
-        
-        // Pour le temps, plus petit = meilleur
-        let shouldUpdateRecord = existingPersonalBest == nil || (unit == "seconds" && value < existingPersonalBest!.value)
-        
-        if shouldUpdateRecord {
-            let formatter = ISO8601DateFormatter()
-            
-            if let existing = existingPersonalBest {
-                // Update existing record
-                existing.value = value
-                existing.achievedAt = achievedAt
-                existing.workoutId = workoutId
-                existing.isSynced = false
-                
-                // Sync with API
-                if let apiId = existing.apiId {
-                    let updateRequest = UpdatePersonalBestRequest(
-                        value: value,
-                        achievedAt: formatter.string(from: achievedAt),
-                        workoutId: workoutId?.uuidString
-                    )
-                    let updatedAPI = try await updatePersonalBest(personalBestId: apiId, updateRequest)
-                    existing.updateFromAPI(updatedAPI)
-                } else {
-                    // Create in API if no apiId
-                    let createRequest = CreatePersonalBestRequest(
-                        exerciseType: exerciseType,
-                        value: value,
-                        unit: unit,
-                        achievedAt: formatter.string(from: achievedAt),
-                        workoutId: workoutId?.uuidString
-                    )
-                    let createdAPI = try await createPersonalBest(createRequest)
-                    existing.updateFromAPI(createdAPI)
-                }
-            } else {
-                // Create new record
-                let newPersonalBest = PersonalBest(
-                    exerciseType: exerciseType,
-                    value: value,
-                    unit: unit,
-                    achievedAt: achievedAt,
-                    workoutId: workoutId
-                )
-                
-                // Save locally first
-                try savePersonalBestLocally(newPersonalBest)
-                
-                // Then sync with API
-                let createRequest = CreatePersonalBestRequest(
-                    exerciseType: exerciseType,
-                    value: value,
-                    unit: unit,
-                    achievedAt: formatter.string(from: achievedAt),
-                    workoutId: workoutId?.uuidString
-                )
-                let createdAPI = try await createPersonalBest(createRequest)
-                newPersonalBest.updateFromAPI(createdAPI)
-            }
-            
-            try modelContext.save()
-            print("🏆 Personal best updated/created: \(exerciseType) - \(value)\(unit)")
-        }
-    }
+    // MARK: - SUPPRIMÉ - Optimisation P0
+    // 
+    // La méthode updateOrCreatePersonalBest() a été supprimée dans le cadre de l'optimisation P0
+    // Elle créait un double calcul des Personal Bests avec l'API
+    // 
+    // ✅ Nouvelle stratégie optimisée :
+    // 1. L'API calcule automatiquement les Personal Bests lors de la sync des workouts
+    // 2. L'iPhone récupère les résultats via syncPersonalBestsWithCache()
+    // 3. Plus de double calcul = -50% trafic réseau + source de vérité unique
 } 
