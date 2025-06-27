@@ -108,7 +108,13 @@ class WorkoutViewModel {
     }
     
     // MARK: - Workout Actions
-    func startWorkout(from template: WorkoutTemplate) {
+    private func startWorkout(from template: WorkoutTemplate) {
+        // 🔄 SYNC Personal Bests avant de démarrer le workout
+        // pour avoir les données les plus récentes depuis l'API
+        Task {
+            await syncPersonalBestsFromAPI()
+        }
+        
         // Validation du template
         let templateExercises = template.exercises.sorted(by: { $0.order < $1.order })
         
@@ -851,7 +857,7 @@ class WorkoutViewModel {
     
     /// Synchronise les Personal Bests depuis l'API après qu'un workout soit complété
     /// L'API calcule automatiquement les Personal Bests, on récupère juste les résultats
-    private func syncPersonalBestsFromAPI() async {
+    func syncPersonalBestsFromAPI() async {
         print("🏆 Sync Personal Bests depuis l'API (optimisé - pas de double calcul)")
         
         do {

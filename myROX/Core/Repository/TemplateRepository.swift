@@ -20,7 +20,6 @@ class TemplateRepository: TemplateRepositoryProtocol {
     private let apiService: APIService
     private let modelContext: ModelContext
     
-    // 🚀 OPTIMISATION P0 #3: Cache intelligent des Templates pour éviter les syncs répétées
     private static var templateCache: [APITemplate] = []
     private static var cacheLastUpdated: Date?
     private static let cacheValidityDuration: TimeInterval = 600 // 10 minutes (templates moins volatils)
@@ -56,7 +55,6 @@ class TemplateRepository: TemplateRepositoryProtocol {
         
         let result = try await apiService.post(endpoints.personalTemplates, body: template, responseType: APITemplate.self)
         
-        // 🚀 OPTIMISATION P0 #3: Invalider le cache après création
         Self.invalidateTemplateCache()
         
         return result
@@ -73,7 +71,6 @@ class TemplateRepository: TemplateRepositoryProtocol {
         
         let result = try await apiService.put(endpoints.updatePersonalTemplate(templateId: templateUUID), body: template, responseType: APITemplate.self)
         
-        // 🚀 OPTIMISATION P0 #3: Invalider le cache après mise à jour
         Self.invalidateTemplateCache()
         
         return result
@@ -101,7 +98,6 @@ class TemplateRepository: TemplateRepositoryProtocol {
         
         let _: DeleteResponse = try await apiService.delete(deleteEndpoint, responseType: DeleteResponse.self)
         
-        // 🚀 OPTIMISATION P0 #3: Invalider le cache après suppression
         Self.invalidateTemplateCache()
         
         print("✅ TemplateRepository.deleteTemplate - Suppression réussie")
@@ -109,7 +105,6 @@ class TemplateRepository: TemplateRepositoryProtocol {
     
     // MARK: - Cache Management
     
-    // 🚀 OPTIMISATION P0 #3: Sync intelligente avec cache des Templates
     func syncTemplatesWithCache() async throws {
         // 1. Vérifier le cache d'abord
         if let lastUpdated = Self.cacheLastUpdated,
@@ -156,7 +151,6 @@ class TemplateRepository: TemplateRepositoryProtocol {
         Self.isSyncing = false
     }
     
-    // 🚀 OPTIMISATION P0 #3: Synchronisation depuis le cache (méthode privée optimisée)
     private func syncFromCache(_ allAPITemplates: [APITemplate]) async throws {
         // Get existing cached templates
         let existingTemplates = getCachedTemplates()
@@ -186,7 +180,6 @@ class TemplateRepository: TemplateRepositoryProtocol {
         try modelContext.save()
     }
     
-    // 🚀 OPTIMISATION P0 #3: Méthode optimisée pour update un template existant
     private func updateExistingTemplate(_ existingTemplate: WorkoutTemplate, from apiTemplate: APITemplate) {
         // Update basic properties
         existingTemplate.name = apiTemplate.name
@@ -273,9 +266,7 @@ class TemplateRepository: TemplateRepositoryProtocol {
         
         return template
     }
-    
-    // 🚀 OPTIMISATION P0 #3: Méthodes de gestion du cache
-    
+        
     /// Invalide le cache des templates (à appeler après create/update/delete)
     static func invalidateTemplateCache() {
         templateCache.removeAll()

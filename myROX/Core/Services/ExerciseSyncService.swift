@@ -130,7 +130,6 @@ class ExerciseSyncService: ObservableObject {
             // Sauvegarder les changements
             try modelContext.save()
             
-            // 🚀 OPTIMISATION P0 #2: Invalider le cache Exercise ID après nettoyage
             WorkoutRepository.invalidateExerciseIdCache()
             
             print("🧹 ExerciseSyncService: Nettoyage terminé")
@@ -249,7 +248,6 @@ class ExerciseSyncService: ObservableObject {
                 print("📱 Première synchronisation: \(stats.added) exercices ajoutés (pas de notification)")
             }
             
-            // 🚀 OPTIMISATION P0 #2: Invalider le cache Exercise ID après synchronisation
             WorkoutRepository.invalidateExerciseIdCache()
             
             print("🎯 ExerciseSyncService: Synchronisation terminée")
