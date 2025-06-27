@@ -227,6 +227,16 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
     // MARK: - Conversion Methods
     
     private func convertAPIWorkoutToSwiftData(_ apiWorkout: APIWorkout) -> Workout {
+        print("🔄 Conversion APIWorkout vers SwiftData:")
+        print("   - ID: \(apiWorkout.id)")
+        print("   - Name: \(apiWorkout.name ?? "N/A")")
+        print("   - StartedAt (string): \(apiWorkout.startedAt)")
+        print("   - CompletedAt (string): \(apiWorkout.completedAt ?? "NIL")")
+        print("   - StartDate (parsed): \(apiWorkout.startDate)")
+        print("   - CompletionDate (parsed): \(apiWorkout.completionDate?.description ?? "NIL")")
+        print("   - TotalDuration: \(apiWorkout.totalDuration ?? 0)")
+        print("   - Exercises: \(apiWorkout.exercises.count)")
+        
         let workout = Workout()
         workout.id = apiWorkout.uuid
         workout.templateID = apiWorkout.template?.id != nil ? UUID(uuidString: apiWorkout.template!.id) : nil
@@ -236,6 +246,11 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
         workout.totalDuration = TimeInterval(apiWorkout.totalDuration ?? 0)
         workout.totalDistance = apiWorkout.exercises.reduce(0.0) { $0 + ($1.distanceCompleted ?? 0) }
         workout.isSynced = true
+        
+        print("   ✅ Workout SwiftData créé:")
+        print("       - CompletedAt: \(workout.completedAt?.description ?? "NIL")")
+        print("       - TotalDuration: \(workout.totalDuration)")
+        print("       - TotalDistance: \(workout.totalDistance)")
         
         // Convert API exercises to SwiftData WorkoutExercise
         for apiExercise in apiWorkout.exercises {

@@ -49,8 +49,21 @@ private var cancellables = Set<AnyCancellable>()
         )
         
         do {
-            workouts = try modelContext.fetch(descriptor)
-                .filter { $0.completedAt != nil }
+            let allWorkouts = try modelContext.fetch(descriptor)
+            print("📊 DEBUG loadWorkouts - Total workouts en local: \(allWorkouts.count)")
+            
+            for (index, workout) in allWorkouts.enumerated() {
+                print("   [\(index)] ID: \(workout.id)")
+                print("       - Template: \(workout.templateName ?? "N/A")")
+                print("       - StartedAt: \(workout.startedAt)")
+                print("       - CompletedAt: \(workout.completedAt?.description ?? "NIL")")
+                print("       - Duration: \(workout.totalDuration)")
+                print("       - Exercises: \(workout.performances.count)")
+            }
+            
+            workouts = allWorkouts.filter { $0.completedAt != nil }
+            print("📊 DEBUG loadWorkouts - Workouts complétés: \(workouts.count)")
+            
             recompute()
         } catch {
             print("Erreur chargement workouts: \(error)")

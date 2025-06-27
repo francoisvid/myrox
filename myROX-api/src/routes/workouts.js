@@ -1107,16 +1107,16 @@ async function recalculateAllPersonalBests(prisma, userId) {
     const bestsByType = new Map();
     
     for (const exercise of completedExercises) {
-      const exerciseType = generateExerciseType(exercise.exercise.name, {
-        distanceCompleted: exercise.distanceCompleted,
-        repsCompleted: exercise.repsCompleted,
-        durationCompleted: exercise.durationCompleted
-      });
+      const exerciseType = generateExerciseType(exercise.exercise.name, exercise);
+      console.log(`🔍 Exercice: ${exercise.exercise.name} -> Type: ${exerciseType} (${exercise.durationCompleted}s, distance: ${exercise.distanceCompleted || 0}, reps: ${exercise.repsCompleted || 0})`);
       
       // Si on n'a pas encore de record pour ce type, ou si ce temps est meilleur
       if (!bestsByType.has(exerciseType) || 
           exercise.durationCompleted < bestsByType.get(exerciseType).durationCompleted) {
         bestsByType.set(exerciseType, exercise);
+        console.log(`🎯 Nouveau meilleur pour ${exerciseType}: ${exercise.durationCompleted}s`);
+      } else {
+        console.log(`📈 Record existant meilleur pour ${exerciseType}: ${bestsByType.get(exerciseType).durationCompleted}s vs ${exercise.durationCompleted}s`);
       }
     }
     

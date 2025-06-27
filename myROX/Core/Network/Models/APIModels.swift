@@ -19,12 +19,28 @@ struct APIWorkout: Codable, Identifiable {
     }
     
     var startDate: Date {
-        ISO8601DateFormatter().date(from: startedAt) ?? Date()
+        // Essayer d'abord le formatter UTC, puis le formatter API standard
+        if let date = ISO8601DateFormatter.utcFormatter.date(from: startedAt) {
+            return date
+        } else if let date = ISO8601DateFormatter.apiFormatter.date(from: startedAt) {
+            return date
+        } else {
+            print("⚠️ Impossible de parser startedAt: '\(startedAt)' - utilisation de Date()")
+            return Date()
+        }
     }
     
     var completionDate: Date? {
         guard let completedAt = completedAt else { return nil }
-        return ISO8601DateFormatter().date(from: completedAt)
+        // Essayer d'abord le formatter UTC, puis le formatter API standard
+        if let date = ISO8601DateFormatter.utcFormatter.date(from: completedAt) {
+            return date
+        } else if let date = ISO8601DateFormatter.apiFormatter.date(from: completedAt) {
+            return date
+        } else {
+            print("⚠️ Impossible de parser completedAt: '\(completedAt)' - retour nil")
+            return nil
+        }
     }
 }
 
@@ -48,7 +64,15 @@ struct APIWorkoutExercise: Codable, Identifiable {
     
     var completionDate: Date? {
         guard let completedAt = completedAt else { return nil }
-        return ISO8601DateFormatter().date(from: completedAt)
+        // Essayer d'abord le formatter UTC, puis le formatter API standard
+        if let date = ISO8601DateFormatter.utcFormatter.date(from: completedAt) {
+            return date
+        } else if let date = ISO8601DateFormatter.apiFormatter.date(from: completedAt) {
+            return date
+        } else {
+            print("⚠️ Impossible de parser exercise completedAt: '\(completedAt)' - retour nil")
+            return nil
+        }
     }
 }
 
@@ -68,12 +92,20 @@ struct APIPersonalBest: Codable, Identifiable {
     let workout: APIWorkoutReference?
     
     var achievementDate: Date {
-        ISO8601DateFormatter().date(from: achievedAt) ?? Date()
+        // Essayer d'abord le formatter UTC, puis le formatter API standard
+        if let date = ISO8601DateFormatter.utcFormatter.date(from: achievedAt) {
+            return date
+        } else if let date = ISO8601DateFormatter.apiFormatter.date(from: achievedAt) {
+            return date
+        } else {
+            print("⚠️ Impossible de parser achievedAt: '\(achievedAt)' - utilisation de Date()")
+            return Date()
+        }
     }
 }
 
 struct APIWorkoutReference: Codable {
-    let id: String
+    let id: String?
     let name: String?
     let completedAt: String?
 } 

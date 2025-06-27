@@ -145,6 +145,14 @@ class APIService {
             switch httpResponse.statusCode {
             case 200...299:
                 print("✅ performRequest - Code de succès détecté: \(httpResponse.statusCode)")
+                
+                // Gestion spéciale pour 204 No Content (body vide)
+                if httpResponse.statusCode == 204 {
+                    print("📝 performRequest - Code 204 détecté, retour EmptyResponse par défaut")
+                    if T.self == EmptyResponse.self {
+                        return EmptyResponse() as! T
+                    }
+                }
                 break // Succès
             case 400:
                 print("❌ performRequest - Erreur 400")
@@ -327,7 +335,6 @@ extension APIService {
 
     /// Suppression d'un workout
     func deleteWorkout(firebaseUID: String, workoutId: UUID) async throws {
-        struct EmptyResponse: Codable {}
         _ = try await delete(.deleteWorkout(firebaseUID: firebaseUID, workoutId: workoutId), responseType: EmptyResponse.self)
     }
 
