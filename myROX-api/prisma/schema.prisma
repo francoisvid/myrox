@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,104 +7,87 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// MARK: - Core Models
-
 model User {
-  id          String   @id @default(uuid())
-  firebaseUID String   @unique @map("firebase_uid")
-  email       String?
-  displayName String?  @map("display_name")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  coachId                String?      @map("coach_id")
-  coach                  Coach?     @relation("CoachAthletes", fields: [coachId], references: [id])
-  personalTemplates      Template[] @relation("UserTemplates")
-  assignedTemplates      Template[] @relation("AssignedTemplates")
-  workouts               Workout[]
-  personalBests          PersonalBest[]
-  coachProfile           Coach?     @relation("CoachUser")
-  userInformations       UserInformations?
-  usedInvitation         CoachInvitation? @relation("InvitationUser")
+  id                String            @id @default(uuid())
+  firebaseUID       String            @unique @map("firebase_uid")
+  email             String?
+  displayName       String?           @map("display_name")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  coachId           String?           @map("coach_id")
+  usedInvitation    CoachInvitation?  @relation("InvitationUser")
+  coachProfile      Coach?            @relation("CoachUser")
+  personalBests     PersonalBest[]
+  personalTemplates Template[]        @relation("UserTemplates")
+  userInformations  UserInformations?
+  coach             Coach?            @relation("CoachAthletes", fields: [coachId], references: [id])
+  workouts          Workout[]
+  assignedTemplates Template[]        @relation("AssignedTemplates")
 
   @@map("users")
 }
 
 model Coach {
-  id                String     @id @default(uuid())
-  firebaseUID       String   @unique @map("firebase_uid")
-  displayName       String   @map("display_name")
-  email             String?
-  specialization    String?
-  bio               String?
-  profilePicture    String?  @map("profile_picture")
-  certifications    String[] // Array of certifications
-  isActive          Boolean  @default(true) @map("is_active")
-  
-  // 💰 Système de paiement et limites
-  subscriptionPlan  SubscriptionPlan @default(FREE) @map("subscription_plan")
-  maxAthletes       Int      @default(3) @map("max_athletes") // Limite d'athlètes selon le plan
-  maxInvitations    Int      @default(5) @map("max_invitations") // Limite de codes d'invitation actifs simultanément
-  isSubscriptionActive Boolean @default(true) @map("is_subscription_active")
-  subscriptionExpiresAt DateTime? @map("subscription_expires_at")
-  trialEndsAt       DateTime? @map("trial_ends_at") // Fin de période d'essai
-  
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  userId            String   @unique @map("user_id") // Link to User table
-  user              User     @relation("CoachUser", fields: [userId], references: [id])
-  athletes          User[]   @relation("CoachAthletes")
-  createdTemplates  Template[] @relation("CoachTemplates")
-  invitations       CoachInvitation[] // Codes créés par ce coach
+  id                    String            @id @default(uuid())
+  firebaseUID           String            @unique @map("firebase_uid")
+  displayName           String            @map("display_name")
+  email                 String?
+  specialization        String?
+  bio                   String?
+  profilePicture        String?           @map("profile_picture")
+  certifications        String[]
+  isActive              Boolean           @default(true) @map("is_active")
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+  userId                String            @unique @map("user_id")
+  isSubscriptionActive  Boolean           @default(true) @map("is_subscription_active")
+  maxAthletes           Int               @default(3) @map("max_athletes")
+  maxInvitations        Int               @default(5) @map("max_invitations")
+  subscriptionExpiresAt DateTime?         @map("subscription_expires_at")
+  subscriptionPlan      SubscriptionPlan  @default(FREE) @map("subscription_plan")
+  trialEndsAt           DateTime?         @map("trial_ends_at")
+  invitations           CoachInvitation[]
+  user                  User              @relation("CoachUser", fields: [userId], references: [id])
+  createdTemplates      Template[]        @relation("CoachTemplates")
+  athletes              User[]            @relation("CoachAthletes")
 
   @@map("coaches")
 }
 
-// MARK: - Workout Templates
-
 model Template {
-  id              String     @id @default(uuid())
-  name            String
-  rounds          Int        @default(1) // Number of rounds for this template
-  description     String?
-  difficulty      Difficulty
-  estimatedTime   Int      @map("estimated_time") // in minutes
-  category        WorkoutCategory
-  isPersonal      Boolean  @default(true) @map("is_personal") // true = personal, false = coach created
-  isActive        Boolean  @default(true) @map("is_active")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  creatorId       String   @map("creator_id") // User who created (for personal templates)
-  creator         User     @relation("UserTemplates", fields: [creatorId], references: [id])
-  
-  coachId         String?    @map("coach_id") // Coach who created (for coach templates)
-  coach           Coach?   @relation("CoachTemplates", fields: [coachId], references: [id])
-  
-  assignedUsers   User[]   @relation("AssignedTemplates")
-  exercises       TemplateExercise[]
-  workouts        Workout[]
+  id            String             @id @default(uuid())
+  name          String
+  rounds        Int                @default(1)
+  description   String?
+  difficulty    Difficulty
+  estimatedTime Int                @map("estimated_time")
+  category      WorkoutCategory
+  isPersonal    Boolean            @default(true) @map("is_personal")
+  isActive      Boolean            @default(true) @map("is_active")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  creatorId     String             @map("creator_id")
+  coachId       String?            @map("coach_id")
+  exercises     TemplateExercise[]
+  coach         Coach?             @relation("CoachTemplates", fields: [coachId], references: [id])
+  creator       User               @relation("UserTemplates", fields: [creatorId], references: [id])
+  workouts      Workout[]
+  assignedUsers User[]             @relation("AssignedTemplates")
 
   @@map("templates")
 }
 
 model Exercise {
-  id              String     @id @default(uuid())
-  name            String   @unique
-  description     String?
-  category        ExerciseCategory
-  equipment       String[] // Array of required equipment
-  instructions    String?
-  videoUrl        String?  @map("video_url")
-  isHyroxExercise Boolean  @default(false) @map("is_hyrox_exercise")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  // Relations
+  id                String             @id @default(uuid())
+  name              String             @unique
+  description       String?
+  category          ExerciseCategory
+  equipment         String[]
+  instructions      String?
+  videoUrl          String?            @map("video_url")
+  isHyroxExercise   Boolean            @default(false) @map("is_hyrox_exercise")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
   templateExercises TemplateExercise[]
   workoutExercises  WorkoutExercise[]
 
@@ -118,91 +95,125 @@ model Exercise {
 }
 
 model TemplateExercise {
-  id              String     @id @default(uuid())
-  order           Int      // Order in the template
-  sets            Int?
-  reps            Int?
-  duration        Int?     // in seconds
-  distance        Float?   // in meters
-  weight          Float?   // in kg
-  restTime        Int?     @map("rest_time") // in seconds
-  notes           String?
-
-  // Relations
-  templateId      String     @map("template_id")
-  template        Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  exerciseId      String     @map("exercise_id")
-  exercise        Exercise @relation(fields: [exerciseId], references: [id])
+  id         String   @id @default(uuid())
+  order      Int
+  sets       Int?
+  reps       Int?
+  duration   Int?
+  distance   Float?
+  weight     Float?
+  restTime   Int?     @map("rest_time")
+  notes      String?
+  templateId String   @map("template_id")
+  exerciseId String   @map("exercise_id")
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+  template   Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   @@map("template_exercises")
 }
 
-// MARK: - Workouts & Performance
-
 model Workout {
-  id              String     @id @default(uuid())
-  name            String?
-  startedAt       DateTime @map("started_at")
-  completedAt     DateTime? @map("completed_at")
-  totalDuration   Int?     @map("total_duration") // in seconds
-  notes           String?
-  rating          Int?     // 1-5 stars
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  userId          String   @map("user_id")
-  user            User     @relation(fields: [userId], references: [id])
-  templateId      String?    @map("template_id")
-  template        Template? @relation(fields: [templateId], references: [id])
-  exercises       WorkoutExercise[]
-  personalBests   PersonalBest[]
+  id            String            @id @default(uuid())
+  name          String?
+  startedAt     DateTime          @map("started_at")
+  completedAt   DateTime?         @map("completed_at")
+  totalDuration Int?              @map("total_duration")
+  notes         String?
+  rating        Int?
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  userId        String            @map("user_id")
+  templateId    String?           @map("template_id")
+  personalBests PersonalBest[]
+  exercises     WorkoutExercise[]
+  template      Template?         @relation(fields: [templateId], references: [id])
+  user          User              @relation(fields: [userId], references: [id])
 
   @@map("workouts")
 }
 
 model WorkoutExercise {
-  id              String     @id @default(uuid())
-  order           Int      // Order in the workout
-  sets            Int?
-  repsCompleted   Int?     @map("reps_completed")
-  durationCompleted Int?   @map("duration_completed") // in seconds
-  distanceCompleted Float? @map("distance_completed") // in meters
-  weightUsed      Float?   @map("weight_used") // in kg
-  restTime        Int?     @map("rest_time") // in seconds
-  notes           String?
-  completedAt     DateTime? @map("completed_at")
-
-  // Relations
-  workoutId       String     @map("workout_id")
-  workout         Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
-  exerciseId      String     @map("exercise_id")
-  exercise        Exercise @relation(fields: [exerciseId], references: [id])
+  id                String    @id @default(uuid())
+  order             Int
+  sets              Int?
+  repsCompleted     Int?      @map("reps_completed")
+  durationCompleted Int?      @map("duration_completed")
+  distanceCompleted Float?    @map("distance_completed")
+  weightUsed        Float?    @map("weight_used")
+  restTime          Int?      @map("rest_time")
+  notes             String?
+  completedAt       DateTime? @map("completed_at")
+  workoutId         String    @map("workout_id")
+  exerciseId        String    @map("exercise_id")
+  exercise          Exercise  @relation(fields: [exerciseId], references: [id])
+  workout           Workout   @relation(fields: [workoutId], references: [id], onDelete: Cascade)
 
   @@map("workout_exercises")
 }
 
-// MARK: - Performance Tracking
-
 model PersonalBest {
-  id              String     @id @default(uuid())
-  exerciseType    String   @map("exercise_type") // "run_1k", "burpees_100", etc.
-  value           Float    // time in seconds, reps, distance in meters, etc.
-  unit            String   // "seconds", "reps", "meters", "kg"
-  achievedAt      DateTime @map("achieved_at")
-  createdAt       DateTime @default(now()) @map("created_at")
-
-  // Relations
-  userId          String   @map("user_id")
-  user            User     @relation(fields: [userId], references: [id])
-  workoutId       String?    @map("workout_id")
-  workout         Workout? @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+  id           String   @id @default(uuid())
+  exerciseType String   @map("exercise_type")
+  value        Float
+  unit         String
+  achievedAt   DateTime @map("achieved_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  userId       String   @map("user_id")
+  workoutId    String?  @map("workout_id")
+  user         User     @relation(fields: [userId], references: [id])
+  workout      Workout? @relation(fields: [workoutId], references: [id], onDelete: Cascade)
 
   @@unique([userId, exerciseType])
   @@map("personal_bests")
 }
 
-// MARK: - Enums
+model UserInformations {
+  id                         String             @id @default(uuid())
+  userId                     String             @unique @map("user_id")
+  hasCompletedOnboarding     Boolean            @default(false) @map("has_completed_onboarding")
+  hyroxExperience            HyroxExperience?   @map("hyrox_experience")
+  hasCompetedHyrox           Boolean?           @map("has_competed_hyrox")
+  primaryGoal                HyroxGoal?         @map("primary_goal")
+  currentTrainingFrequency   TrainingFrequency? @map("current_training_frequency")
+  trainingTypes              String[]           @map("training_types")
+  fitnessLevel               Int?               @map("fitness_level")
+  injuriesLimitations        String?            @map("injuries_limitations")
+  familiarWithHyroxStations  Boolean?           @map("familiar_hyrox_stations")
+  difficultExercises         String[]           @map("difficult_exercises")
+  hasGymAccess               Boolean?           @map("has_gym_access")
+  gymName                    String?            @map("gym_name")
+  gymLocation                String?            @map("gym_location")
+  availableEquipment         String[]           @map("available_equipment")
+  preferredTrainingFrequency TrainingFrequency? @map("preferred_training_frequency")
+  preferredSessionDuration   SessionDuration?   @map("preferred_session_duration")
+  targetCompetitionDate      DateTime?          @map("target_competition_date")
+  preferredTrainingTime      TrainingTime?      @map("preferred_training_time")
+  preferredIntensity         TrainingIntensity? @map("preferred_intensity")
+  prefersStructuredProgram   Boolean?           @map("prefers_structured_program")
+  wantsNotifications         Boolean?           @map("wants_notifications")
+  createdAt                  DateTime           @default(now()) @map("created_at")
+  updatedAt                  DateTime           @updatedAt @map("updated_at")
+  completedAt                DateTime?          @map("completed_at")
+  user                       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_informations")
+}
+
+model CoachInvitation {
+  id           String    @id @default(uuid())
+  code         String    @unique
+  coachId      String    @map("coach_id")
+  usedByUserId String?   @unique @map("used_by_user_id")
+  usedAt       DateTime? @map("used_at")
+  isActive     Boolean   @default(true) @map("is_active")
+  description  String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  coach        Coach     @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  usedBy       User?     @relation("InvitationUser", fields: [usedByUserId], references: [id])
+
+  @@map("coach_invitations")
+}
 
 enum Difficulty {
   BEGINNER
@@ -229,8 +240,6 @@ enum ExerciseCategory {
   HYROX_STATION
 }
 
-// MARK: - Onboarding Enums
-
 enum HyroxExperience {
   BEGINNER
   INTERMEDIATE
@@ -244,108 +253,36 @@ enum HyroxGoal {
 }
 
 enum TrainingFrequency {
-  ONCE_WEEK      // 1x/semaine
-  TWICE_WEEK     // 2x/semaine
-  THREE_WEEK     // 3x/semaine
-  FOUR_WEEK      // 4x/semaine
-  FIVE_PLUS_WEEK // 5x+/semaine
+  ONCE_WEEK
+  TWICE_WEEK
+  THREE_WEEK
+  FOUR_WEEK
+  FIVE_PLUS_WEEK
 }
 
 enum SessionDuration {
-  THIRTY_MIN    // 30 minutes
-  FORTY_FIVE_MIN // 45 minutes
-  ONE_HOUR      // 1 heure
-  ONE_HOUR_PLUS // 1h+
+  THIRTY_MIN
+  FORTY_FIVE_MIN
+  ONE_HOUR
+  ONE_HOUR_PLUS
 }
 
 enum TrainingTime {
-  MORNING   // Matin
-  MIDDAY    // Midi
-  EVENING   // Soir
-  FLEXIBLE  // Flexible
+  MORNING
+  MIDDAY
+  EVENING
+  FLEXIBLE
 }
 
 enum TrainingIntensity {
-  SHORT_INTENSE    // Courtes et intenses
-  LONG_MODERATE    // Longues et modérées
-  MIXED           // Mixte
+  SHORT_INTENSE
+  LONG_MODERATE
+  MIXED
 }
-
-// MARK: - Subscription Plans
 
 enum SubscriptionPlan {
-  FREE          // Plan gratuit : 3 athlètes max
-  STARTER       // Plan débutant : 10 athlètes max
-  PROFESSIONAL  // Plan professionnel : 50 athlètes max
-  ENTERPRISE    // Plan entreprise : illimité
-}
-
-model UserInformations {
-  id        String   @id @default(uuid())
-  userId    String   @unique @map("user_id")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Indicateur de completion
-  hasCompletedOnboarding Boolean @default(false) @map("has_completed_onboarding")
-  
-  // Étape 1: Profil HYROX
-  hyroxExperience       HyroxExperience? @map("hyrox_experience")
-  hasCompetedHyrox      Boolean?         @map("has_competed_hyrox")
-  primaryGoal           HyroxGoal?       @map("primary_goal")
-  
-  // Étape 2: Condition physique
-  currentTrainingFrequency TrainingFrequency? @map("current_training_frequency")
-  trainingTypes           String[]           @map("training_types") // ["RUNNING", "STRENGTH", "CROSSFIT", "SWIMMING", "CYCLING"]
-  fitnessLevel            Int?               @map("fitness_level") // 1-10
-  injuriesLimitations     String?            @map("injuries_limitations")
-  
-  // Étape 3: Équipements & Salle
-  familiarWithHyroxStations Boolean?         @map("familiar_hyrox_stations")
-  difficultExercises        String[]         @map("difficult_exercises") // IDs des exercices difficiles
-  hasGymAccess             Boolean?          @map("has_gym_access")
-  gymName                  String?           @map("gym_name")
-  gymLocation              String?           @map("gym_location") // Adresse ou coordonnées
-  availableEquipment       String[]          @map("available_equipment") // ["SKIERG", "SLED", "ROWERG", "WALL_BALLS", etc.]
-  
-  // Étape 4: Planning
-  preferredTrainingFrequency TrainingFrequency? @map("preferred_training_frequency")
-  preferredSessionDuration   SessionDuration?   @map("preferred_session_duration")
-  targetCompetitionDate      DateTime?          @map("target_competition_date")
-  preferredTrainingTime      TrainingTime?      @map("preferred_training_time")
-  
-  // Étape 5: Préférences
-  preferredIntensity      TrainingIntensity? @map("preferred_intensity")
-  prefersStructuredProgram Boolean?          @map("prefers_structured_program")
-  wantsNotifications      Boolean?           @map("wants_notifications")
-  
-  // Timestamps
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
-  completedAt          DateTime? @map("completed_at")
-
-  @@map("user_informations")
-}
-
-// MARK: - Coach Invitations
-
-model CoachInvitation {
-  id          String   @id @default(uuid())
-  code        String   @unique // Code à 6 caractères
-  coachId     String   @map("coach_id")
-  coach       Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
-  
-  // Usage tracking
-  usedByUserId String?  @unique @map("used_by_user_id")
-  usedBy       User?    @relation("InvitationUser", fields: [usedByUserId], references: [id])
-  usedAt       DateTime? @map("used_at")
-  
-  // État du code
-  isActive     Boolean  @default(true) @map("is_active")
-  description  String?  // Note du coach
-  
-  // Timestamps
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  @@map("coach_invitations")
+  FREE
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
 }
