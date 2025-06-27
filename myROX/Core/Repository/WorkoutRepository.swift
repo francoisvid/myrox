@@ -25,6 +25,11 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
     private let apiService: APIService
     private let modelContext: ModelContext
     
+    // 🚀 OPTIMISATION P0 #2: Cache statique des Exercise IDs pour éviter les recherches O(n)
+    private static var exerciseIdCache: [String: String] = [:]
+    private static var cacheLastUpdated: Date?
+    private static let cacheValidityDuration: TimeInterval = 300 // 5 minutes
+    
     init(apiService: APIService = APIService.shared, modelContext: ModelContext) {
         self.apiService = apiService
         self.modelContext = modelContext
@@ -311,34 +316,76 @@ class WorkoutRepository: WorkoutRepositoryProtocol {
         )
     }
     
-    // Fonction pour résoudre les IDs d'exercices depuis le cache local
+    // 🚀 OPTIMISATION P0 #2: Fonction optimisée avec cache pour résoudre les IDs d'exercices
     private func getExerciseIdByName(_ exerciseName: String) -> String {
         // Extraire le nom de base de l'exercice (supprimer distance/répétitions)
         let baseName = extractBaseExerciseName(from: exerciseName)
+        let cacheKey = baseName.lowercased()
         
-        // Chercher l'exercice dans le cache local
+        // 1. Vérifier le cache d'abord (O(1))
+        if let cachedId = Self.exerciseIdCache[cacheKey] {
+            if let lastUpdated = Self.cacheLastUpdated,
+               Date().timeIntervalSince(lastUpdated) < Self.cacheValidityDuration {
+                // Cache valide, retourner immédiatement
+                return cachedId
+            }
+        }
+        
+        // 2. Le cache est vide ou expiré, le reconstruire
+        rebuildExerciseIdCache()
+        
+        // 3. Vérifier à nouveau le cache mis à jour
+        if let cachedId = Self.exerciseIdCache[cacheKey] {
+            print("✅ Exercice trouvé avec cache optimisé: '\(exerciseName)' -> ID: \(cachedId)")
+            return cachedId
+        }
+        
+        // 4. Fallback final: utiliser directement le nom de base
+        let fallbackId = baseName.lowercased().replacingOccurrences(of: " ", with: "-")
+        print("⚠️ Exercice '\(exerciseName)' (base: '\(baseName)') non trouvé dans le cache - fallback: \(fallbackId)")
+        
+        // Stocker le fallback dans le cache pour éviter de refaire la recherche
+        Self.exerciseIdCache[cacheKey] = fallbackId
+        
+        return fallbackId
+    }
+    
+    // 🚀 OPTIMISATION P0 #2: Reconstruction du cache d'Exercise IDs
+    private func rebuildExerciseIdCache() {
+        print("🔄 Reconstruction du cache Exercise ID (optimisation P0 #2)...")
+        
         let descriptor = FetchDescriptor<Exercise>()
         
         do {
             let exercises = try modelContext.fetch(descriptor)
             
-            // Recherche manuelle pour éviter les problèmes de predicate SwiftData
-            if let exercise = exercises.first(where: { exercise in
-                exercise.name.lowercased() == baseName.lowercased() ||
-                exercise.name.lowercased().contains(baseName.lowercased()) ||
-                baseName.lowercased().contains(exercise.name.lowercased())
-            }) {
-                print("✅ Exercice trouvé dans le cache: '\(exerciseName)' -> '\(exercise.name)' (ID: \(exercise.id.uuidString))")
-                return exercise.id.uuidString
+            // Construire le cache en une seule passe O(n)
+            Self.exerciseIdCache.removeAll()
+            
+            for exercise in exercises {
+                let cacheKey = exercise.name.lowercased()
+                Self.exerciseIdCache[cacheKey] = exercise.id.uuidString
+                
+                // Ajouter aussi des variantes communes pour améliorer les matches
+                let withoutSpaces = exercise.name.lowercased().replacingOccurrences(of: " ", with: "")
+                if withoutSpaces != cacheKey {
+                    Self.exerciseIdCache[withoutSpaces] = exercise.id.uuidString
+                }
             }
+            
+            Self.cacheLastUpdated = Date()
+            print("✅ Cache Exercise ID reconstruit: \(Self.exerciseIdCache.count) entrées")
+            
         } catch {
-            print("❌ Erreur lors de la recherche d'exercice: \(error)")
+            print("❌ Erreur lors de la reconstruction du cache Exercise ID: \(error)")
         }
-        
-        // Fallback final: utiliser directement le nom de base
-        print("⚠️ Exercice '\(exerciseName)' (base: '\(baseName)') non trouvé dans le cache")
-        return baseName.lowercased()
-            .replacingOccurrences(of: " ", with: "-")
+    }
+    
+    // 🚀 OPTIMISATION P0 #2: Méthode publique pour invalider le cache (utile après synchronisation d'exercices)
+    static func invalidateExerciseIdCache() {
+        exerciseIdCache.removeAll()
+        cacheLastUpdated = nil
+        print("🧹 Cache Exercise ID invalidé")
     }
     
     // Nouvelle fonction pour extraire le nom de base d'un exercice
